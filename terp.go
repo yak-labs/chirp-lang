@@ -30,8 +30,8 @@ type Terp struct {
 
 func Repr(a Any) string { return Sprintf("%#v", a) }
 
-func Must(a, b Any) {
+func Must(a, b Any, extra ...Any) {
 	if a != b {
-		panic(Repr(a) + " vs. " + Repr(b))
+		panic(Repr(a) + " vs. " + Repr(b) + " :: " + Repr(extra))
 	}
 }
