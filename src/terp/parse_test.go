@@ -1,7 +1,9 @@
-package terp
+package terp_test
 
 import (
 	"testing"
+
+	. "terp"
 )
 
 func Test1(t *testing.T) {

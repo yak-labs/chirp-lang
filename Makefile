@@ -1,7 +1,10 @@
-all: goterp ci demo1
+all: ci goterp test demo1
 
 goterp: FORCE
 	GOPATH=$$(pwd) go build -x goterp 
+test: FORCE
+	GOPATH=$$(pwd) go test -i src/terp/*.go
+	GOPATH=$$(pwd) go test src/terp/*.go
 ci:
 	ci -l -q -m/dev/null -t/dev/null src/*/*.go 
 fmt:
