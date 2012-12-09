@@ -61,7 +61,7 @@ func ToFloat(a Any) float64 {
 	case rune:
 		return float64(x)
 	case bool:
-	    log.Printf("BOOL %v", x)
+		log.Printf("BOOL %v", x)
 		if x {
 			return 1.0
 		}
