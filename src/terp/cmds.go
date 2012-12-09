@@ -8,7 +8,7 @@ import (
 var Builtins map[string]Command = make(map[string]Command, 0)
 
 func (t *Terp) initBuiltins() {
-	Builtins["+"] = MkChainingBinaryFlopCmd(t, BinaryFlop{ return a + b})
+	Builtins["+"] = MkChainingBinaryFlopCmd(t, 0.0, func(a, b float64) float64 { return a + b})
 	Builtins["must"] = cmdMust
 	Builtins["-"] = MkBinaryFlopCmd(t, func(a, b float64) float64 { return a - b })
 }
@@ -22,8 +22,9 @@ func MkBinaryFlopCmd(t *Terp, flop BinaryFlop) Command {
 	}
 }
 
-func MkChainingBinaryFlopCmd(t *Terp, z float64, flop BinaryFlop) Command {
+func MkChainingBinaryFlopCmd(t *Terp, starter float64, flop BinaryFlop) Command {
 	return func(t *Terp, argv List) Any {
+		z := starter  // Be sure not to modify starter!  It is captured.
 		for _, a := range argv[1:] {
 			z += ToFloat(a)
 		}
