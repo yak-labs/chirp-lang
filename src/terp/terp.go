@@ -2,6 +2,7 @@ package terp
 
 import (
 	. "fmt"
+	"log"
 	"sync"
 )
 
@@ -40,24 +41,32 @@ func NewTerp() *Terp {
 	return z
 }
 
-func (me *Terp) Eval(s string) string {
-	v := ParseCmd(s)
-	if len(v) < 1 {
-		return ""
-	}
-	cmdName := Str(v[0])
-	cmd, ok := me.Cmds[cmdName]
+func (me *Terp) Apply(head Any, args []Any) Any {
+	log.Printf("< Apply < %#v < %#v\n", head, args)
+	cmdName, ok := head.(string)
 	if !ok {
-	  cmd, ok = Builtins[cmdName]
+		panic(Sprintf("Command must be a string: %#v", head))
 	}
-	if !ok {panic(Sprintf("cmd not found: %q", cmdName))}
-	cmdArgs := v[1:]
-	z := cmd(me, cmdArgs)
-	return Repr(z)
+
+	fn, ok := me.Cmds[cmdName]
+	if !ok {
+		fn, ok = Builtins[cmdName]
+	}
+	if !ok {
+		panic(Sprintf("Command not found: %q", cmdName))
+	}
+	z := fn(me, args)
+	log.Printf("> Apply > %#v\n", z)
+	return z
 }
 
 func Repr(a Any) string { return Sprintf("%#v", a) }
-func Str(a Any) string { return Sprintf("%v", a) }
+func Str(a Any) string {
+	if s, ok := a.(string); ok {
+		return s
+	}
+	return Sprintf("%v", a)
+}
 
 func Must(a, b Any, extra ...Any) {
 	if a != b {
