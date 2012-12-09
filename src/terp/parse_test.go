@@ -6,7 +6,9 @@ import (
 
 func Test1(t *testing.T) {
 	a := ParseList("  one  two three  ")
-	if len(a) != 3 { panic("len not 3") }
+	if len(a) != 3 {
+		panic("len not 3")
+	}
 	Must(3, len(a))
 	Must("one", a[0])
 	Must("three", a[2])

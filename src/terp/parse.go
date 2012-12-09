@@ -5,7 +5,11 @@ import (
 )
 
 func White(ch uint8) bool {
-  return ch==' ' || ch=='\t' || ch=='\r' || ch=='\n'
+	return ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n'
+}
+
+func ParseCmd(s string) List {
+	return ParseList(s)
 }
 
 func ParseList(s string) List {
@@ -19,10 +23,14 @@ func ParseList(s string) List {
 		// skip space
 		for i < n {
 			c = s[i]
-			if !White(s[i]) { break }
+			if !White(s[i]) {
+				break
+			}
 			i++
 		}
-		if i == n { break }
+		if i == n {
+			break
+		}
 
 		buf := bytes.NewBuffer(nil)
 
@@ -34,10 +42,14 @@ func ParseList(s string) List {
 			for i < n {
 				c = s[i]
 				switch c {
-				case '{': b++
-				case '}': b--
+				case '{':
+					b++
+				case '}':
+					b--
 				}
-				if b==0 { break }
+				if b == 0 {
+					break
+				}
 				buf.WriteByte(c)
 				i++
 			}
@@ -48,7 +60,9 @@ func ParseList(s string) List {
 		} else {
 			for i < n {
 				c = s[i]
-				if White(s[i]) { break }
+				if White(s[i]) {
+					break
+				}
 				buf.WriteByte(c)
 				i++
 			}
@@ -57,12 +71,3 @@ func ParseList(s string) List {
 	}
 	return z
 }
-
-
-
-
-		
-		
-
-
-
