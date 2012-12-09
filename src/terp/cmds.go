@@ -2,6 +2,7 @@ package terp
 
 import (
 	. "fmt"
+	"log"
 	"strconv"
 )
 
@@ -35,7 +36,7 @@ func MkChainingBinaryFlopCmd(t *Terp, starter float64, flop BinaryFlop) Command 
 	return func(t *Terp, argv List) Any {
 		z := starter // Be sure not to modify starter!  It is captured.
 		for _, a := range argv[1:] {
-			z += ToFloat(a)
+			z = flop(z, ToFloat(a))
 		}
 		return z //Str(z)
 	}
@@ -60,6 +61,7 @@ func ToFloat(a Any) float64 {
 	case rune:
 		return float64(x)
 	case bool:
+	    log.Printf("BOOL %v", x)
 		if x {
 			return 1.0
 		}
