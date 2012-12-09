@@ -42,8 +42,9 @@ func NewTerp() *Terp {
 	return z
 }
 
-func (me *Terp) Apply(head Any, args []Any) Any {
-	log.Printf("< Apply < %#v < %#v\n", head, args)
+func (me *Terp) Apply(argv List) Any {
+	log.Printf("< Apply < %#v\n", argv)
+	head := argv[0]
 	cmdName, ok := head.(string)
 	if !ok {
 		panic(Sprintf("Command must be a string: %#v", head))
@@ -56,7 +57,7 @@ func (me *Terp) Apply(head Any, args []Any) Any {
 	if !ok {
 		panic(Sprintf("Command not found: %q", cmdName))
 	}
-	z := fn(me, args)
+	z := fn(me, argv)
 	log.Printf("> Apply > %#v\n", z)
 	return z
 }

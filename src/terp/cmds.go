@@ -37,18 +37,11 @@ func ToFloat(a Any) float64 {
 	return f
 }
 
-func CheckListLen(v List, n int) List {
-	if len(v) != n {
-		panic(Sprintf("CheckListLen: requires 2 elements (or command argv), but got %#v", v))
-	}
-	return v
-}
-
 func CheckArgs2(v List) (Any, Any) {
-	if len(v) != 2 {
+	if len(v) != 3 {
 		panic(Sprintf("Expected 2 argv, but got %#v", v))
 	}
-	return v[0], v[1]
+	return v[1], v[2]
 }
 
 func MkBinaryFlopCmd(t *Terp, flop BinaryFlop) Command {
@@ -60,7 +53,7 @@ func MkBinaryFlopCmd(t *Terp, flop BinaryFlop) Command {
 
 func MkChainingBinaryFlopCmd(t *Terp, z float64, flop BinaryFlop) Command {
 	return func(t *Terp, argv List) Any {
-		for _, a := range argv {
+		for _, a := range argv[1:] {
 			z += ToFloat(a)
 		}
 		return z //Str(z)
@@ -69,18 +62,18 @@ func MkChainingBinaryFlopCmd(t *Terp, z float64, flop BinaryFlop) Command {
 
 func cmdPlus(t *Terp, argv List) Any {
 	var z float64 = 0
-	for _, a := range argv {
+	for _, a := range argv[1:] {
 		z += ToFloat(a)
 	}
-	return z //Str(z)
+	return z
 }
 
 func cmdMust(t *Terp, argv List) Any {
-	x := Str(argv[0])
-	y := Str(argv[1])
+	x := Str(argv[1])
+	y := Str(argv[2])
 
 	if x == y {
-		return argv[1]
+		return argv[2]
 	}
 
 	panic("FAILED: must: " + Repr(argv))

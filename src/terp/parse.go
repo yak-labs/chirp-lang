@@ -29,7 +29,7 @@ Loop:
 		if len(words) == 0 {
 			break Loop
 		}
-		result = me.Apply(words[0], words[1:])
+		result = me.Apply(words)
 	}
 	if len(rest) > 0 {
 		panic(Sprintf("Eval: Did not eval entire string: rest=<%q>", rest))
@@ -87,7 +87,7 @@ Loop:
 		if len(words) == 0 {
 			break Loop
 		}
-		result = me.Apply(words[0], words[1:])
+		result = me.Apply(words)
 	}
 	if len(rest) == 0 || rest[0] != ']' {
 		panic("ParseSquare: missing end bracket")
