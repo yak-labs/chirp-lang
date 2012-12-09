@@ -8,23 +8,32 @@ import (
 var Builtins map[string]Command = make(map[string]Command, 0)
 
 func (t *Terp) initBuiltins() {
-	Builtins["+"] = MkChainingBinaryFlopCmd(t, 0.0, func(a, b float64) float64 { return a + b})
+	Builtins["+"] = MkChainingBinaryFlopCmd(t, 0.0, func(a, b float64) float64 { return a + b })
+	Builtins["*"] = MkChainingBinaryFlopCmd(t, 1.0, func(a, b float64) float64 { return a * b })
 	Builtins["must"] = cmdMust
 	Builtins["-"] = MkBinaryFlopCmd(t, func(a, b float64) float64 { return a - b })
+	Builtins["/"] = MkBinaryFlopCmd(t, func(a, b float64) float64 { return a / b })
+
+	Builtins["=="] = MkBinaryFlopCmd(t, func(a, b float64) float64 { return ToFloat(a == b) })
+	Builtins["!="] = MkBinaryFlopCmd(t, func(a, b float64) float64 { return ToFloat(a != b) })
+	Builtins["<"] = MkBinaryFlopCmd(t, func(a, b float64) float64 { return ToFloat(a < b) })
+	Builtins["<="] = MkBinaryFlopCmd(t, func(a, b float64) float64 { return ToFloat(a <= b) })
+	Builtins[">"] = MkBinaryFlopCmd(t, func(a, b float64) float64 { return ToFloat(a > b) })
+	Builtins[">="] = MkBinaryFlopCmd(t, func(a, b float64) float64 { return ToFloat(a >= b) })
 }
 
 type BinaryFlop func(a, b float64) float64
 
 func MkBinaryFlopCmd(t *Terp, flop BinaryFlop) Command {
 	return func(t *Terp, argv List) Any {
-		a, b := CheckArgs2(argv)
+		a, b := CheckArgv2(argv)
 		return flop(ToFloat(a), ToFloat(b))
 	}
 }
 
 func MkChainingBinaryFlopCmd(t *Terp, starter float64, flop BinaryFlop) Command {
 	return func(t *Terp, argv List) Any {
-		z := starter  // Be sure not to modify starter!  It is captured.
+		z := starter // Be sure not to modify starter!  It is captured.
 		for _, a := range argv[1:] {
 			z += ToFloat(a)
 		}
@@ -46,6 +55,15 @@ func ToFloat(a Any) float64 {
 		return float64(x)
 	case uint:
 		return float64(x)
+	case byte:
+		return float64(x)
+	case rune:
+		return float64(x)
+	case bool:
+		if x {
+			return 1.0
+		}
+		return 0.0
 	}
 	f, err := strconv.ParseFloat(Str(a), 64)
 	if err != nil {
@@ -54,11 +72,11 @@ func ToFloat(a Any) float64 {
 	return f
 }
 
-func CheckArgs2(v List) (Any, Any) {
-	if len(v) != 3 {
-		panic(Sprintf("Expected 2 argv, but got %#v", v))
+func CheckArgv2(argv List) (Any, Any) {
+	if len(argv) != 3 {
+		panic(Sprintf("Expected 2 arguments, but got %#v", argv))
 	}
-	return v[1], v[2]
+	return argv[1], argv[2]
 }
 
 func cmdPlus(t *Terp, argv List) Any {

@@ -8,6 +8,6 @@ fmt:
 	gofmt -w src/*/*.go 
 
 demo1:
-	./goterp 'must 3 [+ 1 2]; must 1015 [+ 0 1 2 3 [ + 2 2 ] 5 [+ 100 900]]'
+	./goterp 'must 3 [+ 1 2]; must 1015 [+ 0 1 2 3 [ + 2 2 ] [ - 8 3 ] [+ 100 900]]'
 
 FORCE:
