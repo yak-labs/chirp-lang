@@ -11,7 +11,7 @@ type Any interface{}
 type List []Any
 type Dict map[string]Any
 
-type Command func(*Terp, []Any) Any
+type Command func(*Terp, List) Any
 
 type Scope map[string]Any
 
@@ -38,6 +38,7 @@ func NewTerp() *Terp {
 	}
 
 	z.Top = &z.Fr
+	z.initBuiltins()
 	return z
 }
 
