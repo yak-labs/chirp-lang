@@ -108,6 +108,13 @@ func ToFloat(a Any) float64 {
 	return f
 }
 
+func CheckArgv1(argv List) Any {
+	if len(argv) != 1 + 1 {
+		panic(Sprintf("Expected 1 arguments, but got %#v", argv))
+	}
+	return argv[1]
+}
+
 func CheckArgv2(argv List) (Any, Any) {
 	if len(argv) != 2 + 1 {
 		panic(Sprintf("Expected 2 arguments, but got %#v", argv))
@@ -115,11 +122,11 @@ func CheckArgv2(argv List) (Any, Any) {
 	return argv[1], argv[2]
 }
 
-func CheckArgv1(argv List) Any {
-	if len(argv) != 1 + 1 {
-		panic(Sprintf("Expected 2 arguments, but got %#v", argv))
+func CheckArgv3(argv List) (Any, Any, Any) {
+	if len(argv) != 3 + 1 {
+		panic(Sprintf("Expected 3 arguments, but got %#v", argv))
 	}
-	return argv[1]
+	return argv[1], argv[2], argv[3]
 }
 
 func cmdMust(fr *Frame, argv List) Any {
@@ -171,4 +178,17 @@ func cmdSet(fr *Frame, argv List) Any {
 	name, x := CheckArgv2(argv)
 	fr.SetVar(Str(name), x)
 	return x
+}
+
+func cmdProc(fr *Frame, argv List) Any {
+	name, alist, body := CheckArgv3(argv)
+	cmd := func (fr2 *Frame, argv2 List) {
+		fr3 := fr2.NewFrame()
+		for i, arg := range alist {
+			fr3.SetVar(arg, argv2[i+1])
+		}
+		return fr3.Eval(body)
+	}
+	fr.G.Cmds[Str(name)] = cmd 
+	return nil
 }

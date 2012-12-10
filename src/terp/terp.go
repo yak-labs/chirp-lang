@@ -47,6 +47,15 @@ func New() *Frame {
 	return &g.Fr
 }
 
+func NewFrame(fr *Frame) *Frame {
+	return &Frame{
+		Vars: make(Scope),
+		Slots: nil,
+		Prev: fr,
+		G: fr.G,
+	}
+}
+
 func IsGlobal(name string) bool {
 	return ast.IsExported(name)  // Same criteria, First is Uppercase.
 }
