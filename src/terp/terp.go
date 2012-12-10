@@ -12,7 +12,7 @@ type Any interface{}
 type List []Any
 type Dict map[string]Any
 
-type Command func(*Frame, List) Any
+type Command func(fr *Frame, argv List) Any
 
 type Scope map[string]Any
 

@@ -23,6 +23,7 @@ func (fr *Frame) initBuiltins() {
 
 	Builtins["must"] = cmdMust
 	Builtins["if"] = cmdIf
+	Builtins["get"] = cmdGet
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -153,4 +154,6 @@ func cmdIf(fr *Frame, argv List) Any {
 	return nil
 }
 
-
+func cmdGet(fr *Frame, argv List) Any {
+	return nil
+}
