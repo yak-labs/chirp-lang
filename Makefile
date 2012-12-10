@@ -1,4 +1,4 @@
-all: ci goterp test demo1
+all: ci goterp test
 
 goterp: FORCE
 	GOPATH=$$(pwd) go build -x goterp 
