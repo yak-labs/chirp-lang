@@ -35,7 +35,13 @@ var tests = `
   proc square {x} {* [get x] [get x]}
   must 16 [double 8]
   must 16 [square 4]
-  proc tri n {if {< [get n] 1} {+} else {+ [get n] [tri [- [get n] 1]]}}
+  proc tri n {
+    if {< [get n] 1} {
+      + 0
+    } else {
+      + [get n] [tri [- [get n] 1]]
+    }
+  }
   must 15 [tri 5]
 `
 
