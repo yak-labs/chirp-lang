@@ -47,7 +47,7 @@ func New() *Frame {
 	return &g.Fr
 }
 
-func NewFrame(fr *Frame) *Frame {
+func (fr *Frame) NewFrame() *Frame {
 	return &Frame{
 		Vars: make(Scope),
 		Slots: nil,

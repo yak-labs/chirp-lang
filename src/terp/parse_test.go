@@ -7,7 +7,8 @@ import (
 )
 
 func Test1(t *testing.T) {
-	a := ParseList("  one  two three  ")
+	fr := New()
+	a := fr.ParseList("  one  two three  ")
 	if len(a) != 3 {
 		panic("len not 3")
 	}
@@ -17,8 +18,9 @@ func Test1(t *testing.T) {
 }
 
 func Test2(t *testing.T) {
-	a := ParseList("  one  { number two } three  ")
-	//if len(a) != 3 { panic("len not 3") }
+	fr := New()
+	a := fr.ParseList("  one  { number two } three  ")
+	if len(a) != 3 { panic("len not 3") }
 	println(Repr(a))
 	Must(3, len(a), a)
 	Must("one", a[0])

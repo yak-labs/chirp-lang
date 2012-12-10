@@ -25,6 +25,7 @@ func (fr *Frame) initBuiltins() {
 	Builtins["if"] = cmdIf
 	Builtins["get"] = cmdGet
 	Builtins["set"] = cmdSet
+	Builtins["proc"] = cmdProc
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -181,11 +182,12 @@ func cmdSet(fr *Frame, argv List) Any {
 }
 
 func cmdProc(fr *Frame, argv List) Any {
-	name, alist, body := CheckArgv3(argv)
-	cmd := func (fr2 *Frame, argv2 List) {
+	name, aa, body := CheckArgv3(argv)
+	alist := fr.ParseList(aa)
+	cmd := func (fr2 *Frame, argv2 List) Any {
 		fr3 := fr2.NewFrame()
 		for i, arg := range alist {
-			fr3.SetVar(arg, argv2[i+1])
+			fr3.SetVar(Str(arg), argv2[i+1])
 		}
 		return fr3.Eval(body)
 	}

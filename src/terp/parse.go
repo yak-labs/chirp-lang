@@ -253,7 +253,11 @@ Loop:
 	return
 }
 
-func ParseList(s string) List {
+func (fr *Frame) ParseList(a Any) List {
+	if v, ok := a.(List); ok {
+		return v
+	}
+	s := Str(a)
 	n := len(s)
 	i := 0
 	z := make(List, 0, 8)
