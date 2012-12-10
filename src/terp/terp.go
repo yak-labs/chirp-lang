@@ -19,39 +19,39 @@ type Scope map[string]Any
 type CmdScope map[string]Command
 
 type Frame struct {
-	Vars *Scope
+	Vars Scope
+	Slots Scope
+
 	Prev *Frame
 	G *Global
-	Slots *Scope
+	Mu   sync.Mutex
 }
 
 type Global struct {
-	Top  *Frame // current frame
-	Mu   sync.Mutex
 	Cmds CmdScope
 	Fr   Frame // global scope
+
+	Mu   sync.Mutex
 }
 
 func New() *Frame {
-	scope := make(Scope)
 	g := &Global{
 		Cmds: make(CmdScope),
 		Fr: Frame{
-			Vars: &scope,
+			Vars: make(Scope),
 		},
 	}
 
 	g.Fr.G = g
-	g.Top = &g.Fr
-	g.Top.initBuiltins()
-	return g.Top
+	g.Fr.initBuiltins()
+	return &g.Fr
 }
 
 func IsGlobal(name string) bool {
 	return ast.IsExported(name)  // Same criteria, First is Uppercase.
 }
 
-func (fr *Frame) GetVar(name string) Any {
+func (fr *Frame) GetVarScope(name string) Scope {
 	if len(name) == 0 {
 		panic("Empty variable name")
 	}
@@ -59,13 +59,21 @@ func (fr *Frame) GetVar(name string) Any {
 		if fr.Slots == nil {
 			panic("No slots in this frame: " + name)
 		}
-		return (*fr.Slots)[name]
+		return fr.Slots
 	}
 
 	if IsGlobal(name) {
-		return (*fr.G.Fr.Vars)[name]
+		return fr.G.Fr.Vars
 	}
-	return (*fr.Vars)[name]
+	return fr.Vars
+}
+
+func (fr *Frame) GetVar(name string) Any {
+	return fr.GetVarScope(name)[name]
+}
+
+func (fr *Frame) SetVar(name string, x Any) {
+	fr.GetVarScope(name)[name] = x
 }
 
 func (fr *Frame) Apply(argv List) Any {

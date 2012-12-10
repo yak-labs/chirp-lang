@@ -24,6 +24,7 @@ func (fr *Frame) initBuiltins() {
 	Builtins["must"] = cmdMust
 	Builtins["if"] = cmdIf
 	Builtins["get"] = cmdGet
+	Builtins["set"] = cmdSet
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -114,6 +115,13 @@ func CheckArgv2(argv List) (Any, Any) {
 	return argv[1], argv[2]
 }
 
+func CheckArgv1(argv List) Any {
+	if len(argv) != 1 + 1 {
+		panic(Sprintf("Expected 2 arguments, but got %#v", argv))
+	}
+	return argv[1]
+}
+
 func cmdMust(fr *Frame, argv List) Any {
 	x := Str(argv[1])
 	y := Str(argv[2])
@@ -155,5 +163,12 @@ func cmdIf(fr *Frame, argv List) Any {
 }
 
 func cmdGet(fr *Frame, argv List) Any {
-	return nil
+	name := CheckArgv1(argv)
+	return fr.GetVar(Str(name))
+}
+
+func cmdSet(fr *Frame, argv List) Any {
+	name, x := CheckArgv2(argv)
+	fr.SetVar(Str(name), x)
+	return x
 }
