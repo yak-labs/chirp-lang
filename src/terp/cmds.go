@@ -42,6 +42,36 @@ func MkChainingBinaryFlopCmd(t *Terp, starter float64, flop BinaryFlop) Command 
 	}
 }
 
+func Truth(a Any) bool {
+	switch x := a.(type) {
+	case float64:
+		return x != 0
+	case float32:
+		return x != 0
+	case uint64:
+		return x != 0
+	case int64:
+		return x != 0
+	case int:
+		return x != 0
+	case uint:
+		return x != 0
+	case byte:
+		return x != 0
+	case rune:
+		return x != 0
+	case bool:
+		return x
+	case string:
+		return x != 0
+	case List:
+		return len(x) != 0
+	case Dict:
+		return len(x) != 0
+	}
+	panic(Sprintf("Case not supported in Truth(): %#v", a))
+}
+
 func ToFloat(a Any) float64 {
 	switch x := a.(type) {
 	case float64:
