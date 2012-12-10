@@ -33,6 +33,15 @@ var tests = `
   must 81028 [+ "8[get a]8" [get b]]
   must 81028 [+ 8[get a]8 [get b]]
 
+  must cc [lat [list aa bb cc dd ee] 2]
+  must cc [lat " aa bb cc dd ee" 2]
+  must cc [lat { aa bb cc dd ee } 2]
+
+  must 5 [llen [list aa bb cc dd ee] ]
+  must 1 [slen [llen [list aa bb cc dd ee] ]]
+  must 2 [slen [llen [list aa bb cc dd ee 1 2 3 4 5] ]]
+  must 0 [slen ""]
+
   proc double {x} {+ [get x] [get x]}
   proc square {x} {* [get x] [get x]}
   must 16 [double 8]

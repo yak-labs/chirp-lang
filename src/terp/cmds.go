@@ -27,6 +27,11 @@ func (fr *Frame) initBuiltins() {
 	Builtins["set"] = cmdSet
 	Builtins["proc"] = cmdProc
 	Builtins["ls"] = cmdLs
+	Builtins["slen"] = cmdSLen
+	Builtins["llen"] = cmdLLen
+	Builtins["list"] = cmdList
+	Builtins["sat"] = cmdSAt
+	Builtins["lat"] = cmdLAt
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -185,6 +190,14 @@ func cmdSet(fr *Frame, argv List) Any {
 func cmdProc(fr *Frame, argv List) Any {
 	name, aa, body := CheckArgv3(argv)
 	alist := fr.ParseList(aa)
+	astrs := make([]string, len(alist))
+	for i, arg := range alist {
+		astr := Str(arg)
+		if !IsLocal(astr) {
+			panic(Sprintf("Cannot use nonlocal name %q for argument in proc", arg))
+		}
+		astrs[i] = astr
+	}
 	n := len(alist) + 1
 	cmd := func (fr2 *Frame, argv2 List) Any {
 		if argv2 == nil {
@@ -195,8 +208,8 @@ func cmdProc(fr *Frame, argv List) Any {
 			panic(Sprintf("Proc %q expects args %#v but got %#v", name, aa, argv2))
 		}
 		fr3 := fr2.NewFrame()
-		for i, arg := range alist {
-			fr3.SetVar(Str(arg), argv2[i+1])
+		for i, arg := range astrs {
+			fr3.SetVar(arg, argv2[i+1])
 		}
 		return fr3.Eval(body)
 	}
@@ -208,4 +221,32 @@ func cmdLs(fr *Frame, argv List) Any {
 	name := CheckArgv1(argv)
 	fn := fr.G.Cmds[Str(name)]
 	return fn(fr, nil)
+}
+
+func cmdSLen(fr *Frame, argv List) Any {
+	a := CheckArgv1(argv)
+	return float64(len(Str(a)))
+}
+
+func cmdLLen(fr *Frame, argv List) Any {
+	a := CheckArgv1(argv)
+	return float64(len(fr.ParseList(a)))
+}
+
+func cmdList(fr *Frame, argv List) Any {
+	return argv[1:]
+}
+
+func cmdLAt(fr *Frame, argv List) Any {
+	v, j := CheckArgv2(argv)
+	f := ToFloat(j)
+	i := int(f)
+	return fr.ParseList(v)[i]
+}
+
+func cmdSAt(fr *Frame, argv List) Any {
+	s, j := CheckArgv2(argv)
+	f := ToFloat(j)
+	i := int(f)
+	return Str(s)[i : i+1]
 }

@@ -59,7 +59,17 @@ func (fr *Frame) NewFrame() *Frame {
 func NewList(a ...Any) List { return List(a) }
 
 func IsGlobal(name string) bool {
+	if len(name) == 0 {
+		panic("Empty variable name")
+	}
 	return ast.IsExported(name)  // Same criteria, First is Uppercase.
+}
+
+func IsLocal(name string) bool {
+	if len(name) == 0 {
+		panic("Empty variable name")
+	}
+	return !ast.IsExported(name) && name[0] != '_'
 }
 
 func (fr *Frame) GetVarScope(name string) Scope {
