@@ -1,8 +1,8 @@
 package terp
 
 import (
-	"go/ast"
 	. "fmt"
+	"go/ast"
 	"log"
 	"sync"
 )
@@ -19,11 +19,11 @@ type Scope map[string]Any
 type CmdScope map[string]Command
 
 type Frame struct {
-	Vars Scope
+	Vars  Scope
 	Slots Scope
 
 	Prev *Frame
-	G *Global
+	G    *Global
 	Mu   sync.Mutex
 }
 
@@ -31,7 +31,7 @@ type Global struct {
 	Cmds CmdScope
 	Fr   Frame // global scope
 
-	Mu   sync.Mutex
+	Mu sync.Mutex
 }
 
 func New() *Frame {
@@ -49,10 +49,10 @@ func New() *Frame {
 
 func (fr *Frame) NewFrame() *Frame {
 	return &Frame{
-		Vars: make(Scope),
+		Vars:  make(Scope),
 		Slots: nil,
-		Prev: fr,
-		G: fr.G,
+		Prev:  fr,
+		G:     fr.G,
 	}
 }
 
@@ -62,7 +62,7 @@ func IsGlobal(name string) bool {
 	if len(name) == 0 {
 		panic("Empty variable name")
 	}
-	return ast.IsExported(name)  // Same criteria, First is Uppercase.
+	return ast.IsExported(name) // Same criteria, First is Uppercase.
 }
 
 func IsLocal(name string) bool {

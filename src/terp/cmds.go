@@ -116,21 +116,21 @@ func ToFloat(a Any) float64 {
 }
 
 func CheckArgv1(argv List) Any {
-	if len(argv) != 1 + 1 {
+	if len(argv) != 1+1 {
 		panic(Sprintf("Expected 1 arguments, but got %#v", argv))
 	}
 	return argv[1]
 }
 
 func CheckArgv2(argv List) (Any, Any) {
-	if len(argv) != 2 + 1 {
+	if len(argv) != 2+1 {
 		panic(Sprintf("Expected 2 arguments, but got %#v", argv))
 	}
 	return argv[1], argv[2]
 }
 
 func CheckArgv3(argv List) (Any, Any, Any) {
-	if len(argv) != 3 + 1 {
+	if len(argv) != 3+1 {
 		panic(Sprintf("Expected 3 arguments, but got %#v", argv))
 	}
 	return argv[1], argv[2], argv[3]
@@ -148,7 +148,7 @@ func cmdMust(fr *Frame, argv List) Any {
 }
 
 func cmdIf(fr *Frame, argv List) Any {
-	if len(argv) < 3 + 1 {
+	if len(argv) < 3+1 {
 		panic(Sprintf("Too few arguments for if: %#v", argv))
 	}
 	var cond, yes, no Any
@@ -172,7 +172,7 @@ func cmdIf(fr *Frame, argv List) Any {
 	if no != nil {
 		return fr.Eval(no)
 	}
-		
+
 	return nil
 }
 
@@ -199,7 +199,7 @@ func cmdProc(fr *Frame, argv List) Any {
 		astrs[i] = astr
 	}
 	n := len(alist) + 1
-	cmd := func (fr2 *Frame, argv2 List) Any {
+	cmd := func(fr2 *Frame, argv2 List) Any {
 		if argv2 == nil {
 			// Debug Data, if invoked with nil argv2.
 			return argv
@@ -213,7 +213,7 @@ func cmdProc(fr *Frame, argv List) Any {
 		}
 		return fr3.Eval(body)
 	}
-	fr.G.Cmds[Str(name)] = cmd 
+	fr.G.Cmds[Str(name)] = cmd
 	return nil
 }
 
