@@ -56,6 +56,8 @@ func (fr *Frame) NewFrame() *Frame {
 	}
 }
 
+func NewList(a ...Any) List { return List(a) }
+
 func IsGlobal(name string) bool {
 	return ast.IsExported(name)  // Same criteria, First is Uppercase.
 }

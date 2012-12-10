@@ -30,6 +30,8 @@ var tests = `
   must 23 [if {== 0.5 [/ 1 2]} {+ 20 3} else {+ 40 2}]
 
   set a 100; set b 20; must 120 [+ [get a] [get b]]
+  must 81028 [+ "8[get a]8" [get b]]
+  must 81028 [+ 8[get a]8 [get b]]
 
   proc double {x} {+ [get x] [get x]}
   proc square {x} {* [get x] [get x]}

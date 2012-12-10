@@ -153,7 +153,7 @@ Loop:
 		switch c {
 		case '[':
 			// Mid-word, squares should return stringlike result.
-			result, rest := fr.ParseSquare(s)
+			result, rest := fr.ParseSquare(s[i:])
 			buf.WriteString(Str(result))
 			s = rest
 			n = len(s)

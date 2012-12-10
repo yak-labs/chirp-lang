@@ -26,6 +26,7 @@ func (fr *Frame) initBuiltins() {
 	Builtins["get"] = cmdGet
 	Builtins["set"] = cmdSet
 	Builtins["proc"] = cmdProc
+	Builtins["ls"] = cmdLs
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -184,7 +185,15 @@ func cmdSet(fr *Frame, argv List) Any {
 func cmdProc(fr *Frame, argv List) Any {
 	name, aa, body := CheckArgv3(argv)
 	alist := fr.ParseList(aa)
+	n := len(alist) + 1
 	cmd := func (fr2 *Frame, argv2 List) Any {
+		if argv2 == nil {
+			// Debug Data, if invoked with nil argv2.
+			return argv
+		}
+		if len(argv2) != n {
+			panic(Sprintf("Proc %q expects args %#v but got %#v", name, aa, argv2))
+		}
 		fr3 := fr2.NewFrame()
 		for i, arg := range alist {
 			fr3.SetVar(Str(arg), argv2[i+1])
@@ -193,4 +202,10 @@ func cmdProc(fr *Frame, argv List) Any {
 	}
 	fr.G.Cmds[Str(name)] = cmd 
 	return nil
+}
+
+func cmdLs(fr *Frame, argv List) Any {
+	name := CheckArgv1(argv)
+	fn := fr.G.Cmds[Str(name)]
+	return fn(fr, nil)
 }
