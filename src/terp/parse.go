@@ -40,7 +40,9 @@ Loop:
 
 // Parse nested curlies, returning contents and new position
 func (me *Terp) ParseCurly(s string) (result Any, rest string) {
-	Must('{', s[0], "ParseCurly should begin at open curly")
+	if s[0] != '{' {
+		panic("ParseCurly should begin at open curly")
+	} // '}'
 	n := len(s)
 	i := 1
 
@@ -77,7 +79,9 @@ Loop:
 func (me *Terp) ParseSquare(s string) (result Any, rest string) {
 	log.Printf("< ParseSquare < %#v\n", s)
 	result = "" // In case there are no commands.
-	Must(byte('['), byte(s[0]), "ParseSquare should begin at open square")
+	if s[0] != '[' {
+		panic("ParseSquare should begin at open square")
+	}
 	rest = s[1:]
 
 Loop:
@@ -98,7 +102,38 @@ Loop:
 }
 
 func (me *Terp) ParseQuote(s string) (result Any, rest string) {
-	panic("ParseQuote: not yet")
+	log.Printf("< ParseQuote < %#v\n", s)
+	if s[0] != '"' {
+		panic("ParseCurly should begin at open curly")
+	}
+	i := 1
+	n := len(s)
+	buf := bytes.NewBuffer(nil)
+Loop:
+	for i < n {
+		c := s[i]
+		switch c {
+		case '[':
+			// Mid-word, squares should return stringlike result.
+			result, rest := me.ParseSquare(s[i:])
+			buf.WriteString(Str(result))
+			s = rest
+			n = len(s)
+			i = 0
+		case ']':
+			panic("ParseQuote: CloseSquareBracket inside Quote")
+		case '"':
+			i++
+			break Loop
+		default:
+			buf.WriteByte(c)
+			i++
+		}
+	}
+	result = buf.String()
+	rest = s[i:]
+	log.Printf("> ParseQuote > %#v > %q\n", result, rest)
+	return
 }
 
 // Parse a bareword, returning result and new position
