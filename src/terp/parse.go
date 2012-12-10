@@ -18,10 +18,15 @@ func WhiteOrSemi(ch uint8) bool {
 	return ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n' || ch == ';'
 }
 
-func (me *Terp) Eval(s string) (result Any) {
+func (me *Terp) Eval(a Any) (result Any) {
 	result = "" // In case there are no commands.
-	log.Printf("< Eval < %#v\n", s)
-	rest := s
+	log.Printf("< Eval < %#v\n", a)
+
+	if v, ok := a.(List); ok {
+		return me.Apply(v)
+	}
+
+	rest := Str(a)
 Loop:
 	for {
 		var words List

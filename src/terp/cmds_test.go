@@ -27,6 +27,7 @@ var tests = `
   must 1 [== [+ 1 3] [+ 2 2]]
   must 1 [> 0.334 [/ 1 3]]
   must 1 [< 0.333 [/ 1 3]]
+  must 23 [if {== 0.5 [/ 1 2]} {+ 20 3} else {+ 40 2}]
 `
 
 func TestFoo(a *testing.T) {

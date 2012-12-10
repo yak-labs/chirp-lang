@@ -11,7 +11,6 @@ var Builtins map[string]Command = make(map[string]Command, 0)
 func (t *Terp) initBuiltins() {
 	Builtins["+"] = MkChainingBinaryFlopCmd(t, 0.0, func(a, b float64) float64 { return a + b })
 	Builtins["*"] = MkChainingBinaryFlopCmd(t, 1.0, func(a, b float64) float64 { return a * b })
-	Builtins["must"] = cmdMust
 	Builtins["-"] = MkBinaryFlopCmd(t, func(a, b float64) float64 { return a - b })
 	Builtins["/"] = MkBinaryFlopCmd(t, func(a, b float64) float64 { return a / b })
 
@@ -21,6 +20,9 @@ func (t *Terp) initBuiltins() {
 	Builtins["<="] = MkBinaryFlopCmd(t, func(a, b float64) float64 { return ToFloat(a <= b) })
 	Builtins[">"] = MkBinaryFlopCmd(t, func(a, b float64) float64 { return ToFloat(a > b) })
 	Builtins[">="] = MkBinaryFlopCmd(t, func(a, b float64) float64 { return ToFloat(a >= b) })
+
+	Builtins["must"] = cmdMust
+	Builtins["if"] = cmdIf
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -63,7 +65,7 @@ func Truth(a Any) bool {
 	case bool:
 		return x
 	case string:
-		return x != 0
+		return len(x) != 0
 	case List:
 		return len(x) != 0
 	case Dict:
@@ -105,18 +107,10 @@ func ToFloat(a Any) float64 {
 }
 
 func CheckArgv2(argv List) (Any, Any) {
-	if len(argv) != 3 {
+	if len(argv) != 2 + 1 {
 		panic(Sprintf("Expected 2 arguments, but got %#v", argv))
 	}
 	return argv[1], argv[2]
-}
-
-func cmdPlus(t *Terp, argv List) Any {
-	var z float64 = 0
-	for _, a := range argv[1:] {
-		z += ToFloat(a)
-	}
-	return z
 }
 
 func cmdMust(t *Terp, argv List) Any {
@@ -129,3 +123,34 @@ func cmdMust(t *Terp, argv List) Any {
 
 	panic("FAILED: must: " + Repr(argv))
 }
+
+func cmdIf(t *Terp, argv List) Any {
+	if len(argv) < 3 + 1 {
+		panic(Sprintf("Too few arguments for if: %#v", argv))
+	}
+	var cond, yes, no Any
+
+	switch len(argv) {
+	case 5:
+		if argv[3] != "else" {
+			panic(Sprintf("Expected 'else' at argv[3]: %#v", argv))
+		}
+		cond, yes, no = argv[1], argv[2], argv[4]
+	case 3:
+		cond, yes = argv[1], argv[2]
+	default:
+		panic(Sprintf("Wrong len(argv) for if: %#v", argv))
+	}
+
+	if Truth(t.Eval(cond)) {
+		return t.Eval(yes)
+	}
+
+	if no != nil {
+		return t.Eval(no)
+	}
+		
+	return nil
+}
+
+
