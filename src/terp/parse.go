@@ -18,23 +18,23 @@ func WhiteOrSemi(ch uint8) bool {
 	return ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n' || ch == ';'
 }
 
-func (me *Terp) Eval(a Any) (result Any) {
+func (fr *Frame) Eval(a Any) (result Any) {
 	result = "" // In case there are no commands.
 	log.Printf("< Eval < %#v\n", a)
 
 	if v, ok := a.(List); ok {
-		return me.Apply(v)
+		return fr.Apply(v)
 	}
 
 	rest := Str(a)
 Loop:
 	for {
 		var words List
-		words, rest = me.ParseCmd(rest)
+		words, rest = fr.ParseCmd(rest)
 		if len(words) == 0 {
 			break Loop
 		}
-		result = me.Apply(words)
+		result = fr.Apply(words)
 	}
 	if len(rest) > 0 {
 		panic(Sprintf("Eval: Did not eval entire string: rest=<%q>", rest))
@@ -44,7 +44,7 @@ Loop:
 }
 
 // Parse nested curlies, returning contents and new position
-func (me *Terp) ParseCurly(s string) (result Any, rest string) {
+func (fr *Frame) ParseCurly(s string) (result Any, rest string) {
 	if s[0] != '{' {
 		panic("ParseCurly should begin at open curly")
 	} // '}'
@@ -81,7 +81,7 @@ Loop:
 
 // TODO: ParseSquare is too much like Eval.
 // Parse Square Bracketed subcommand, returning result and new position
-func (me *Terp) ParseSquare(s string) (result Any, rest string) {
+func (fr *Frame) ParseSquare(s string) (result Any, rest string) {
 	log.Printf("< ParseSquare < %#v\n", s)
 	result = "" // In case there are no commands.
 	if s[0] != '[' {
@@ -92,11 +92,11 @@ func (me *Terp) ParseSquare(s string) (result Any, rest string) {
 Loop:
 	for {
 		var words List
-		words, rest = me.ParseCmd(rest)
+		words, rest = fr.ParseCmd(rest)
 		if len(words) == 0 {
 			break Loop
 		}
-		result = me.Apply(words)
+		result = fr.Apply(words)
 	}
 	if len(rest) == 0 || rest[0] != ']' {
 		panic("ParseSquare: missing end bracket")
@@ -106,7 +106,7 @@ Loop:
 	return
 }
 
-func (me *Terp) ParseQuote(s string) (result Any, rest string) {
+func (fr *Frame) ParseQuote(s string) (result Any, rest string) {
 	log.Printf("< ParseQuote < %#v\n", s)
 	if s[0] != '"' {
 		panic("ParseCurly should begin at open curly")
@@ -120,7 +120,7 @@ Loop:
 		switch c {
 		case '[':
 			// Mid-word, squares should return stringlike result.
-			result, rest := me.ParseSquare(s[i:])
+			result, rest := fr.ParseSquare(s[i:])
 			buf.WriteString(Str(result))
 			s = rest
 			n = len(s)
@@ -142,7 +142,7 @@ Loop:
 }
 
 // Parse a bareword, returning result and new position
-func (me *Terp) ParseWord(s string) (result Any, rest string) {
+func (fr *Frame) ParseWord(s string) (result Any, rest string) {
 	log.Printf("< ParseWord < %#v\n", s)
 	i := 0
 	n := len(s)
@@ -153,7 +153,7 @@ Loop:
 		switch c {
 		case '[':
 			// Mid-word, squares should return stringlike result.
-			result, rest := me.ParseSquare(s)
+			result, rest := fr.ParseSquare(s)
 			buf.WriteString(Str(result))
 			s = rest
 			n = len(s)
@@ -177,7 +177,7 @@ Loop:
 
 // Might return nonempty <rest> if it finds ']'
 // Returns next command as List (may be empty) (substituting as needed) and remaining string.
-func (me *Terp) ParseCmd(str string) (z List, s string) {
+func (fr *Frame) ParseCmd(str string) (z List, s string) {
 	s = str
 	log.Printf("< ParseCmd < %#v\n", s)
 	z = make(List, 0, 8)
@@ -203,19 +203,19 @@ Loop:
 		case ']':
 			break Loop
 		case '{':
-			result, rest := me.ParseCurly(s)
+			result, rest := fr.ParseCurly(s)
 			z = append(z, result)
 			s = rest
 		case '[':
-			result, rest := me.ParseSquare(s)
+			result, rest := fr.ParseSquare(s)
 			z = append(z, result)
 			s = rest
 		case '"':
-			result, rest := me.ParseQuote(s)
+			result, rest := fr.ParseQuote(s)
 			z = append(z, result)
 			s = rest
 		default:
-			result, rest := me.ParseWord(s)
+			result, rest := fr.ParseWord(s)
 			z = append(z, result)
 			s = rest
 		}

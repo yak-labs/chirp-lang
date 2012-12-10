@@ -1,6 +1,7 @@
 package terp
 
 import (
+	"go/ast"
 	. "fmt"
 	"log"
 	"sync"
@@ -11,38 +12,63 @@ type Any interface{}
 type List []Any
 type Dict map[string]Any
 
-type Command func(*Terp, List) Any
+type Command func(*Frame, List) Any
 
 type Scope map[string]Any
 
 type CmdScope map[string]Command
 
 type Frame struct {
-	Vars Scope
+	Vars *Scope
 	Prev *Frame
+	G *Global
+	Slots *Scope
 }
 
-type Terp struct {
+type Global struct {
 	Top  *Frame // current frame
 	Mu   sync.Mutex
 	Cmds CmdScope
 	Fr   Frame // global scope
 }
 
-func NewTerp() *Terp {
-	z := &Terp{
+func New() *Frame {
+	scope := make(Scope)
+	g := &Global{
 		Cmds: make(CmdScope),
 		Fr: Frame{
-			Vars: make(Scope),
+			Vars: &scope,
 		},
 	}
 
-	z.Top = &z.Fr
-	z.initBuiltins()
-	return z
+	g.Fr.G = g
+	g.Top = &g.Fr
+	g.Top.initBuiltins()
+	return g.Top
 }
 
-func (me *Terp) Apply(argv List) Any {
+func IsGlobal(name string) bool {
+	return ast.IsExported(name)  // Same criteria, First is Uppercase.
+}
+
+func (fr *Frame) GetVar(name string) Any {
+	if len(name) == 0 {
+		panic("Empty variable name")
+	}
+	if name[0] == '_' {
+		if fr.Slots == nil {
+			panic("No slots in this frame: " + name)
+		}
+		return (*fr.Slots)[name]
+	}
+
+	if IsGlobal(name) {
+		return (*fr.G.Fr.Vars)[name]
+	}
+	return (*fr.Vars)[name]
+}
+
+func (fr *Frame) Apply(argv List) Any {
 	log.Printf("< Apply < %#v\n", argv)
 	head := argv[0]
 	cmdName, ok := head.(string)
@@ -50,14 +76,14 @@ func (me *Terp) Apply(argv List) Any {
 		panic(Sprintf("Command must be a string: %#v", head))
 	}
 
-	fn, ok := me.Cmds[cmdName]
+	fn, ok := fr.G.Cmds[cmdName]
 	if !ok {
 		fn, ok = Builtins[cmdName]
 	}
 	if !ok {
 		panic(Sprintf("Command not found: %q", cmdName))
 	}
-	z := fn(me, argv)
+	z := fn(fr, argv)
 	log.Printf("> Apply > %#v\n", z)
 	return z
 }

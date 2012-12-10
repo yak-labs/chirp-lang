@@ -31,6 +31,6 @@ var tests = `
 `
 
 func TestFoo(a *testing.T) {
-	t := NewTerp()
-	t.Eval(tests)
+	fr := New()
+	fr.Eval(tests)
 }

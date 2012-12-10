@@ -4,14 +4,14 @@ import (
 	. "fmt"
 	"os"
 
-	. "terp"
+	"terp"
 )
 
 func main() {
-	t := NewTerp()
+	fr := terp.New()
 	for _, a := range os.Args[1:] {
 		Printf("<<< %q\n", a)
-		z := t.Eval(a)
+		z := fr.Eval(a)
 		Printf(">>> %q\n", z)
 	}
 }
