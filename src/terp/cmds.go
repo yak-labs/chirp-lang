@@ -38,7 +38,7 @@ type BinaryFlop func(a, b float64) float64
 
 func MkBinaryFlopCmd(fr *Frame, flop BinaryFlop) Command {
 	return func(fr *Frame, argv List) Any {
-		a, b := CheckArgv2(argv)
+		a, b := Argv2(argv)
 		return flop(ToFloat(a), ToFloat(b))
 	}
 }
@@ -115,21 +115,21 @@ func ToFloat(a Any) float64 {
 	return f
 }
 
-func CheckArgv1(argv List) Any {
+func Argv1(argv List) Any {
 	if len(argv) != 1+1 {
 		panic(Sprintf("Expected 1 arguments, but got %#v", argv))
 	}
 	return argv[1]
 }
 
-func CheckArgv2(argv List) (Any, Any) {
+func Argv2(argv List) (Any, Any) {
 	if len(argv) != 2+1 {
 		panic(Sprintf("Expected 2 arguments, but got %#v", argv))
 	}
 	return argv[1], argv[2]
 }
 
-func CheckArgv3(argv List) (Any, Any, Any) {
+func Argv3(argv List) (Any, Any, Any) {
 	if len(argv) != 3+1 {
 		panic(Sprintf("Expected 3 arguments, but got %#v", argv))
 	}
@@ -177,18 +177,18 @@ func cmdIf(fr *Frame, argv List) Any {
 }
 
 func cmdGet(fr *Frame, argv List) Any {
-	name := CheckArgv1(argv)
+	name := Argv1(argv)
 	return fr.GetVar(Str(name))
 }
 
 func cmdSet(fr *Frame, argv List) Any {
-	name, x := CheckArgv2(argv)
+	name, x := Argv2(argv)
 	fr.SetVar(Str(name), x)
 	return x
 }
 
 func cmdProc(fr *Frame, argv List) Any {
-	name, aa, body := CheckArgv3(argv)
+	name, aa, body := Argv3(argv)
 	alist := fr.ParseList(aa)
 	astrs := make([]string, len(alist))
 	for i, arg := range alist {
@@ -218,18 +218,18 @@ func cmdProc(fr *Frame, argv List) Any {
 }
 
 func cmdLs(fr *Frame, argv List) Any {
-	name := CheckArgv1(argv)
+	name := Argv1(argv)
 	fn := fr.G.Cmds[Str(name)]
 	return fn(fr, nil)
 }
 
 func cmdSLen(fr *Frame, argv List) Any {
-	a := CheckArgv1(argv)
+	a := Argv1(argv)
 	return float64(len(Str(a)))
 }
 
 func cmdLLen(fr *Frame, argv List) Any {
-	a := CheckArgv1(argv)
+	a := Argv1(argv)
 	return float64(len(fr.ParseList(a)))
 }
 
@@ -238,14 +238,14 @@ func cmdList(fr *Frame, argv List) Any {
 }
 
 func cmdLAt(fr *Frame, argv List) Any {
-	v, j := CheckArgv2(argv)
+	v, j := Argv2(argv)
 	f := ToFloat(j)
 	i := int(f)
 	return fr.ParseList(v)[i]
 }
 
 func cmdSAt(fr *Frame, argv List) Any {
-	s, j := CheckArgv2(argv)
+	s, j := Argv2(argv)
 	f := ToFloat(j)
 	i := int(f)
 	return Str(s)[i : i+1]

@@ -44,6 +44,7 @@ func New() *Frame {
 
 	g.Fr.G = g
 	g.Fr.initBuiltins()
+	g.Fr.initExterns()
 	return &g.Fr
 }
 
