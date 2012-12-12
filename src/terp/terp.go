@@ -160,7 +160,7 @@ func Any2ListElement(a Any) string {
 	}
 	return s
 }
-func Repr(a Any) string { return Sprintf("<* %#v *>", a) }
+func Repr(a Any) string { return Sprintf("REPR<<%#v>>", a) }
 func Str(a Any) string {
 	switch x := a.(type) {
 	case nil: return ""
@@ -182,8 +182,8 @@ func Str(a Any) string {
 	case error: return Sprintf("%#v", x)
 	case List: return List2Str(x)
 	}
-	panic(Sprintf("DEFAULT Str: %#v", a))
-	return Sprintf("%#v", a)
+	// panic(Sprintf("DEFAULT Str: %#v", a))
+	return Sprintf("{%#v}", a)
 }
 
 func Must(a, b Any, extra ...Any) {
