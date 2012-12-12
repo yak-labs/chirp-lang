@@ -144,7 +144,7 @@ func cmdMust(fr *Frame, argv List) Any {
 		return argv[2]
 	}
 
-	panic("FAILED: must: " + Repr(argv))
+	panic("FAILED: must: " + Repr(argv) + " -- x: " + x + " -- y: " + y)
 }
 
 func cmdIf(fr *Frame, argv List) Any {

@@ -5,6 +5,7 @@ import (
 	. "fmt"
 	"go/ast"
 	"log"
+	"strings"
 	"sync"
 )
 
@@ -131,13 +132,13 @@ func Float32Str(x float32) string {
 	if float32(int64(x)) == x {
 		return Sprintf("%d", int64(x))
 	}
-	return Sprintf("%g", int32(x))
+	return Sprintf("%g", float32(x))
 }
 func Float64Str(x float64) string {
 	if float64(int64(x)) == x {
 		return Sprintf("%d", int64(x))
 	}
-	return Sprintf("%g", int64(x))
+	return Sprintf("%g", float64(x))
 }
 func List2Str(v List) string {
 	buf := bytes.NewBuffer(nil)
@@ -145,12 +146,21 @@ func List2Str(v List) string {
 	for _, e := range v {
 		buf.WriteString(sep)
 		sep = " "
-		estr := Str(e)
-		buf.WriteString(estr) // TODO: listify
+		estr := Any2ListElement(e)
+		buf.WriteString(estr)
 	}
 	return buf.String()
 }
-func Repr(a Any) string { return Sprintf("%#v", a) }
+func Any2ListElement(a Any) string {
+	// TODO: Not perfect, but we are not doing \ yet.
+	// TODO: Broken for mismatched {}.
+	s := Str(a)
+	if strings.ContainsAny(s, " \t\n\r{}\\") {
+		return "{" + s + "}"
+	}
+	return s
+}
+func Repr(a Any) string { return Sprintf("<* %#v *>", a) }
 func Str(a Any) string {
 	switch x := a.(type) {
 	case nil: return ""
@@ -172,7 +182,8 @@ func Str(a Any) string {
 	case error: return Sprintf("%#v", x)
 	case List: return List2Str(x)
 	}
-	return Sprintf("%v", a)
+	panic(Sprintf("DEFAULT Str: %#v", a))
+	return Sprintf("%#v", a)
 }
 
 func Must(a, b Any, extra ...Any) {
