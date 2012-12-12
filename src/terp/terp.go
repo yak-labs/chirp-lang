@@ -1,6 +1,7 @@
 package terp
 
 import (
+	"bytes"
 	. "fmt"
 	"go/ast"
 	"log"
@@ -118,10 +119,58 @@ func (fr *Frame) Apply(argv List) Any {
 	return z
 }
 
+func Bool2Int(b bool) int {
+	if b {return 1}
+	return 0
+}
+func Bool2Str(b bool) string {
+	if b {return "1"}
+	return "0"
+}
+func Float32Str(x float32) string {
+	if float32(int64(x)) == x {
+		return Sprintf("%d", int64(x))
+	}
+	return Sprintf("%g", int32(x))
+}
+func Float64Str(x float64) string {
+	if float64(int64(x)) == x {
+		return Sprintf("%d", int64(x))
+	}
+	return Sprintf("%g", int64(x))
+}
+func List2Str(v List) string {
+	buf := bytes.NewBuffer(nil)
+	sep := ""
+	for _, e := range v {
+		buf.WriteString(sep)
+		sep = " "
+		estr := Str(e)
+		buf.WriteString(estr) // TODO: listify
+	}
+	return buf.String()
+}
 func Repr(a Any) string { return Sprintf("%#v", a) }
 func Str(a Any) string {
-	if s, ok := a.(string); ok {
-		return s
+	switch x := a.(type) {
+	case nil: return ""
+	case string: return x
+	case uint: return Sprintf("%d", x)
+	case uint8: return Sprintf("%d", x)
+	case uint16: return Sprintf("%d", x)
+	case uint32: return Sprintf("%d", x)
+	case uint64: return Sprintf("%d", x)
+	case uintptr: return Sprintf("%d", x)
+	case int: return Sprintf("%d", x)
+	case int8: return Sprintf("%d", x)
+	case int16: return Sprintf("%d", x)
+	case int32: return Sprintf("%d", x)
+	case int64: return Sprintf("%d", x)
+	case float32: return Float32Str(x)
+	case float64: return Float64Str(x)
+	case bool: return Bool2Str(x)
+	case error: return Sprintf("%#v", x)
+	case List: return List2Str(x)
 	}
 	return Sprintf("%v", a)
 }

@@ -10,8 +10,8 @@ import (
 func main() {
 	fr := terp.New()
 	for _, a := range os.Args[1:] {
-		Printf("<<< %q\n", a)
+		Printf("<<< %#v\n", a)
 		z := fr.Eval(a)
-		Printf(">>> %q\n", z)
+		Printf(">>> %#v\n", z)
 	}
 }
