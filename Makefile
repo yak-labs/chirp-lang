@@ -12,8 +12,8 @@ _externs.txt: src/externs/externs.go
 
 src/generated/reflections.go : src/externs/generate1.tcl src/externs/generate2.tcl _externs.txt
 	mkdir -p src/generated
-	tclsh src/externs/generate1.tcl < _externs.txt  | grep -v // | grep -v _test | grep -v Test > src/generated/reflections.go
-	tclsh src/externs/generate2.tcl < _externs.txt  | grep -v // | grep -v _test | grep -v Test >> src/generated/reflections.go
+	tclsh src/externs/generate1.tcl < _externs.txt  | grep -v // | grep -v _test | grep -v '^[FT].*Test' > src/generated/reflections.go
+	tclsh src/externs/generate2.tcl < _externs.txt  | grep -v // | grep -v _test | grep -v '^[FT].*Test' >> src/generated/reflections.go
 ci:
 	ci -l -q -m/dev/null -t/dev/null src/*/*.go 
 fmt:

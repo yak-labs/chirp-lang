@@ -2,7 +2,7 @@ package terp
 
 import (
 	//. "fmt"
-	//"log"
+	"log"
 	//"strconv"
 
 	"generated"
@@ -20,6 +20,12 @@ func cmdLsPkg(fr *Frame, argv List) Any {
 	case 1 + 1:
 		key := Str(Argv1(argv))
 		return ExtMembers[key]
+	case 0 + 1:
+		for k, v := range ExtMembers {
+			log.Printf("KEY: %#v\n", k)
+			log.Printf("VALUE: %#v\n", v)
+		}
+		return len(generated.Members)
 	}
 	panic("Bad argv to cmdLsPkg")
 }
