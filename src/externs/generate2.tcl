@@ -61,6 +61,6 @@ while {[gets stdin line] >= 0} {
 
 puts ""
 foreach pkg [lsort [array names P]] {
-  puts "Members\[ `$pkg` \] = `[lsort $P($pkg)]`"
+  puts "Members\[ `/$pkg` \] = `[lsort $P($pkg)]`"
 }
 puts "\}"

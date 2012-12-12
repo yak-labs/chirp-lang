@@ -1,7 +1,6 @@
 puts {package generated}
 
 while {[gets stdin line] >= 0} {
-  #if [regexp {^@@ ([a-z0-9/]+) [{}] ([A-Z]+) (\\w+) } $line - pkg verb name] #
   if [regexp {^@@ ([a-z0-9/]+) } $line - pkg ] {
     if [regexp {^builtin$} $pkg] continue
     if [regexp {^syscall$} $pkg] continue
