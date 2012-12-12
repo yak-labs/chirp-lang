@@ -10,7 +10,7 @@ test: FORCE
 _externs.txt: src/externs/externs.go
 	go run src/externs/externs.go $$( eval $$(go env) ; find $$GOROOT/src/pkg/* -type d ) > _externs.txt
 
-src/generated/reflections.go : src/externs/generate.tcl _externs.txt
+src/generated/reflections.go : src/externs/generate1.tcl src/externs/generate2.tcl _externs.txt
 	tclsh src/externs/generate1.tcl < _externs.txt  | grep -v // | grep -v _test | grep -v Test > src/generated/reflections.go
 	tclsh src/externs/generate2.tcl < _externs.txt  | grep -v // | grep -v _test | grep -v Test >> src/generated/reflections.go
 ci:
