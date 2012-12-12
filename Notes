@@ -33,3 +33,11 @@
  1270  make &&  ./goterp 'anyV [lat [ call [ anyV [ funcX /fmt/Sprintf ]] "hey%fthere%fyou" 3 4 ] 0]'
  1271  make &&  ./goterp 'lat [ call [ anyV [ funcX /fmt/Sprintf ]] "hey%fthere%fyou" 3 4 ] 0'
 
+$ make &&  ./goterp 'lat [ call /fmt/Sprintf "hey%gthere%gyou" [+ 3] [+ 4] ] 0'
+<<< "lat [ call /fmt/Sprintf \"hey%gthere%gyou\" [+ 3] [+ 4] ] 0"
+>>> "hey3there4you"
+
+$ make &&  ./goterp ' call /fmt/Printf "hey%gthere%gyou" [+ 3] [+ 4] '
+<<< " call /fmt/Printf \"hey%gthere%gyou\" [+ 3] [+ 4] "
+>>> terp.List{13, terp.Any(nil)}
+

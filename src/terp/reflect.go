@@ -6,11 +6,24 @@ import (
 	R "reflect"
 	//"strconv"
 
-	"generated"
+	G "generated"
 )
 
-var ExtTypes = generated.Types
-var ExtMembers = generated.Members
+func Extern(name string) Any {
+	if len(name) == 0 || name[0] != '/' {
+		return nil
+	}
+	if f, ok := G.Funcs[name]; ok {
+		return f
+	}
+	if t, ok := G.Types[name]; ok {
+		return R.TypeOf(t).Elem()
+	}
+	if m, ok := G.Members[name]; ok {
+		return m
+	}
+	return nil
+}
 
 func (fr *Frame) initExterns() {
 	Builtins["lspkg"] = cmdLsPkg
@@ -30,29 +43,37 @@ func (fr *Frame) initExterns() {
 
 func cmdFuncX(fr *Frame, argv List) Any {
 	a := Str(Argv1(argv))
-	f := generated.Funcs[a]
+	f := G.Funcs[a]
 	return R.ValueOf(f)
 }
 
 func cmdTypeX(fr *Frame, argv List) Any {
 	a := Str(Argv1(argv))
-	x := generated.Types[a]
+	x := G.Types[a]
 	return R.TypeOf(x).Elem()
 }
 
 func cmdCall(fr *Frame, argv List) Any {
 	a := argv[1]
+
+	if s, ok := a.(string); ok {
+		ext := Extern(s)
+		if ext != nil {
+			a = ext
+		}
+	}
+
 	pp := make([]R.Value, 0, 4)
 	for _, p := range argv[2:] {
 		pp = append(pp, R.ValueOf(p))
 	}
 	if R.ValueOf(a).Kind() == R.Func {
 		xx := R.ValueOf(a).Call(pp)
-		zz := make([]Any, 0, len(xx))
+		zz := make(List, 0, len(xx))
 		for _, x := range xx {
 			zz = append(zz, x.Interface())
 		}
-		return xx
+		return zz
 	}
 	panic("argv1 not Func: " + Repr(a))
 }
@@ -61,13 +82,13 @@ func cmdLsPkg(fr *Frame, argv List) Any {
 	switch len(argv) {
 	case 1 + 1:
 		key := Str(Argv1(argv))
-		return ExtMembers[key]
+		return G.Members[key]
 	case 0 + 1:
-		for k, v := range ExtMembers {
+		for k, v := range G.Members {
 			log.Printf("KEY: %#v\n", k)
 			log.Printf("VALUE: %#v\n", v)
 		}
-		return len(generated.Members)
+		return len(G.Members)
 	}
 	panic("Bad argv to cmdLsPkg")
 }

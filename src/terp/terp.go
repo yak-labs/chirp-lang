@@ -154,7 +154,14 @@ func List2Str(v List) string {
 func Any2ListElement(a Any) string {
 	// TODO: Not perfect, but we are not doing \ yet.
 	// TODO: Broken for mismatched {}.
+	if a == nil {
+		return "{}"
+	}
 	s := Str(a)
+	if s == "" {
+		return "{}"
+	}
+
 	if strings.ContainsAny(s, " \t\n\r{}\\") {
 		return "{" + s + "}"
 	}
