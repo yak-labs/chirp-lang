@@ -1,6 +1,7 @@
 package terp
 
 import (
+	"errors"
 	//. "fmt"
 	"log"
 	R "reflect"
@@ -67,15 +68,53 @@ func cmdCall(fr *Frame, argv List) Any {
 	for _, p := range argv[2:] {
 		pp = append(pp, R.ValueOf(p))
 	}
-	if R.ValueOf(a).Kind() == R.Func {
-		xx := R.ValueOf(a).Call(pp)
-		zz := make(List, 0, len(xx))
-		for _, x := range xx {
-			zz = append(zz, x.Interface())
-		}
-		return zz
+
+	ty := R.TypeOf(a)
+	if ty.Kind() != R.Func {
+		panic("argv1 not Func: " + Repr(a))
 	}
-	panic("argv1 not Func: " + Repr(a))
+	nin := ty.NumIn()
+	nout := ty.NumOut()
+	log.Printf("NumIn=%d NumOut=%d", nin, nout)
+	for i := 0; i < nin; i++ {
+		log.Printf("Type expect in[%d] : <%s> %s", i, ty.In(i).Kind(), ty.In(i))
+	}
+	for i, ai := range argv[2:] {
+		log.Printf("Type actual in[%d] : <%s> %T = %#v", i, R.TypeOf(ai).Kind(), ai, ai)
+	}
+	for i := 0; i < nout; i++ {
+		log.Printf("Type out[%d] : <%s>  %s", i, ty.Out(i).Kind(), ty.Out(i))
+	}
+
+	log.Printf("...(calling)...")
+	xx := R.ValueOf(a).Call(pp)
+	log.Printf("...(called)...")
+
+	zz := make(List, 0, len(xx))
+	for i, x := range xx {
+		z := x.Interface()
+		log.Printf("Result out[%d] : %T = %#v", i, z, z)
+		zz = append(zz, z)
+	}
+
+	errorI := R.TypeOf(errors.New).Out(0)
+	
+	// if nout > 0 && ty.Out(nout-1).Name() == "error" #
+	if nout > 0 && ty.Out(nout-1).Implements(errorI) {
+		log.Printf("Last result implements error; checking it: %#v", zz[nout-1])
+		if zz[nout-1] != nil {
+			panic(zz[nout-1])
+		}
+		log.Printf("Last result implements error; was nil; dropping it.")
+		zz = zz[:nout-1]
+	}
+	switch len(zz) {
+	case 0:
+		return nil
+	case 1:
+		return zz[0]
+	}
+	return zz
 }
 
 func cmdLsPkg(fr *Frame, argv List) Any {
