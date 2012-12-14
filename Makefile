@@ -7,13 +7,9 @@ test: FORCE
 	GOPATH=$$(pwd) go test -i src/terp/*.go
 	GOPATH=$$(pwd) go test src/terp/*.go
 
-_externs.txt: src/externs/externs.go
-	go run src/externs/externs.go $$( eval $$(go env) ; find $$GOROOT/src/pkg/* -type d ) > _externs.txt
-
-src/generated/reflections.go : src/externs/generate1.tcl src/externs/generate2.tcl _externs.txt
+src/generated/reflections.go : src/mkreflections.go
 	mkdir -p src/generated
-	tclsh src/externs/generate1.tcl < _externs.txt  | grep -v // | grep -v _test | grep -v '^[FT].*Test' > src/generated/reflections.go
-	tclsh src/externs/generate2.tcl < _externs.txt  | grep -v // | grep -v _test | grep -v '^[FT].*Test' >> src/generated/reflections.go
+	GOPATH=$$PWD go  run  src/mkreflections.go > src/generated/reflections.go
 ci:
 	ci -l -q -m/dev/null -t/dev/null src/*/*.go 
 fmt:
@@ -25,6 +21,6 @@ demo2:
 	./goterp ' call /fmt/Printf "hey%gthere%gyou---" [+ 3] [+ 4] '
 
 clean:
-	rm -rf ./goterp _externs.txt src/generated/reflections.go pkg/*
+	rm -rf ./goterp ./demo-types-1 src/generated/reflections.go pkg/*
 
 FORCE:
