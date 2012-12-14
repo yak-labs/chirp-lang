@@ -1,0 +1,9 @@
+src/exp/README:
+
+Code under this src/exp/ directory is copyrighted by the Go People
+and used according to the License in src/exp/LICENSE
+
+Snapshot by
+  $ hg clone https://code.google.com/p/go 
+made shortly before Thu Dec 13 22:54:42 PST 2012
+and copied from src/pkg/exp/types/ in that snapshot.
