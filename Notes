@@ -39,5 +39,6 @@ $ make &&  ./goterp 'lat [ call /fmt/Sprintf "hey%gthere%gyou" [+ 3] [+ 4] ] 0'
 
 $ make &&  ./goterp ' call /fmt/Printf "hey%gthere%gyou" [+ 3] [+ 4] '
 <<< " call /fmt/Printf \"hey%gthere%gyou\" [+ 3] [+ 4] "
->>> terp.List{13, terp.Any(nil)}
+>>> 13
+
 
