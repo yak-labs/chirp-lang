@@ -6,9 +6,8 @@ import (
 	. "terp"
 )
 
-func Test1(t *testing.T) {
-	fr := New()
-	a := fr.ParseList("  one  two three  ")
+func TestSimpleList3(t *testing.T) {
+	a := ParseList("  one  two three  ")
 	if len(a) != 3 {
 		panic("len not 3")
 	}
@@ -18,8 +17,7 @@ func Test1(t *testing.T) {
 }
 
 func Test2(t *testing.T) {
-	fr := New()
-	a := fr.ParseList("  one  { number two } three  ")
+	a := ParseList("  one  { number two } three  ")
 	if len(a) != 3 {
 		panic("len not 3")
 	}

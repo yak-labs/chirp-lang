@@ -3,6 +3,7 @@ package terp
 import (
 	. "fmt"
 	"log"
+	"net/http"
 	"strconv"
 )
 
@@ -32,8 +33,9 @@ func (fr *Frame) initBuiltins() {
 	Builtins["list"] = cmdList
 	Builtins["sat"] = cmdSAt
 	Builtins["lat"] = cmdLAt
+	Builtins["nil"] = cmdNil
+	Builtins["http_handler"] = cmdHttpHandler
 }
-
 type BinaryFlop func(a, b float64) float64
 
 func MkBinaryFlopCmd(fr *Frame, flop BinaryFlop) Command {
@@ -189,7 +191,7 @@ func cmdSet(fr *Frame, argv List) Any {
 
 func cmdProc(fr *Frame, argv List) Any {
 	name, aa, body := Argv3(argv)
-	alist := fr.ParseList(aa)
+	alist := ParseList(aa)
 	astrs := make([]string, len(alist))
 	for i, arg := range alist {
 		astr := Str(arg)
@@ -230,7 +232,7 @@ func cmdSLen(fr *Frame, argv List) Any {
 
 func cmdLLen(fr *Frame, argv List) Any {
 	a := Argv1(argv)
-	return float64(len(fr.ParseList(a)))
+	return float64(len(ParseList(a)))
 }
 
 func cmdList(fr *Frame, argv List) Any {
@@ -241,7 +243,7 @@ func cmdLAt(fr *Frame, argv List) Any {
 	v, j := Argv2(argv)
 	f := ToFloat(j)
 	i := int(f)
-	return fr.ParseList(v)[i]
+	return ParseList(v)[i]
 }
 
 func cmdSAt(fr *Frame, argv List) Any {
@@ -250,3 +252,18 @@ func cmdSAt(fr *Frame, argv List) Any {
 	i := int(f)
 	return Str(s)[i : i+1]
 }
+
+func cmdNil(fr *Frame, argv List) Any { // TODO
+	return http.Handler(nil)
+}
+
+func cmdHttpHandler(fr *Frame, argv List) Any {
+	return func (w http.ResponseWriter, r *http.Request) {
+		v := make(List, len(argv)-1)
+		copy(v, argv[1:])
+		v = LAppend(v, w)
+		v = LAppend(v, r)
+		_ = fr.Apply(v)
+	}
+}
+

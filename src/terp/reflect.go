@@ -20,9 +20,6 @@ func Extern(name string) Any {
 	if t, ok := G.Types[name]; ok {
 		return R.TypeOf(t).Elem()
 	}
-	if m, ok := G.Members[name]; ok {
-		return m
-	}
 	return nil
 }
 
@@ -80,13 +77,17 @@ func cmdCall(fr *Frame, argv List) Any {
 		log.Printf("Type expect in[%d] : <%s> %s", i, ty.In(i).Kind(), ty.In(i))
 	}
 	for i, ai := range argv[2:] {
-		log.Printf("Type actual in[%d] : <%s> %T = %#v", i, R.TypeOf(ai).Kind(), ai, ai)
+		if ai == nil {
+			log.Printf("Type actual in[%d] : nil")
+		} else {
+			log.Printf("Type actual in[%d] : <%s> %T = %#v", i, R.TypeOf(ai).Kind(), ai, ai)
+		}
 	}
 	for i := 0; i < nout; i++ {
 		log.Printf("Type out[%d] : <%s>  %s", i, ty.Out(i).Kind(), ty.Out(i))
 	}
 
-	log.Printf("...(calling)...")
+	log.Printf("...(calling)...  %#q  (  %#q  )", a, pp)
 	xx := R.ValueOf(a).Call(pp)
 	log.Printf("...(called)...")
 
@@ -120,14 +121,14 @@ func cmdCall(fr *Frame, argv List) Any {
 func cmdLsPkg(fr *Frame, argv List) Any {
 	switch len(argv) {
 	case 1 + 1:
-		key := Str(Argv1(argv))
-		return G.Members[key]
+		//key := Str(Argv1(argv))
+		//return G.Members[key]
 	case 0 + 1:
-		for k, v := range G.Members {
-			log.Printf("KEY: %#v\n", k)
-			log.Printf("VALUE: %#v\n", v)
-		}
-		return len(G.Members)
+		//for k, v := range G.Members {
+		//	log.Printf("KEY: %#v\n", k)
+		//	log.Printf("VALUE: %#v\n", v)
+		//}
+		//return len(G.Members)
 	}
 	panic("Bad argv to cmdLsPkg")
 }

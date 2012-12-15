@@ -9,7 +9,6 @@ import (
 	. "fmt"
 	"exp/types"
 	"go/ast"
-	//"go/token"
 	"strings"
 )
 
@@ -36,12 +35,15 @@ func DoScope(pack string, sc *ast.Scope) {
 				short = pack[j+1:]
 			}
 			switch v.Kind.String() {
-			case "func":
-				Printf("Funcs[\"/%s/%s\"] = %s.%s\n", pack, k, short, k)
 			case "type":
 				Printf("Types[\"/%s/%s\"] = new(*%s.%s)\n", pack, k, short, k)
+				//Printf("Converters[\"/%s/%s\"] = nil\n", pack, k)
+			case "func":
+				Printf("Funcs[\"/%s/%s\"] = %s.%s\n", pack, k, short, k)
 			case "var":
 				Printf("Vars[\"/%s/%s\"] = &%s.%s\n", pack, k, short, k)
+			case "const":
+				Printf("Consts[\"/%s/%s\"] = %s.%s\n", pack, k, short, k)
 			}
 		}
 	}
@@ -67,7 +69,11 @@ func main() {
 	Println("var Types map[string]interface{} = make(map[string]interface{}, 0)")
 	Println("var Funcs map[string]interface{} = make(map[string]interface{}, 0)")
 	Println("var Vars map[string]interface{} = make(map[string]interface{}, 0)")
-	Println("var Members map[string]string = make(map[string]string, 0)")
+	Println("var Consts map[string]interface{} = make(map[string]interface{}, 0)")
+
+	//Println("type TypeConverter func (interface{}) interface{}")
+	//Println("var Converters map[string]TypeConverter = make(map[string]TypeConverter, 0)")
+
 	Println()
 	Println("func init() {")
 

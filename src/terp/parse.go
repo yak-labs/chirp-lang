@@ -253,7 +253,7 @@ Loop:
 	return
 }
 
-func (fr *Frame) ParseList(a Any) List {
+func ParseList(a Any) List {
 	if v, ok := a.(List); ok {
 		return v
 	}

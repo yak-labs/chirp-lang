@@ -59,8 +59,6 @@ func (fr *Frame) NewFrame() *Frame {
 	}
 }
 
-func NewList(a ...Any) List { return List(a) }
-
 func IsGlobal(name string) bool {
 	if len(name) == 0 {
 		panic("Empty variable name")
@@ -197,4 +195,28 @@ func Must(a, b Any, extra ...Any) {
 	if a != b {
 		panic(Repr(a) + " vs. " + Repr(b) + " :: " + Repr(extra))
 	}
+}
+
+func NewList(a ...Any) List { return List(a) }
+
+func ToList(a Any) List {
+	switch x := a.(type) {
+		case List: return x
+		case []Any: return List(x)
+		case []interface{}:
+			z := make([]Any, 0, 4)
+			for _, e := range x {
+				z = append(z, e)
+			}
+			return List(z)
+		case string: return ParseList(x)
+	}
+	return ParseList(Str(a))
+}
+func LAppend(p Any, a ...Any) List {
+	v := ToList(p)
+	for _, e := range a {
+		v = append(v, e)
+	}
+	return v
 }
