@@ -61,11 +61,6 @@ func cmdCall(fr *Frame, argv List) Any {
 		}
 	}
 
-	pp := make([]R.Value, 0, 4)
-	for _, p := range argv[2:] {
-		pp = append(pp, R.ValueOf(p))
-	}
-
 	ty := R.TypeOf(a)
 	if ty.Kind() != R.Func {
 		panic("argv1 not Func: " + Repr(a))
@@ -76,18 +71,35 @@ func cmdCall(fr *Frame, argv List) Any {
 	for i := 0; i < nin; i++ {
 		log.Printf("Type expect in[%d] : <%s> %s", i, ty.In(i).Kind(), ty.In(i))
 	}
+
+	pp := make([]R.Value, 0, 4)
+	for i, p := range argv[2:] {
+		if p == nil {
+			// pp = append(pp, R.Zero(R.TypeOf(p)))
+			// TODO fix for ...
+			pp = append(pp, R.Zero(ty.In(i)))
+		} else {
+			pp = append(pp, R.ValueOf(p))
+		}
+	}
+
 	for i, ai := range argv[2:] {
 		if ai == nil {
-			log.Printf("Type actual in[%d] : nil")
+			log.Printf("Type actual in[%d] : nil  %T", i, ai)
 		} else {
 			log.Printf("Type actual in[%d] : <%s> %T = %#v", i, R.TypeOf(ai).Kind(), ai, ai)
+		}
+		if pp[i].Kind() == R.Interface {
+			log.Printf("............. <%s> %s  <%x @ %x>", pp[i].Kind(), pp[i], pp[i].InterfaceData()[0], pp[i].InterfaceData()[1]) 
+		} else {
+			log.Printf("............. <%s> %s", pp[i].Kind(), pp[i]) 
 		}
 	}
 	for i := 0; i < nout; i++ {
 		log.Printf("Type out[%d] : <%s>  %s", i, ty.Out(i).Kind(), ty.Out(i))
 	}
 
-	log.Printf("...(calling)...  %#q  (  %#q  )", a, pp)
+	log.Printf("...(calling)...  %#v  (  %#v  )", a, pp)
 	xx := R.ValueOf(a).Call(pp)
 	log.Printf("...(called)...")
 

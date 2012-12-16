@@ -1,0 +1,6 @@
+make web ( demo/hello_web.t ) TODO:
+	-- $w := [get w]
+	-- dont need "call"
+	-- dont need "http_handler"
+	-- "" := [nil]
+	-- \n and other \\ escapes
