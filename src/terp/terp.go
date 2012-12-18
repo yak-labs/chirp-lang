@@ -5,6 +5,8 @@ import (
 	. "fmt"
 	"go/ast"
 	"log"
+	R "reflect"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -15,16 +17,22 @@ type Any interface{}
 
 type List []Any
 type Dict map[string]Any
+type TDict map[string]T
 
 type Command func(fr *Frame, argv List) Any
+type TCommand func(fr *Frame, argv []T) T
 
 type Scope map[string]Any
+type TScope map[string]T
 
 type CmdScope map[string]Command
+type TCmdScope map[string]TCommand
 
 type Frame struct {
 	Vars  Scope
 	Slots Scope
+	TVars  TScope
+	TSlots TScope
 
 	Prev *Frame
 	G    *Global
@@ -33,6 +41,7 @@ type Frame struct {
 
 type Global struct {
 	Cmds CmdScope
+	TCmds TCmdScope
 	Fr   Frame // global scope
 
 	Mu sync.Mutex
@@ -41,8 +50,10 @@ type Global struct {
 func New() *Frame {
 	g := &Global{
 		Cmds: make(CmdScope),
+		TCmds: make(TCmdScope),
 		Fr: Frame{
 			Vars: make(Scope),
+			TVars: make(TScope),
 		},
 	}
 
@@ -240,5 +251,232 @@ func LAppend(p Any, a ...Any) List {
 }
 
 ///////////////////////////////////////
+
+type T interface {
+	String() string
+	Float() float64
+	Int() int64
+	Uint() uint64
+	Bool() bool
+	ListElement() string
+
+	ToTf() Tf
+	ToTs() Ts
+	ToTl() Tl
+}
+
+type Tf struct {  // Tfloat
+	f float64
+}
+type Ts struct {  // Tstring
+	s string
+}
+type Tl struct {  // Tlist
+	l []T
+}
+type Tv struct {  // Tvalue
+	v R.Value
+}
+
+func FloatToT(a float64) Tf {
+	return Tf{f: a}
+}
+func IntToT(a int64) Tf {
+	return Tf{f: float64(a)}
+}
+func UintToT(a uint64) Tf {
+	return Tf{f: float64(a)}
+}
+func StringToT(a string) Ts {
+	return Ts{s: a}
+}
+func ListToT(a []T) Tl {
+	return Tl{l: a}
+}
+func ValueToT(a R.Value) T {
+	return Tv{v: a}
+}
+func ToT(a interface{}) T {
+	switch z := a.(type) {
+	case float64: return FloatToT(z)
+	case float32: return FloatToT(float64(z))
+	case int: return IntToT(int64(z))
+	case int8: return IntToT(int64(z))
+	case int16: return IntToT(int64(z))
+	case int32: return IntToT(int64(z))
+	case int64: return IntToT(z)
+	case uint: return UintToT(uint64(z))
+	case uint8: return UintToT(uint64(z))
+	case uint16: return UintToT(uint64(z))
+	case uint32: return UintToT(uint64(z))
+	case uint64: return UintToT(z)
+	case string: return StringToT(z)
+	case T: panic("Already a T")
+	}
+	return ValueToT(R.ValueOf(a))
+}
+	
+
+
+func (t Tf) String() string {
+	return Sprintf("%g", t.f)
+}
+func (t Tf) ListElement() string {
+	return t.String()
+}
+func (t Tf) Float() float64 {
+	return t.f
+}
+func (t Tf) Int() int64 {
+	return int64(t.f)
+}
+func (t Tf) Uint() uint64 {
+	return uint64(t.f)
+}
+func (t Tf) Bool() bool {
+	if t.f == 0 {
+		return false
+	}
+	return true
+}
+func (t Tf) ToTf() Tf {
+	return t
+}
+func (t Tf) ToTs() Ts {
+	return Ts{s: t.String()}
+}
+func (t Tf) ToTl() Tl {
+	return Tl{l: []T{t,}}
+}
+
+
+
+func (t Ts) String() string {
+	return t.s
+}
+func (t Ts) ListElement() string {
+	return ToListElement(t.s)
+}
+func (t Ts) Float() float64 {
+	z, err := strconv.ParseFloat(t.s, 64)
+	if err != nil {
+		panic(err)
+	}
+	return z
+}
+func (t Ts) Int() int64 {
+	return int64(t.Float())  //TODO
+}
+func (t Ts) Uint() uint64 {
+	return uint64(t.Float())  //TODO
+}
+func (t Ts) Bool() bool {
+	if t.s == "" || t.s == "0" {
+		return false
+	}
+	return true
+}
+func (t Ts) ToTf() Tf {
+	return FloatToT(t.Float())
+}
+func (t Ts) ToTs() Ts {
+	return t
+}
+func (t Ts) ToTl() Tl {
+	v := ParseList(t.s)
+	z := make([]T, len(v))
+	for i, e := range v {
+		z[i] = ToT(e)
+	}
+	return Tl{l: z}
+}
+
+
+
+func (t Tl) String() string {
+	z := ""
+	for k, v := range t.l {
+		if k > 0 {
+			z += " "
+		}
+		z += v.ListElement()
+	}
+	return z
+}
+func (t Tl) ListElement() string {
+	return ToListElement(t.String())
+}
+func (t Tl) Float() float64 {
+	if len(t.l) != 1 {panic("cant")}
+	return t.l[0].Float()
+}
+func (t Tl) Int() int64 {
+	if len(t.l) != 1 {panic("cant")}
+	return t.l[0].Int()
+}
+func (t Tl) Uint() uint64 {
+	if len(t.l) != 1 {panic("cant")}
+	return t.l[0].Uint()
+}
+func (t Tl) Bool() bool {
+	if len(t.l) == 0 {
+		return false
+	}
+	return true
+}
+func (t Tl) ToTf() Tf {
+	return FloatToT(t.Float())
+}
+func (t Tl) ToTs() Ts {
+	return StringToT(t.String())
+}
+func (t Tl) ToTl() Tl {
+	return t
+}
+
+
+func (t Tv) String() string {
+	return Sprintf("Value:%s:%s:%d", t.v.Kind(), t.v.Type(), t.v.Addr())
+}
+func (t Tv) ListElement() string {
+	return ToListElement(t.String())
+}
+func (t Tv) Float() float64 {
+	panic("cant yet")
+}
+func (t Tv) Int() int64 {
+	panic("cant yet")
+}
+func (t Tv) Uint() uint64 {
+	panic("cant yet")
+}
+func (t Tv) Bool() bool {
+	panic("cant yet")
+}
+func (t Tv) ToTf() Tf {
+	return Tf{f: t.Float()}
+}
+func (t Tv) ToTs() Ts {
+	return Ts{s: t.String()}
+}
+func (t Tv) ToTl() Tl {
+	return Tl{l: []T{t,}}
+}
+
+
+func ToListElement(s string) string {
+	// TODO: Not perfect, but we are not doing \ yet.
+	// TODO: Broken for mismatched {}.
+	if s == "" {
+		return "{}"
+	}
+
+	if strings.ContainsAny(s, " \t\n\r{}\\") {
+		return "{" + s + "}"
+	}
+	return s
+}
+
+
 
 
