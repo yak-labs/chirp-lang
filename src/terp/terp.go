@@ -67,6 +67,8 @@ func (fr *Frame) NewFrame() *Frame {
 	return &Frame{
 		Vars:  make(Scope),
 		Slots: nil,
+		TVars:  make(TScope),
+		TSlots: nil,
 		Prev:  fr,
 		G:     fr.G,
 	}
@@ -109,6 +111,31 @@ func (fr *Frame) GetVar(name string) Any {
 
 func (fr *Frame) SetVar(name string, x Any) {
 	fr.GetVarScope(name)[name] = x
+}
+
+func (fr *Frame) TGetVarScope(name string) TScope {
+	if len(name) == 0 {
+		panic("Empty variable name")
+	}
+	if name[0] == '_' {
+		if fr.Slots == nil {
+			panic("No slots in this frame: " + name)
+		}
+		return fr.TSlots
+	}
+
+	if IsGlobal(name) {
+		return fr.G.Fr.TVars
+	}
+	return fr.TVars
+}
+
+func (fr *Frame) TGetVar(name string) T {
+	return fr.TGetVarScope(name)[name]
+}
+
+func (fr *Frame) TSetVar(name string, x T) {
+	fr.TGetVarScope(name)[name] = x
 }
 
 func (fr *Frame) Apply(argv List) Any {
