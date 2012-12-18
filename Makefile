@@ -9,7 +9,7 @@ test: FORCE
 
 src/generated/reflections.go : src/mkreflections.go
 	mkdir -p src/generated
-	GOPATH=$$PWD go  run  src/mkreflections.go > src/generated/reflections.go
+	GOPATH=$$PWD go  run  src/mkreflections.go > src/generated/reflections.go $$(cd $$(go env GOROOT)/pkg/$$(go env GOHOSTOS)_$$(go env GOHOSTARCH)/ ; find * -name \*.a | sed 's/[.]a$$//' | grep -v runtime | grep -v XXXsort | grep -v unicode)
 ci:
 	ci -l -q -m/dev/null -t/dev/null src/*/*.go 
 fmt:
