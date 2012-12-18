@@ -7,6 +7,8 @@ import (
 	"log"
 	"strings"
 	"sync"
+
+	"generated"
 )
 
 type Any interface{}
@@ -103,12 +105,28 @@ func (fr *Frame) Apply(argv List) Any {
 	head := argv[0]
 	cmdName, ok := head.(string)
 	if !ok {
+		// Some day this may not be true; for now, it helps debug.
 		panic(Sprintf("Command must be a string: %#v", head))
 	}
 
 	fn, ok := fr.G.Cmds[cmdName]
+	log.Printf("Looked in Cmds %v %v %v", fn, ok, cmdName)
 	if !ok {
 		fn, ok = Builtins[cmdName]
+		log.Printf("Looked in Builtins %v %v %v", fn, ok, cmdName)
+	}
+	if !ok {
+		_, ok = generated.Funcs[cmdName]
+		log.Printf("Looked in gen.Funcs -- %v %v", ok, cmdName)
+		if ok {
+			fn = cmdCall
+			tmp := List{"call", cmdName}
+			for _, a := range argv[1:] {
+				tmp = append(tmp, a)
+			}
+			argv = tmp
+		    log.Printf("NEW argv: $#v", argv)
+		}
 	}
 	if !ok {
 		panic(Sprintf("Command not found: %q", cmdName))
@@ -220,3 +238,7 @@ func LAppend(p Any, a ...Any) List {
 	}
 	return v
 }
+
+///////////////////////////////////////
+
+
