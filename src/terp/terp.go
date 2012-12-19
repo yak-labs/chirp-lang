@@ -174,6 +174,45 @@ func (fr *Frame) Apply(argv List) Any {
 	return z
 }
 
+
+func (fr *Frame) TApply(argv []T) Any {
+	log.Printf("< Apply < %#v\n", argv)
+	head := argv[0]
+	cmdName, ok := head.(Ts)
+	if !ok {
+		// Some day this may not be true; for now, it helps debug.
+		panic(Sprintf("Command must be a string: %#v", head))
+	}
+
+	fn, ok := fr.G.TCmds[cmdName.s]
+	log.Printf("Looked in Cmds %v %v %v", fn, ok, cmdName.s)
+	if !ok {
+		fn, ok = TBuiltins[cmdName.s]
+		log.Printf("Looked in Builtins %v %v %v", fn, ok, cmdName.s)
+	}
+	if !ok {
+		/*
+		_, ok = generated.Funcs[cmdName.s]
+		log.Printf("Looked in gen.Funcs -- %v %v", ok, cmdName.s)
+		if ok {
+			fn = tcmdCall
+			tmp := []T{MkTs("call"), cmdName}
+			for _, a := range argv[1:] {
+				tmp = append(tmp, a)
+			}
+			argv = tmp
+		    log.Printf("NEW argv: $#v", argv)
+		}
+		*/
+	}
+	if !ok {
+		panic(Sprintf("Command not found: %q", cmdName.s))
+	}
+	z := fn(fr, argv)
+	log.Printf("> Apply > %#v\n", z)
+	return z
+}
+
 func Bool2Int(b bool) int {
 	if b {return 1}
 	return 0
@@ -287,9 +326,9 @@ type T interface {
 	Bool() bool
 	ListElement() string
 
-	ToTf() Tf
-	ToTs() Ts
-	ToTl() Tl
+	Tf() Tf
+	Ts() Ts
+	Tl() Tl
 }
 
 type Tf struct {  // Tfloat
@@ -305,42 +344,42 @@ type Tv struct {  // Tvalue
 	v R.Value
 }
 
-func FloatToT(a float64) Tf {
+func MkTf(a float64) Tf {
 	return Tf{f: a}
 }
-func IntToT(a int64) Tf {
+func MkTi(a int64) Tf {
 	return Tf{f: float64(a)}
 }
-func UintToT(a uint64) Tf {
+func MkTu(a uint64) Tf {
 	return Tf{f: float64(a)}
 }
-func StringToT(a string) Ts {
+func MkTs(a string) Ts {
 	return Ts{s: a}
 }
-func ListToT(a []T) Tl {
+func MkTl(a []T) Tl {
 	return Tl{l: a}
 }
-func ValueToT(a R.Value) T {
+func MkTv(a R.Value) T {
 	return Tv{v: a}
 }
-func ToT(a interface{}) T {
+func MkT(a interface{}) T {
 	switch z := a.(type) {
-	case float64: return FloatToT(z)
-	case float32: return FloatToT(float64(z))
-	case int: return IntToT(int64(z))
-	case int8: return IntToT(int64(z))
-	case int16: return IntToT(int64(z))
-	case int32: return IntToT(int64(z))
-	case int64: return IntToT(z)
-	case uint: return UintToT(uint64(z))
-	case uint8: return UintToT(uint64(z))
-	case uint16: return UintToT(uint64(z))
-	case uint32: return UintToT(uint64(z))
-	case uint64: return UintToT(z)
-	case string: return StringToT(z)
+	case float64: return MkTf(z)
+	case float32: return MkTf(float64(z))
+	case int: return MkTi(int64(z))
+	case int8: return MkTi(int64(z))
+	case int16: return MkTi(int64(z))
+	case int32: return MkTi(int64(z))
+	case int64: return MkTi(z)
+	case uint: return MkTu(uint64(z))
+	case uint8: return MkTu(uint64(z))
+	case uint16: return MkTu(uint64(z))
+	case uint32: return MkTu(uint64(z))
+	case uint64: return MkTu(z)
+	case string: return MkTs(z)
 	case T: panic("Already a T")
 	}
-	return ValueToT(R.ValueOf(a))
+	return MkTv(R.ValueOf(a))
 }
 	
 
@@ -366,13 +405,13 @@ func (t Tf) Bool() bool {
 	}
 	return true
 }
-func (t Tf) ToTf() Tf {
+func (t Tf) Tf() Tf {
 	return t
 }
-func (t Tf) ToTs() Ts {
+func (t Tf) Ts() Ts {
 	return Ts{s: t.String()}
 }
-func (t Tf) ToTl() Tl {
+func (t Tf) Tl() Tl {
 	return Tl{l: []T{t,}}
 }
 
@@ -403,17 +442,17 @@ func (t Ts) Bool() bool {
 	}
 	return true
 }
-func (t Ts) ToTf() Tf {
-	return FloatToT(t.Float())
+func (t Ts) Tf() Tf {
+	return MkTf(t.Float())
 }
-func (t Ts) ToTs() Ts {
+func (t Ts) Ts() Ts {
 	return t
 }
-func (t Ts) ToTl() Tl {
+func (t Ts) Tl() Tl {
 	v := ParseList(t.s)
 	z := make([]T, len(v))
 	for i, e := range v {
-		z[i] = ToT(e)
+		z[i] = MkT(e)
 	}
 	return Tl{l: z}
 }
@@ -451,13 +490,13 @@ func (t Tl) Bool() bool {
 	}
 	return true
 }
-func (t Tl) ToTf() Tf {
-	return FloatToT(t.Float())
+func (t Tl) Tf() Tf {
+	return MkTf(t.Float())
 }
-func (t Tl) ToTs() Ts {
-	return StringToT(t.String())
+func (t Tl) Ts() Ts {
+	return MkTs(t.String())
 }
-func (t Tl) ToTl() Tl {
+func (t Tl) Tl() Tl {
 	return t
 }
 
@@ -480,13 +519,13 @@ func (t Tv) Uint() uint64 {
 func (t Tv) Bool() bool {
 	panic("cant yet")
 }
-func (t Tv) ToTf() Tf {
+func (t Tv) Tf() Tf {
 	return Tf{f: t.Float()}
 }
-func (t Tv) ToTs() Ts {
+func (t Tv) Ts() Ts {
 	return Ts{s: t.String()}
 }
-func (t Tv) ToTl() Tl {
+func (t Tv) Tl() Tl {
 	return Tl{l: []T{t,}}
 }
 

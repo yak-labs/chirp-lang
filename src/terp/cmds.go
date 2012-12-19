@@ -8,6 +8,7 @@ import (
 )
 
 var Builtins map[string]Command = make(map[string]Command, 0)
+var TBuiltins map[string]TCommand = make(map[string]TCommand, 0)
 
 func (fr *Frame) initBuiltins() {
 	Builtins["+"] = MkChainingBinaryFlopCmd(fr, 0.0, func(a, b float64) float64 { return a + b })
@@ -36,6 +37,35 @@ func (fr *Frame) initBuiltins() {
 	Builtins["nil"] = cmdNil
 	Builtins["http_handler"] = cmdHttpHandler
 }
+
+func (fr *Frame) initTBuiltins() {
+	TBuiltins["+"] = MkChainingBinaryFlopTCmd(fr, 0.0, func(a, b float64) float64 { return a + b })
+	TBuiltins["*"] = MkChainingBinaryFlopTCmd(fr, 1.0, func(a, b float64) float64 { return a * b })
+	TBuiltins["-"] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return a - b })
+	TBuiltins["/"] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return a / b })
+
+	TBuiltins["=="] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return ToFloat(a == b) })
+	TBuiltins["!="] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return ToFloat(a != b) })
+	TBuiltins["<"] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return ToFloat(a < b) })
+	TBuiltins["<="] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return ToFloat(a <= b) })
+	TBuiltins[">"] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return ToFloat(a > b) })
+	TBuiltins[">="] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return ToFloat(a >= b) })
+/*
+	TBuiltins["must"] = cmdMust
+	TBuiltins["if"] = cmdIf
+	TBuiltins["get"] = cmdGet
+	TBuiltins["set"] = cmdSet
+	TBuiltins["proc"] = cmdProc
+	TBuiltins["ls"] = cmdLs
+	TBuiltins["slen"] = cmdSLen
+	TBuiltins["llen"] = cmdLLen
+	TBuiltins["list"] = cmdList
+	TBuiltins["sat"] = cmdSAt
+	TBuiltins["lat"] = cmdLAt
+	TBuiltins["nil"] = cmdNil
+	TBuiltins["http_handler"] = cmdHttpHandler
+*/
+}
 type BinaryFlop func(a, b float64) float64
 
 func MkBinaryFlopCmd(fr *Frame, flop BinaryFlop) Command {
@@ -45,13 +75,30 @@ func MkBinaryFlopCmd(fr *Frame, flop BinaryFlop) Command {
 	}
 }
 
+func MkBinaryFlopTCmd(fr *Frame, flop BinaryFlop) TCommand {
+	return func(fr *Frame, argv []T) T {
+		a, b := TArgv2(argv)
+		return MkTf(flop(a.Float(), b.Float()))
+	}
+}
+
 func MkChainingBinaryFlopCmd(fr *Frame, starter float64, flop BinaryFlop) Command {
 	return func(fr *Frame, argv List) Any {
 		z := starter // Be sure not to modify starter!  It is captured.
 		for _, a := range argv[1:] {
 			z = flop(z, ToFloat(a))
 		}
-		return z //Str(z)
+		return z
+	}
+}
+
+func MkChainingBinaryFlopTCmd(fr *Frame, starter float64, flop BinaryFlop) TCommand {
+	return func(fr *Frame, argv []T) T {
+		z := starter // Be sure not to modify starter!  It is captured.
+		for _, a := range argv[1:] {
+			z = flop(z, a.Float())
+		}
+		return MkTf(z)
 	}
 }
 
@@ -134,6 +181,27 @@ func Argv2(argv List) (Any, Any) {
 func Argv3(argv List) (Any, Any, Any) {
 	if len(argv) != 3+1 {
 		panic(Sprintf("Expected 3 arguments, but got %#v", argv))
+	}
+	return argv[1], argv[2], argv[3]
+}
+
+func TArgv1(argv []T) T {
+	if len(argv) != 1+1 {
+		panic(Sprintf("Expected 1 arguments, but got argv=%#v", argv))
+	}
+	return argv[1]
+}
+
+func TArgv2(argv []T) (T, T) {
+	if len(argv) != 2+1 {
+		panic(Sprintf("Expected 2 arguments, but got argv=%#v", argv))
+	}
+	return argv[1], argv[2]
+}
+
+func TArgv3(argv []T) (T, T, T) {
+	if len(argv) != 3+1 {
+		panic(Sprintf("Expected 3 arguments, but got argv=%#v", argv))
 	}
 	return argv[1], argv[2], argv[3]
 }
