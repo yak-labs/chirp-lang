@@ -59,6 +59,7 @@ func New() *Frame {
 
 	g.Fr.G = g
 	g.Fr.initBuiltins()
+	g.Fr.initTBuiltins()
 	g.Fr.initExterns()
 	return &g.Fr
 }
@@ -175,8 +176,8 @@ func (fr *Frame) Apply(argv List) Any {
 }
 
 
-func (fr *Frame) TApply(argv []T) Any {
-	log.Printf("< Apply < %#v\n", argv)
+func (fr *Frame) TApply(argv []T) T {
+	log.Printf("< TApply < %#v\n", argv)
 	head := argv[0]
 	cmdName, ok := head.(Ts)
 	if !ok {
@@ -185,10 +186,10 @@ func (fr *Frame) TApply(argv []T) Any {
 	}
 
 	fn, ok := fr.G.TCmds[cmdName.s]
-	log.Printf("Looked in Cmds %v %v %v", fn, ok, cmdName.s)
+	log.Printf("Looked in TCmds %v %v %v", fn, ok, cmdName.s)
 	if !ok {
 		fn, ok = TBuiltins[cmdName.s]
-		log.Printf("Looked in Builtins %v %v %v", fn, ok, cmdName.s)
+		log.Printf("Looked in TBuiltins %v %v %v", fn, ok, cmdName.s)
 	}
 	if !ok {
 		/*
@@ -209,7 +210,7 @@ func (fr *Frame) TApply(argv []T) Any {
 		panic(Sprintf("Command not found: %q", cmdName.s))
 	}
 	z := fn(fr, argv)
-	log.Printf("> Apply > %#v\n", z)
+	log.Printf("> TApply > %#v\n", z)
 	return z
 }
 
@@ -545,4 +546,56 @@ func ToListElement(s string) string {
 
 
 
+// Convert new T to old Any
+func old(a T) Any {
+	switch x := a.(type) {
+	case Tf: return x.f
+	case Ts: return x.s
+	case Tl: return x.l
+	case Tv: return x.v.Interface()
+	}
+	panic(Sprintf("old: %#v", a))
+}
 
+// Convert old Any to new T
+func new(a Any) T {
+	switch x := a.(type) {
+	case nil: return MkTs("")
+	case string: return MkTs(x)
+	case uint: return MkTu(uint64(x))
+	case uint8: return MkTu(uint64(x))
+	case uint16: return MkTu(uint64(x))
+	case uint32: return MkTu(uint64(x))
+	case uint64: return MkTu(x)
+	case uintptr: return MkTu(uint64(x))
+	case int: return MkTi(int64(x))
+	case int8: return MkTi(int64(x))
+	case int16: return MkTi(int64(x))
+	case int32: return MkTi(int64(x))
+	case int64: return MkTi(x)
+	case float32: return MkTf(float64(x))
+	case float64: return MkTf(x)
+	case bool: return MkTi(int64(Bool2Int(x)))
+	case error: return MkTv(R.ValueOf(x))
+	case List: 
+		z := make([]T, len(x))
+		for i, e := range x {
+			z[i] = new(e)
+		}
+		return MkTl(z)
+	}
+	panic(Sprintf("DEFAULT new: <%T> %#v", a, a))
+	// return Sprintf("{%#v}", a)
+}
+
+// Adapt an old Command to a new TCommand
+func newcmd(cmd Command) TCommand {
+	return func(fr *Frame, argv []T) T {
+		b := make(List, len(argv))
+		for i, e := range argv {
+			b[i] = old(e)
+		}
+		z := cmd(fr, b)
+		return new(z)
+	}
+}

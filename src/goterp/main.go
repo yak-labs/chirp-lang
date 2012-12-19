@@ -11,7 +11,12 @@ func main() {
 	fr := terp.New()
 	for _, a := range os.Args[1:] {
 		Printf("<<< %#v\n", a)
-		z := fr.Eval(a)
+		var z terp.Any
+		if a[0] == ',' {
+			z = fr.TEval(terp.MkTs(a[1:]))
+		} else {
+			z = fr.Eval(a)
+		}
 		Printf(">>> %#v\n", z)
 	}
 }

@@ -50,20 +50,33 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["<="] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return ToFloat(a <= b) })
 	TBuiltins[">"] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return ToFloat(a > b) })
 	TBuiltins[">="] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return ToFloat(a >= b) })
+	TBuiltins["must"] = tcmdMust
+
+	TBuiltins["if"] = newcmd(cmdIf)
+	TBuiltins["get"] = newcmd(cmdGet)
+	TBuiltins["set"] = newcmd(cmdSet)
+	TBuiltins["proc"] = newcmd(cmdProc)
+	TBuiltins["ls"] = newcmd(cmdLs)
+	TBuiltins["slen"] = newcmd(cmdSLen)
+	TBuiltins["llen"] = newcmd(cmdLLen)
+	TBuiltins["list"] = newcmd(cmdList)
+	TBuiltins["sat"] = newcmd(cmdSAt)
+	TBuiltins["lat"] = newcmd(cmdLAt)
+	TBuiltins["nil"] = newcmd(cmdNil)
+	TBuiltins["http_handler"] = newcmd(cmdHttpHandler)
 /*
-	TBuiltins["must"] = cmdMust
-	TBuiltins["if"] = cmdIf
-	TBuiltins["get"] = cmdGet
-	TBuiltins["set"] = cmdSet
-	TBuiltins["proc"] = cmdProc
-	TBuiltins["ls"] = cmdLs
-	TBuiltins["slen"] = cmdSLen
-	TBuiltins["llen"] = cmdLLen
-	TBuiltins["list"] = cmdList
-	TBuiltins["sat"] = cmdSAt
-	TBuiltins["lat"] = cmdLAt
-	TBuiltins["nil"] = cmdNil
-	TBuiltins["http_handler"] = cmdHttpHandler
+	TBuiltins["if"] = tcmdIf
+	TBuiltins["get"] = tcmdGet
+	TBuiltins["set"] = tcmdSet
+	TBuiltins["proc"] = tcmdProc
+	TBuiltins["ls"] = tcmdLs
+	TBuiltins["slen"] = tcmdSLen
+	TBuiltins["llen"] = tcmdLLen
+	TBuiltins["list"] = tcmdList
+	TBuiltins["sat"] = tcmdSAt
+	TBuiltins["lat"] = tcmdLAt
+	TBuiltins["nil"] = tcmdNil
+	TBuiltins["http_handler"] = tcmdHttpHandler
 */
 }
 type BinaryFlop func(a, b float64) float64
@@ -102,6 +115,18 @@ func MkChainingBinaryFlopTCmd(fr *Frame, starter float64, flop BinaryFlop) TComm
 	}
 }
 
+func TTruth(a T) bool {
+	switch x := a.(type) {
+	case Tf:
+		return x.f != 0
+	case Ts:
+		return len(x.s) > 0
+	case Tl:
+		return len(x.l) > 0
+	}
+	// To Do: Value(nil) Value(false) are false.
+	return true
+}
 func Truth(a Any) bool {
 	switch x := a.(type) {
 	case float64:
@@ -209,6 +234,17 @@ func TArgv3(argv []T) (T, T, T) {
 func cmdMust(fr *Frame, argv List) Any {
 	x := Str(argv[1])
 	y := Str(argv[2])
+
+	if x == y {
+		return argv[2]
+	}
+
+	panic("FAILED: must: " + Repr(argv) + " -- x: " + x + " -- y: " + y)
+}
+func tcmdMust(fr *Frame, argv []T) T {
+	xx, yy := TArgv2(argv)
+	x := xx.String()
+	y := yy.String()
 
 	if x == y {
 		return argv[2]
