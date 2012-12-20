@@ -36,6 +36,7 @@ var tests = `
   must cc [lat [list aa bb cc dd ee] 2]
   must cc [lat " aa bb cc dd ee" 2]
   must cc [lat { aa bb cc dd ee } 2]
+  must c [sat abcde 2]
 
   must 5 [llen [list aa bb cc dd ee] ]
   must 1 [slen [llen [list aa bb cc dd ee] ]]

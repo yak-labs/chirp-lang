@@ -314,6 +314,14 @@ type Tv struct {  // Tvalue
 	v R.Value
 }
 
+var Empty = MkTs("")
+
+func MkTb(a bool) Tf {
+	if (a) {
+		return MkTi(1)
+	}
+	return MkTi(0)
+}
 func MkTf(a float64) Tf {
 	return Tf{f: a}
 }
@@ -334,6 +342,7 @@ func MkTv(a R.Value) T {
 }
 func MkT(a interface{}) T {
 	switch z := a.(type) {
+	case bool: return MkTb(z)
 	case float64: return MkTf(z)
 	case float32: return MkTf(float64(z))
 	case int: return MkTi(int64(z))

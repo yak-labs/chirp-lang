@@ -7,6 +7,9 @@ import (
 	"strconv"
 )
 
+var _ = log.Printf
+var _ = strconv.ParseFloat
+
 var TBuiltins map[string]TCommand = make(map[string]TCommand, 0)
 
 func (fr *Frame) initTBuiltins() {
@@ -15,36 +18,30 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["-"] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return a - b })
 	TBuiltins["/"] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return a / b })
 
-	TBuiltins["=="] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return ToFloat(a == b) })
-	TBuiltins["!="] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return ToFloat(a != b) })
-	TBuiltins["<"] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return ToFloat(a < b) })
-	TBuiltins["<="] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return ToFloat(a <= b) })
-	TBuiltins[">"] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return ToFloat(a > b) })
-	TBuiltins[">="] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return ToFloat(a >= b) })
+	TBuiltins["=="] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a == b) })
+	TBuiltins["!="] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a != b) })
+	TBuiltins["<"] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a < b) })
+	TBuiltins["<="] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a <= b) })
+	TBuiltins[">"] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a > b) })
+	TBuiltins[">="] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a >= b) })
 	TBuiltins["must"] = tcmdMust
 
 	TBuiltins["if"] = tcmdIf
-	TBuiltins["get"] = newcmd(cmdGet)
-	TBuiltins["set"] = newcmd(cmdSet)
-	TBuiltins["puts"] = newcmd(cmdPuts)
+	TBuiltins["get"] = tcmdGet
+	TBuiltins["set"] = tcmdSet
+	TBuiltins["puts"] = tcmdPuts
 	TBuiltins["proc"] = newcmd(cmdProc)
 	TBuiltins["ls"] = newcmd(cmdLs)
 	TBuiltins["slen"] = newcmd(cmdSLen)
 	TBuiltins["llen"] = newcmd(cmdLLen)
 	TBuiltins["list"] = newcmd(cmdList)
-	TBuiltins["sat"] = newcmd(cmdSAt)
-	TBuiltins["lat"] = newcmd(cmdLAt)
+	TBuiltins["sat"] = tcmdSAt  // a.k.a. string index
+	TBuiltins["lat"] = tcmdLAt  // a.k.a. lindex
 	TBuiltins["nil"] = newcmd(cmdNil)
 	TBuiltins["http_handler"] = newcmd(cmdHttpHandler)
 }
 type BinaryFlop func(a, b float64) float64
-
-func MkBinaryFlopCmd(fr *Frame, flop BinaryFlop) Command {
-	return func(fr *Frame, argv List) Any {
-		a, b := Argv2(argv)
-		return flop(ToFloat(a), ToFloat(b))
-	}
-}
+type BinaryFlopBool func(a, b float64) bool
 
 func MkBinaryFlopTCmd(fr *Frame, flop BinaryFlop) TCommand {
 	return func(fr *Frame, argv []T) T {
@@ -53,13 +50,10 @@ func MkBinaryFlopTCmd(fr *Frame, flop BinaryFlop) TCommand {
 	}
 }
 
-func MkChainingBinaryFlopCmd(fr *Frame, starter float64, flop BinaryFlop) Command {
-	return func(fr *Frame, argv List) Any {
-		z := starter // Be sure not to modify starter!  It is captured.
-		for _, a := range argv[1:] {
-			z = flop(z, ToFloat(a))
-		}
-		return z
+func MkBinaryFlopBoolTCmd(fr *Frame, flop BinaryFlopBool) TCommand {
+	return func(fr *Frame, argv []T) T {
+		a, b := TArgv2(argv)
+		return MkTb(flop(a.Float(), b.Float()))
 	}
 }
 
@@ -113,38 +107,6 @@ func Truth(a Any) bool {
 		return len(x) != 0
 	}
 	panic(Sprintf("Case not supported in Truth(): %#v", a))
-}
-
-func ToFloat(a Any) float64 {
-	switch x := a.(type) {
-	case float64:
-		return x
-	case float32:
-		return float64(x)
-	case uint64:
-		return float64(x)
-	case int64:
-		return float64(x)
-	case int:
-		return float64(x)
-	case uint:
-		return float64(x)
-	case byte:
-		return float64(x)
-	case rune:
-		return float64(x)
-	case bool:
-		log.Printf("BOOL %v", x)
-		if x {
-			return 1.0
-		}
-		return 0.0
-	}
-	f, err := strconv.ParseFloat(Str(a), 64)
-	if err != nil {
-		panic(Sprintf("Cannot Parse Float: %q", a))
-	}
-	return f
 }
 
 func Argv1(argv List) Any {
@@ -237,7 +199,7 @@ func tcmdIf(fr *Frame, argv []T) T {
 		return fr.TEval(no)
 	}
 
-	return MkTs("")
+	return Empty
 }
 
 func cmdIf(fr *Frame, argv List) Any {
@@ -269,21 +231,21 @@ func cmdIf(fr *Frame, argv List) Any {
 	return nil
 }
 
-func cmdGet(fr *Frame, argv List) Any {
-	name := Argv1(argv)
-	return fr.GetVar(Str(name))
+func tcmdGet(fr *Frame, argv []T) T {
+	name := TArgv1(argv)
+	return fr.TGetVar(name.String())
 }
 
-func cmdSet(fr *Frame, argv List) Any {
-	name, x := Argv2(argv)
-	fr.SetVar(Str(name), x)
+func tcmdSet(fr *Frame, argv []T) T {
+	name, x := TArgv2(argv)
+	fr.TSetVar(name.String(), x)
 	return x
 }
 
-func cmdPuts(fr *Frame, argv List) Any {
-	out := Argv1(argv)
+func tcmdPuts(fr *Frame, argv []T) T {
+	out := TArgv1(argv)
 	Println(out)
-	return nil
+	return Empty
 }
 
 func cmdProc(fr *Frame, argv List) Any {
@@ -340,18 +302,16 @@ func cmdList(fr *Frame, argv List) Any {
 	return argv[1:]
 }
 
-func cmdLAt(fr *Frame, argv List) Any {
-	v, j := Argv2(argv)
-	f := ToFloat(j)
-	i := int(f)
-	return ParseList(v)[i]
+func tcmdLAt(fr *Frame, argv []T) T {
+	v, j := TArgv2(argv)
+	i := j.Int()
+	return new(ParseList(v)[i])
 }
 
-func cmdSAt(fr *Frame, argv List) Any {
-	s, j := Argv2(argv)
-	f := ToFloat(j)
-	i := int(f)
-	return Str(s)[i : i+1]
+func tcmdSAt(fr *Frame, argv []T) T {
+	s, j := TArgv2(argv)
+	i := j.Int()
+	return MkTs(s.String()[i : i+1])
 }
 
 func cmdNil(fr *Frame, argv List) Any { // TODO
