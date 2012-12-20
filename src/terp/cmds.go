@@ -27,6 +27,7 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["if"] = tcmdIf
 	TBuiltins["get"] = newcmd(cmdGet)
 	TBuiltins["set"] = newcmd(cmdSet)
+	TBuiltins["puts"] = newcmd(cmdPuts)
 	TBuiltins["proc"] = newcmd(cmdProc)
 	TBuiltins["ls"] = newcmd(cmdLs)
 	TBuiltins["slen"] = newcmd(cmdSLen)
@@ -36,20 +37,6 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["lat"] = newcmd(cmdLAt)
 	TBuiltins["nil"] = newcmd(cmdNil)
 	TBuiltins["http_handler"] = newcmd(cmdHttpHandler)
-/*
-	TBuiltins["if"] = tcmdIf
-	TBuiltins["get"] = tcmdGet
-	TBuiltins["set"] = tcmdSet
-	TBuiltins["proc"] = tcmdProc
-	TBuiltins["ls"] = tcmdLs
-	TBuiltins["slen"] = tcmdSLen
-	TBuiltins["llen"] = tcmdLLen
-	TBuiltins["list"] = tcmdList
-	TBuiltins["sat"] = tcmdSAt
-	TBuiltins["lat"] = tcmdLAt
-	TBuiltins["nil"] = tcmdNil
-	TBuiltins["http_handler"] = tcmdHttpHandler
-*/
 }
 type BinaryFlop func(a, b float64) float64
 
@@ -292,6 +279,12 @@ func cmdSet(fr *Frame, argv List) Any {
 	name, x := Argv2(argv)
 	fr.SetVar(Str(name), x)
 	return x
+}
+
+func cmdPuts(fr *Frame, argv List) Any {
+	out := Argv1(argv)
+	Println(out)
+	return nil
 }
 
 func cmdProc(fr *Frame, argv List) Any {
