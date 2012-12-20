@@ -213,7 +213,7 @@ func tcmdMust(fr *Frame, argv []T) T {
 }
 
 func tcmdIf(fr *Frame, argv []T) T {
-	if len(argv) < 3+1 {
+	if len(argv) < 3 {
 		panic(Sprintf("Too few arguments for if: %#v", argv))
 	}
 	var cond, yes, no T
