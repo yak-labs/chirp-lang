@@ -52,7 +52,7 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins[">="] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return ToFloat(a >= b) })
 	TBuiltins["must"] = tcmdMust
 
-	TBuiltins["if"] = newcmd(cmdIf)
+	TBuiltins["if"] = tcmdIf
 	TBuiltins["get"] = newcmd(cmdGet)
 	TBuiltins["set"] = newcmd(cmdSet)
 	TBuiltins["proc"] = newcmd(cmdProc)
@@ -251,6 +251,35 @@ func tcmdMust(fr *Frame, argv []T) T {
 	}
 
 	panic("FAILED: must: " + Repr(argv) + " -- x: " + x + " -- y: " + y)
+}
+
+func tcmdIf(fr *Frame, argv []T) T {
+	if len(argv) < 3+1 {
+		panic(Sprintf("Too few arguments for if: %#v", argv))
+	}
+	var cond, yes, no T
+
+	switch len(argv) {
+	case 5:
+		if argv[3].String() != "else" {
+			panic(Sprintf("Expected 'else' at argv[3]: %#v", argv))
+		}
+		cond, yes, no = argv[1], argv[2], argv[4]
+	case 3:
+		cond, yes = argv[1], argv[2]
+	default:
+		panic(Sprintf("Wrong len(argv) for if: %#v", argv))
+	}
+
+	if TTruth(fr.TEval(cond)) {
+		return fr.TEval(yes)
+	}
+
+	if no != nil {
+		return fr.TEval(no)
+	}
+
+	return MkTs("")
 }
 
 func cmdIf(fr *Frame, argv List) Any {
