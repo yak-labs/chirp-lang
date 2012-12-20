@@ -22,15 +22,12 @@ type TDict map[string]T
 type Command func(fr *Frame, argv List) Any
 type TCommand func(fr *Frame, argv []T) T
 
-type Scope map[string]Any
 type TScope map[string]T
 
 type CmdScope map[string]Command
 type TCmdScope map[string]TCommand
 
 type Frame struct {
-	Vars  Scope
-	Slots Scope
 	TVars  TScope
 	TSlots TScope
 
@@ -52,7 +49,6 @@ func New() *Frame {
 		Cmds: make(CmdScope),
 		TCmds: make(TCmdScope),
 		Fr: Frame{
-			Vars: make(Scope),
 			TVars: make(TScope),
 		},
 	}
@@ -65,8 +61,6 @@ func New() *Frame {
 
 func (fr *Frame) NewFrame() *Frame {
 	return &Frame{
-		Vars:  make(Scope),
-		Slots: nil,
 		TVars:  make(TScope),
 		TSlots: nil,
 		Prev:  fr,
@@ -88,37 +82,12 @@ func IsLocal(name string) bool {
 	return !ast.IsExported(name) && name[0] != '_'
 }
 
-func (fr *Frame) GetVarScope(name string) Scope {
-	if len(name) == 0 {
-		panic("Empty variable name")
-	}
-	if name[0] == '_' {
-		if fr.Slots == nil {
-			panic("No slots in this frame: " + name)
-		}
-		return fr.Slots
-	}
-
-	if IsGlobal(name) {
-		return fr.G.Fr.Vars
-	}
-	return fr.Vars
-}
-
-func (fr *Frame) GetVar(name string) Any {
-	return fr.GetVarScope(name)[name]
-}
-
-func (fr *Frame) SetVar(name string, x Any) {
-	fr.GetVarScope(name)[name] = x
-}
-
 func (fr *Frame) TGetVarScope(name string) TScope {
 	if len(name) == 0 {
 		panic("Empty variable name")
 	}
 	if name[0] == '_' {
-		if fr.Slots == nil {
+		if fr.TSlots == nil {
 			panic("No slots in this frame: " + name)
 		}
 		return fr.TSlots

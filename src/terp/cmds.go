@@ -273,7 +273,7 @@ func cmdProc(fr *Frame, argv List) Any {
 		}
 		fr3 := fr2.NewFrame()
 		for i, arg := range astrs {
-			fr3.SetVar(arg, old(argv2[i+1]))
+			fr3.TSetVar(arg, argv2[i+1])
 		}
 		return fr3.TEval(new(body))
 	}

@@ -16,7 +16,7 @@ func saveArgvStarting(fr *terp.Frame, i int) {
 	for _, a := range os.Args[i:] {
 		argv = append(argv, terp.MkTs(a))
 	}
-	fr.SetVar("argv", argv)
+	fr.TSetVar("argv", terp.MkTl(argv))
 }
 
 func main() {
