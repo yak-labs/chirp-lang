@@ -15,11 +15,11 @@ fmt:
 	gofmt -w src/*/*.go 
 
 demo1: goterp
-	./goterp 'must 3 [+ 1 2]; must 1015 [+ 0 1 2 3 [ + 2 2 ] [ - 8 3 ] [+ 100 900]]'
+	./goterp -c 'must 3 [+ 1 2]; must 1015 [+ 0 1 2 3 [ + 2 2 ] [ - 8 3 ] [+ 100 900]]'
 demo2: goterp
-	time ./goterp ' call /fmt/Printf "hey%gthere%gyou---" [+ 3] [+ 4] '
+	time ./goterp -c ' call /fmt/Printf "hey%gthere%gyou---" [+ 3] [+ 4] '
 web: goterp
-	./goterp "`cat demo/hello_web.t`" 
+	./goterp demo/hello_web.t
 
 clean:
 	rm -rf ./goterp ./demo-types-1 src/generated/reflections.go pkg/*
