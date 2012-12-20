@@ -9,12 +9,14 @@ import (
 	. "fmt"
 	"exp/types"
 	"go/ast"
+	"os"
 	"strings"
 )
 
 var imports = make(map[string]*ast.Object)
 
 var packages = []string{
+	// Defaults used if no cmd line args are specified.
 	"bufio", "io", "os", "bytes", "strings", "fmt", "net/http",
 }
 
@@ -26,9 +28,12 @@ func RemarkScope(pack string, sc *ast.Scope) {
 	}
 }
 
+var Uniq map[string]int = make(map[string]int, 5000)
+
 func DoScope(pack string, sc *ast.Scope) {
 	for k, v := range sc.Objects {
 		if ast.IsExported(k) {
+			snake := strings.Replace(pack, "/", "_", -1)
 			short := pack
 			j := strings.LastIndex(pack, "/")
 			if j > 0 {
@@ -36,15 +41,21 @@ func DoScope(pack string, sc *ast.Scope) {
 			}
 			switch v.Kind.String() {
 			case "type":
-				Printf("Types[\"/%s/%s\"] = new(*%s.%s)\n", pack, k, short, k)
+				Printf("Types[\"/%s/%s\"] = new(*%s.%s)\n", pack, k, snake, k)
 				//Printf("Converters[\"/%s/%s\"] = nil\n", pack, k)
 			case "func":
-				Printf("Funcs[\"/%s/%s\"] = %s.%s\n", pack, k, short, k)
+				Printf("Funcs[\"/%s/%s\"] = %s.%s\n", pack, k, snake, k)
 			case "var":
-				Printf("Vars[\"/%s/%s\"] = &%s.%s\n", pack, k, short, k)
+				Printf("Vars[\"/%s/%s\"] = &%s.%s\n", pack, k, snake, k)
 			case "const":
-				Printf("Consts[\"/%s/%s\"] = %s.%s\n", pack, k, short, k)
+				Printf("//? Consts[\"/%s/%s\"] = %s.%s\n", pack, k, snake, k)
 			}
+
+			pre := short[:1]
+			nom := Sprintf("{%s%s}", pre, k)
+			Printf("//# OLD <%s> %d\n", nom, Uniq[nom])
+			Uniq[nom]++
+			Printf("//# NEW <%s> %d\n", nom, Uniq[nom])
 		}
 	}
 }
@@ -56,13 +67,18 @@ func main() {
 
 	Println("package generated")
 	Println()
+
+	if len(os.Args) > 1 {
+		packages = os.Args[1:]
+	}
 	for _, pack := range packages {
 		p, err = types.GcImport(imports, pack)
 		if err != nil {
 			panic(err)
 		}
 		pp = append(pp, p)
-		Printf("import \"%s\"\n", pack)
+		snake := strings.Replace(pack, "/", "_", -1)
+		Printf("import %s \"%s\"\n", snake, pack)
 	}
 
 	Println()
@@ -78,7 +94,9 @@ func main() {
 	Println("func init() {")
 
 	for i, pkg := range pp {
-		// ast.Print(nil, pkg)
+		if packages[i] == "sort" {
+			// ast.Print(nil, pkg)
+		}
 		Println()
 		RemarkScope(packages[i], pkg.Data.(*ast.Scope))
 		Println()
@@ -87,4 +105,10 @@ func main() {
 	}
 
 	Println("} // END")
+
+	for uk, uv := range Uniq {
+		if uv > 1 {
+			Printf("//# ! Uniq <%s> %d\n", uk, uv)
+		}
+	}
 }

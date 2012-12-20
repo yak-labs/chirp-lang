@@ -23,7 +23,7 @@ func Extern(name string) Any {
 	return nil
 }
 
-func (fr *Frame) initExterns() {
+func (fr *Frame) initReflect() {
 	Builtins["lspkg"] = cmdLsPkg
 
 	Builtins["peek"] = cmdPeek
@@ -37,6 +37,21 @@ func (fr *Frame) initExterns() {
 	Builtins["funcX"] = cmdFuncX
 	Builtins["typeX"] = cmdTypeX
 	Builtins["call"] = cmdCall
+
+	TBuiltins["lspkg"] = newcmd(cmdLsPkg)
+
+	TBuiltins["peek"] = newcmd(cmdPeek)
+	TBuiltins["type"] = newcmd(cmdType)
+	TBuiltins["kindT"] = newcmd(cmdKindT)
+	TBuiltins["kind"] = newcmd(cmdKind)
+	TBuiltins["value"] = newcmd(cmdValue)
+	TBuiltins["zeroT"] = newcmd(cmdZeroT)
+	TBuiltins["anyV"] = newcmd(cmdAnyV)
+
+	TBuiltins["funcX"] = newcmd(cmdFuncX)
+	TBuiltins["typeX"] = newcmd(cmdTypeX)
+	TBuiltins["call"] = newcmd(cmdCall)
+
 }
 
 func cmdFuncX(fr *Frame, argv List) Any {
