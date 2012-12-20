@@ -27,6 +27,7 @@ func (fr *Frame) initBuiltins() {
 	Builtins["if"] = cmdIf
 	Builtins["get"] = cmdGet
 	Builtins["set"] = cmdSet
+	Builtins["puts"] = cmdPuts
 	Builtins["proc"] = cmdProc
 	Builtins["ls"] = cmdLs
 	Builtins["slen"] = cmdSLen
@@ -55,6 +56,7 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["if"] = newcmd(cmdIf)
 	TBuiltins["get"] = newcmd(cmdGet)
 	TBuiltins["set"] = newcmd(cmdSet)
+	TBuiltins["puts"] = newcmd(cmdPuts)
 	TBuiltins["proc"] = newcmd(cmdProc)
 	TBuiltins["ls"] = newcmd(cmdLs)
 	TBuiltins["slen"] = newcmd(cmdSLen)
@@ -291,6 +293,12 @@ func cmdSet(fr *Frame, argv List) Any {
 	name, x := Argv2(argv)
 	fr.SetVar(Str(name), x)
 	return x
+}
+
+func cmdPuts(fr *Frame, argv List) Any {
+	out := Argv1(argv)
+	Println(out)
+	return nil
 }
 
 func cmdProc(fr *Frame, argv List) Any {
