@@ -174,7 +174,7 @@ func tcmdMust(fr *Frame, argv []T) T {
 }
 
 func tcmdIf(fr *Frame, argv []T) T {
-	if len(argv) < 3+1 {
+	if len(argv) < 3 {
 		panic(Sprintf("Too few arguments for if: %#v", argv))
 	}
 	var cond, yes, no T
@@ -243,6 +243,7 @@ func tcmdSet(fr *Frame, argv []T) T {
 }
 
 func tcmdPuts(fr *Frame, argv []T) T {
+	// TODO:  accept a Writer as first arg.  
 	out := TArgv1(argv)
 	Println(out)
 	return Empty
