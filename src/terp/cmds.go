@@ -79,36 +79,6 @@ func TTruth(a T) bool {
 	// To Do: Value(nil) Value(false) are false.
 	return true
 }
-func Truth(a Any) bool {
-	switch x := a.(type) {
-	case float64:
-		return x != 0
-	case float32:
-		return x != 0
-	case uint64:
-		return x != 0
-	case int64:
-		return x != 0
-	case int:
-		return x != 0
-	case uint:
-		return x != 0
-	case byte:
-		return x != 0
-	case rune:
-		return x != 0
-	case bool:
-		return x
-	case string:
-		return len(x) != 0
-	case List:
-		return len(x) != 0
-	case Dict:
-		return len(x) != 0
-	}
-	panic(Sprintf("Case not supported in Truth(): %#v", a))
-}
-
 func Argv1(argv List) Any {
 	if len(argv) != 1+1 {
 		panic(Sprintf("Expected 1 arguments, but got %#v", argv))
@@ -200,35 +170,6 @@ func tcmdIf(fr *Frame, argv []T) T {
 	}
 
 	return Empty
-}
-
-func cmdIf(fr *Frame, argv List) Any {
-	if len(argv) < 3+1 {
-		panic(Sprintf("Too few arguments for if: %#v", argv))
-	}
-	var cond, yes, no Any
-
-	switch len(argv) {
-	case 5:
-		if argv[3] != "else" {
-			panic(Sprintf("Expected 'else' at argv[3]: %#v", argv))
-		}
-		cond, yes, no = argv[1], argv[2], argv[4]
-	case 3:
-		cond, yes = argv[1], argv[2]
-	default:
-		panic(Sprintf("Wrong len(argv) for if: %#v", argv))
-	}
-
-	if Truth(fr.Eval(cond)) {
-		return fr.Eval(yes)
-	}
-
-	if no != nil {
-		return fr.Eval(no)
-	}
-
-	return nil
 }
 
 func tcmdGet(fr *Frame, argv []T) T {
