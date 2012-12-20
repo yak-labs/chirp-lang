@@ -25,8 +25,8 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["must"] = tcmdMust
 
 	TBuiltins["if"] = tcmdIf
-	TBuiltins["get"] = newcmd(cmdGet)
-	TBuiltins["set"] = newcmd(cmdSet)
+	TBuiltins["get"] = tcmdGet
+	TBuiltins["set"] = tcmdSet
 	TBuiltins["puts"] = tcmdPuts
 	TBuiltins["proc"] = newcmd(cmdProc)
 	TBuiltins["ls"] = newcmd(cmdLs)
@@ -270,15 +270,25 @@ func cmdIf(fr *Frame, argv List) Any {
 	return nil
 }
 
-func cmdGet(fr *Frame, argv List) Any {
-	name := Argv1(argv)
-	return fr.GetVar(Str(name))
+func tcmdGet(fr *Frame, argv []T) T {
+	if len (argv) < 2 {
+		panic(Sprintf("Too few arguments for get: %#v", argv))
+	}
+
+	name := argv[1]
+	return fr.TGetVar(Str(name))
 }
 
-func cmdSet(fr *Frame, argv List) Any {
-	name, x := Argv2(argv)
-	fr.SetVar(Str(name), x)
-	return x
+func tcmdSet(fr *Frame, argv []T) T {
+	if len (argv) < 3 {
+		panic(Sprintf("Too few arguments for set: %#v", argv))
+	}
+
+	name := argv[1]
+	val := argv[2]
+
+	fr.TSetVar(Str(name), val)
+	return val
 }
 
 func tcmdPuts(fr *Frame, argv []T) T {
