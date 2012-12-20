@@ -9,7 +9,6 @@ import (
 	"terp"
 )
 
-var oFlag = flag.String("o", "", "Immediate command to execute, with old eval.")
 var cFlag = flag.String("c", "", "Immediate command to execute.")
 
 func saveArgvStarting(fr *terp.Frame, i int) {
@@ -29,14 +28,6 @@ func main() {
 		Printf("T<<< %#v\n", *cFlag)
 		z := fr.TEval(terp.MkTs(*cFlag))
 		Printf("T>>> %#v\n", z)
-		return
-	}
-
-	if oFlag != nil && *oFlag != "" {
-		saveArgvStarting(fr, 1)
-		Printf("O<<< %#v\n", *oFlag)
-		z := fr.Eval(*oFlag)
-		Printf("O>>> %#v\n", z)
 		return
 	}
 
