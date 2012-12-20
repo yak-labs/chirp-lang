@@ -295,6 +295,8 @@ func cmdSet(fr *Frame, argv List) Any {
 }
 
 func cmdProc(fr *Frame, argv List) Any {
+	// This is an old cmdProc that installs a new TCommand functions.
+	// It's an ugly mix of old & new.   FIXME
 	name, aa, body := Argv3(argv)
 	alist := ParseList(aa)
 	astrs := make([]string, len(alist))
@@ -306,21 +308,23 @@ func cmdProc(fr *Frame, argv List) Any {
 		astrs[i] = astr
 	}
 	n := len(alist) + 1
-	cmd := func(fr2 *Frame, argv2 List) Any {
+
+	tcmd := func(fr2 *Frame, argv2 []T) T {
 		if argv2 == nil {
 			// Debug Data, if invoked with nil argv2.
-			return argv
+			return MkTl(newlist(argv))
 		}
 		if len(argv2) != n {
 			panic(Sprintf("Proc %q expects args %#v but got %#v", name, aa, argv2))
 		}
 		fr3 := fr2.NewFrame()
 		for i, arg := range astrs {
-			fr3.SetVar(arg, argv2[i+1])
+			fr3.SetVar(arg, old(argv2[i+1]))
 		}
-		return fr3.Eval(body)
+		return fr3.TEval(new(body))
 	}
-	fr.G.Cmds[Str(name)] = cmd
+
+	fr.G.TCmds[Str(name)] = tcmd
 	return nil
 }
 

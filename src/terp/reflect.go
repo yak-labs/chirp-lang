@@ -89,7 +89,7 @@ func cmdCall(fr *Frame, argv List) Any {
 
 	pp := make([]R.Value, 0, 4)
 	for i, p := range argv[2:] {
-		if p == nil {
+		if p == nil || p == "" {
 			// pp = append(pp, R.Zero(R.TypeOf(p)))
 			// TODO fix for ...
 			pp = append(pp, R.Zero(ty.In(i)))

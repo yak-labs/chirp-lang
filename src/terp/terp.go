@@ -518,10 +518,15 @@ func ToListElement(s string) string {
 // Convert new T to old Any
 func old(a T) Any {
 	switch x := a.(type) {
-	case Tf: return x.f
-	case Ts: return x.s
-	case Tl: return x.l
-	case Tv: return x.v.Interface()
+	case Tf:
+		return x.f
+	case Ts:
+		return x.s
+	case Tl:
+		return x.l
+	case Tv:
+		log.Printf("@@@@ old() reconstituting from Tv: %#v", x.v.Interface())
+		return x.v.Interface()
 	}
 	panic(Sprintf("old: %#v", a))
 }
@@ -553,8 +558,11 @@ func new(a Any) T {
 		}
 		return MkTl(z)
 	}
-	panic(Sprintf("DEFAULT new: <%T> %#v", a, a))
-	// return Sprintf("{%#v}", a)
+
+	// Everything else becomes a Tv using reflection Value.
+	v := R.ValueOf(a)
+	log.Printf("@@@@ new() converting to Tv: %#v", a)
+	return MkTv(v)
 }
 
 // Adapt an old Command to a new TCommand
