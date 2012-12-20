@@ -24,19 +24,6 @@ func Extern(name string) Any {
 }
 
 func (fr *Frame) initReflect() {
-	Builtins["lspkg"] = cmdLsPkg
-
-	Builtins["peek"] = cmdPeek
-	Builtins["type"] = cmdType
-	Builtins["kindT"] = cmdKindT
-	Builtins["kind"] = cmdKind
-	Builtins["value"] = cmdValue
-	Builtins["zeroT"] = cmdZeroT
-	Builtins["anyV"] = cmdAnyV
-
-	Builtins["funcX"] = cmdFuncX
-	Builtins["typeX"] = cmdTypeX
-	Builtins["call"] = cmdCall
 
 	TBuiltins["lspkg"] = newcmd(cmdLsPkg)
 

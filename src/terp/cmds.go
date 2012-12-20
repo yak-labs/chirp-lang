@@ -7,7 +7,6 @@ import (
 	"strconv"
 )
 
-var Builtins map[string]Command = make(map[string]Command, 0)
 var TBuiltins map[string]TCommand = make(map[string]TCommand, 0)
 
 func (fr *Frame) initTBuiltins() {
