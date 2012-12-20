@@ -10,34 +10,6 @@ import (
 var Builtins map[string]Command = make(map[string]Command, 0)
 var TBuiltins map[string]TCommand = make(map[string]TCommand, 0)
 
-func (fr *Frame) initBuiltins() {
-	Builtins["+"] = MkChainingBinaryFlopCmd(fr, 0.0, func(a, b float64) float64 { return a + b })
-	Builtins["*"] = MkChainingBinaryFlopCmd(fr, 1.0, func(a, b float64) float64 { return a * b })
-	Builtins["-"] = MkBinaryFlopCmd(fr, func(a, b float64) float64 { return a - b })
-	Builtins["/"] = MkBinaryFlopCmd(fr, func(a, b float64) float64 { return a / b })
-
-	Builtins["=="] = MkBinaryFlopCmd(fr, func(a, b float64) float64 { return ToFloat(a == b) })
-	Builtins["!="] = MkBinaryFlopCmd(fr, func(a, b float64) float64 { return ToFloat(a != b) })
-	Builtins["<"] = MkBinaryFlopCmd(fr, func(a, b float64) float64 { return ToFloat(a < b) })
-	Builtins["<="] = MkBinaryFlopCmd(fr, func(a, b float64) float64 { return ToFloat(a <= b) })
-	Builtins[">"] = MkBinaryFlopCmd(fr, func(a, b float64) float64 { return ToFloat(a > b) })
-	Builtins[">="] = MkBinaryFlopCmd(fr, func(a, b float64) float64 { return ToFloat(a >= b) })
-
-	Builtins["must"] = cmdMust
-	Builtins["if"] = cmdIf
-	Builtins["get"] = cmdGet
-	Builtins["set"] = cmdSet
-	Builtins["proc"] = cmdProc
-	Builtins["ls"] = cmdLs
-	Builtins["slen"] = cmdSLen
-	Builtins["llen"] = cmdLLen
-	Builtins["list"] = cmdList
-	Builtins["sat"] = cmdSAt
-	Builtins["lat"] = cmdLAt
-	Builtins["nil"] = cmdNil
-	Builtins["http_handler"] = cmdHttpHandler
-}
-
 func (fr *Frame) initTBuiltins() {
 	TBuiltins["+"] = MkChainingBinaryFlopTCmd(fr, 0.0, func(a, b float64) float64 { return a + b })
 	TBuiltins["*"] = MkChainingBinaryFlopTCmd(fr, 1.0, func(a, b float64) float64 { return a * b })

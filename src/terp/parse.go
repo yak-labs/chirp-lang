@@ -19,28 +19,10 @@ func WhiteOrSemi(ch uint8) bool {
 }
 
 func (fr *Frame) Eval(a Any) (result Any) {
-	result = "" // In case there are no commands.
-	log.Printf("< Eval < %#v\n", a)
-
-	if v, ok := a.(List); ok {
-		return fr.Apply(v)
-	}
-
-	rest := Str(a)
-Loop:
-	for {
-		var words List
-		words, rest = fr.ParseCmd(rest)
-		if len(words) == 0 {
-			break Loop
-		}
-		result = fr.Apply(words)
-	}
-	if len(rest) > 0 {
-		panic(Sprintf("Eval: Did not eval entire string: rest=<%q>", rest))
-	}
-	log.Printf("> Eval > %#v\n", result)
-	return
+	// Redirect to TEval.
+	b := new(a)
+	z := fr.TEval(b)
+	return old(z)
 }
 func (fr *Frame) TEval(a T) (result T) {
 	result = MkTs("")  // In case of empty eval.

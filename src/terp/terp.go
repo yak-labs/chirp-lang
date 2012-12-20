@@ -58,7 +58,6 @@ func New() *Frame {
 	}
 
 	g.Fr.G = g
-	g.Fr.initBuiltins()
 	g.Fr.initTBuiltins()
 	g.Fr.initReflect()
 	return &g.Fr
@@ -140,41 +139,11 @@ func (fr *Frame) TSetVar(name string, x T) {
 }
 
 func (fr *Frame) Apply(argv List) Any {
-	log.Printf("< Apply < %#v\n", argv)
-	head := argv[0]
-	cmdName, ok := head.(string)
-	if !ok {
-		// Some day this may not be true; for now, it helps debug.
-		panic(Sprintf("Command must be a string: %#v", head))
-	}
-
-	fn, ok := fr.G.Cmds[cmdName]
-	log.Printf("Looked in Cmds %v %v %v", fn, ok, cmdName)
-	if !ok {
-		fn, ok = Builtins[cmdName]
-		log.Printf("Looked in Builtins %v %v %v", fn, ok, cmdName)
-	}
-	if !ok {
-		_, ok = generated.Funcs[cmdName]
-		log.Printf("Looked in gen.Funcs -- %v %v", ok, cmdName)
-		if ok {
-			fn = cmdCall
-			tmp := List{"call", cmdName}
-			for _, a := range argv[1:] {
-				tmp = append(tmp, a)
-			}
-			argv = tmp
-		    log.Printf("NEW argv: $#v", argv)
-		}
-	}
-	if !ok {
-		panic(Sprintf("Command not found: %q", cmdName))
-	}
-	z := fn(fr, argv)
-	log.Printf("> Apply > %#v\n", z)
-	return z
+	// Use TApply instead.
+	b := newlist(argv)
+	z := fr.TApply(b)
+	return old(z)
 }
-
 
 func (fr *Frame) TApply(argv []T) T {
 	log.Printf("< TApply < %#v\n", argv)
@@ -192,11 +161,11 @@ func (fr *Frame) TApply(argv []T) T {
 		log.Printf("Looked in TBuiltins %v %v %v", fn, ok, cmdName.s)
 	}
 	if !ok {
-		/*
+		/**/
 		_, ok = generated.Funcs[cmdName.s]
 		log.Printf("Looked in gen.Funcs -- %v %v", ok, cmdName.s)
 		if ok {
-			fn = tcmdCall
+			fn = TBuiltins["call"]  // FIXME when tcmdCall is written.
 			tmp := []T{MkTs("call"), cmdName}
 			for _, a := range argv[1:] {
 				tmp = append(tmp, a)
@@ -204,7 +173,7 @@ func (fr *Frame) TApply(argv []T) T {
 			argv = tmp
 		    log.Printf("NEW argv: $#v", argv)
 		}
-		*/
+		/**/
 	}
 	if !ok {
 		panic(Sprintf("Command not found: %q", cmdName.s))
