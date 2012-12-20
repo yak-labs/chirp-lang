@@ -599,3 +599,21 @@ func newcmd(cmd Command) TCommand {
 		return new(z)
 	}
 }
+
+func oldlist(a []T) List {
+	z := make(List, len(a))
+	for i, e := range a {
+		z[i] = old(e)
+	}
+	return z
+}
+
+func newlist(a List) []T {
+	z := make([]T, len(a))
+	for i, e := range a {
+		z[i] = new(e)
+	}
+	return z
+}
+
+

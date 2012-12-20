@@ -42,15 +42,15 @@ Loop:
 	log.Printf("> Eval > %#v\n", result)
 	return
 }
-func (fr *Frame) NewEval(a Any) (result Any) {
-	result = "" // In case there are no commands.
-	log.Printf("< Eval < %#v\n", a)
+func (fr *Frame) TEval(a T) (result T) {
+	result = MkTs("")  // In case of empty eval.
+	log.Printf("< TEval < %s\n", a)
 
-	if v, ok := a.(List); ok {
-		return old(fr.TApply(new(v).(Tl).l))
+	if v, ok := a.(Tl); ok {
+		return fr.TApply(v.l)
 	}
 
-	rest := Str(a)
+	rest := a.String()
 Loop:
 	for {
 		var words List
@@ -58,16 +58,13 @@ Loop:
 		if len(words) == 0 {
 			break Loop
 		}
-		result = old(fr.TApply(new(words).(Tl).l))
+		result = fr.TApply(new(words).(Tl).l)
 	}
 	if len(rest) > 0 {
-		panic(Sprintf("Eval: Did not eval entire string: rest=<%q>", rest))
+		panic(Sprintf("TEval: Did not eval entire string: rest=<%q>", rest))
 	}
-	log.Printf("> Eval > %#v\n", result)
+	log.Printf("> TEval > %#v\n", result)
 	return
-}
-func (fr *Frame) TEval(a T) (result T) {
-	return new(fr.NewEval(old(a)))
 }
 
 // Parse nested curlies, returning contents and new position
@@ -118,7 +115,7 @@ func (fr *Frame) ParseSquare(s string) (result Any, rest string) {
 
 Loop:
 	for {
-		var words List
+		var words List // OLD LIST TYPE
 		words, rest = fr.ParseCmd(rest)
 		if len(words) == 0 {
 			break Loop
