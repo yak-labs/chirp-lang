@@ -2,7 +2,7 @@ package terp
 
 import (
 	"errors"
-	//. "fmt"
+	. "fmt"
 	"log"
 	R "reflect"
 	//"strconv"
@@ -51,6 +51,59 @@ func cmdTypeX(fr *Frame, argv List) Any {
 	a := Str(Argv1(argv))
 	x := G.Types[a]
 	return R.TypeOf(x).Elem()
+}
+
+func AdaptToValue(a T, t R.Type) R.Value {
+	switch t.Kind() {
+	case R.Bool:
+		if TTruth(a) {
+			return R.ValueOf(true)
+		}
+		return R.ValueOf(false)
+    case R.Int:
+		return R.ValueOf(int(a.Int()))
+    case R.Int8:
+		return R.ValueOf(int8(a.Int()))
+    case R.Int16:
+		return R.ValueOf(int16(a.Int()))
+    case R.Int32:
+		return R.ValueOf(int32(a.Int()))
+    case R.Int64:
+		return R.ValueOf(a.Int())
+    case R.Uint:
+		return R.ValueOf(uint(a.Uint()))
+    case R.Uint8:
+		return R.ValueOf(uint8(a.Uint()))
+    case R.Uint16:
+		return R.ValueOf(uint16(a.Uint()))
+    case R.Uint32:
+		return R.ValueOf(uint32(a.Uint()))
+    case R.Uint64:
+		return R.ValueOf(a.Uint())
+    case R.Uintptr:
+		return R.ValueOf(uintptr(a.Uint()))
+    case R.Float32:
+		return R.ValueOf(uint32(a.Float()))
+    case R.Float64:
+		return R.ValueOf(a.Float())
+    case R.Complex64:
+    case R.Complex128:
+    case R.Array:
+    case R.Chan:
+    case R.Func:
+		v := R.ValueOf(a)
+		if v.Kind() == R.Func {
+			return v
+		}
+    case R.Interface:
+    case R.Map:
+    case R.Ptr:
+    case R.Slice:
+    case R.String:
+    case R.Struct:
+    case R.UnsafePointer:
+	}
+	panic(Sprintf("cannot AdaptToValue from %T to %s", a, t))
 }
 
 func cmdCall(fr *Frame, argv List) Any {
