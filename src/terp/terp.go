@@ -451,7 +451,9 @@ func (t Tl) Tl() Tl {
 
 
 func (t Tv) String() string {
-	return Sprintf("Value:%s:%s:%d", t.v.Kind(), t.v.Type(), t.v.Addr())
+	s := Sprintf("Value:%s:%s:%d", t.v.Kind(), t.v.Type(), t.v.Addr())
+	log.Printf("Warning: converting to Tv to String: %q", s)
+	return s
 }
 func (t Tv) ListElement() string {
 	return ToListElement(t.String())
@@ -496,6 +498,7 @@ func ToListElement(s string) string {
 
 // Convert new T to old Any
 func old(a T) Any {
+	log.Printf("@@@@ old() reconstituting: <%T> %#v", a, a)
 	switch x := a.(type) {
 	case Tf:
 		return x.f
@@ -513,6 +516,8 @@ func old(a T) Any {
 // Convert old Any to new T
 func new(a Any) T {
 	switch x := a.(type) {
+	case T:
+		panic(Sprintf("Calling new() on a T: <%T> <%#v> %s", x, x, x.String()))
 	case nil: return MkTs("")
 	case string: return MkTs(x)
 	case uint: return MkTu(uint64(x))

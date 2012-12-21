@@ -226,11 +226,11 @@ func tcmdProc(fr *Frame, argv []T) T {
 		for i, arg := range astrs {
 			fr3.TSetVar(arg, argv2[i+1])
 		}
-		return fr3.TEval(new(body))
+		return fr3.TEval(body)
 	}
 
-	fr.G.TCmds[Str(name)] = tcmd
-	return nil
+	fr.G.TCmds[name.String()] = tcmd
+	return Empty
 }
 
 func tcmdLs(fr *Frame, argv []T) T {
