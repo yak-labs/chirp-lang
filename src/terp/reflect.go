@@ -38,6 +38,10 @@ func (fr *Frame) initReflect() {
 	TBuiltins["funcX"] = newcmd(cmdFuncX)
 	TBuiltins["typeX"] = newcmd(cmdTypeX)
 	TBuiltins["call"] = newcmd(cmdCall)
+	TBuiltins["send"] = tcmdSend
+	TBuiltins["elem"] = tcmdElem
+	TBuiltins["index"] = tcmdIndex
+	TBuiltins["tolist"] = tcmdToList // Hack
 
 }
 
@@ -104,6 +108,41 @@ func AdaptToValue(a T, t R.Type) R.Value {
     case R.UnsafePointer:
 	}
 	panic(Sprintf("cannot AdaptToValue from %T to %s", a, t))
+}
+
+func tcmdSend(fr *Frame, argv []T) T {
+	t, meth := TArgv2(argv)
+
+	tv := t.(Tv)
+
+	log.Printf("tv.v = %#v", tv.v)
+	log.Printf("tv.v.Type() = %s", tv.v.Type())
+	log.Printf("tv.v.Kind() = %s", tv.v.Kind())
+	log.Printf("meth.String() = %#v", meth.String())
+	m := tv.v.MethodByName(meth.String())
+	log.Printf("m = %#v", m)
+
+	vals := m.Call([]R.Value {})
+
+	return MkT(vals[0].Interface())
+}
+
+func tcmdElem(fr *Frame, argv []T) T {
+	p := TArgv1(argv)
+
+	tv := p.(Tv)
+	e := tv.v.Elem()
+
+	return MkT(e.Interface())
+}
+
+func tcmdIndex(fr *Frame, argv []T) T {
+	slice, i := TArgv2(argv)
+
+	tv := slice.(Tv)
+	z := tv.v.Index(int(i.Int()))
+
+	return MkT(z.Interface())
 }
 
 func cmdCall(fr *Frame, argv List) Any {
@@ -236,4 +275,20 @@ func cmdAnyV(fr *Frame, argv List) Any {
 	a := Argv1(argv)
 	v := a.(R.Value)
 	return v.Interface()
+}
+
+func tcmdToList(fr *Frame, argv []T) T {
+	a := TArgv1(argv)
+
+	v := a.(Tv).v
+	n := v.Len()
+	z := []T {}
+
+	for i := 0; i < n; i++ {
+		z = append(z, MkT(v.Index(i).Interface()))
+		log.Printf("tcmdToTList: z <- %s", z)
+	}
+
+	log.Printf("tcmdToList: MkTl from <%T> <%s>", z, z)
+	return MkTl(z)
 }

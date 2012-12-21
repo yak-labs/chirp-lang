@@ -304,6 +304,7 @@ func MkTs(a string) Ts {
 	return Ts{s: a}
 }
 func MkTl(a []T) Tl {
+	log.Printf("MkTl: from <%T> <%s>", a, a)
 	return Tl{l: a}
 }
 func MkTv(a R.Value) T {

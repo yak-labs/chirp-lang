@@ -40,6 +40,7 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["lat"] = tcmdLAt  // a.k.a. lindex
 	TBuiltins["nil"] = newcmd(cmdNil)
 	TBuiltins["http_handler"] = newcmd(cmdHttpHandler)
+	TBuiltins["foreach"] = tcmdForEach
 }
 type BinaryFlop func(a, b float64) float64
 type BinaryFlopBool func(a, b float64) bool
@@ -278,5 +279,18 @@ func cmdHttpHandler(fr *Frame, argv List) Any {
 		v = LAppend(v, r)
 		_ = fr.Apply(v)
 	}
+}
+
+func tcmdForEach(fr *Frame, argv []T) T {
+	v, list, body := TArgv3(argv)
+
+	l := list.(Tl).l
+	
+	for _, e := range l {
+		fr.TSetVar(v.String(), e)
+		fr.Eval(body.String())
+	}
+
+	return Empty
 }
 
