@@ -31,7 +31,7 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["getq"] = tcmdGetQ
 	TBuiltins["set"] = tcmdSet
 	TBuiltins["puts"] = tcmdPuts
-	TBuiltins["proc"] = newcmd(cmdProc)
+	TBuiltins["proc"] = tcmdProc
 	TBuiltins["ls"] = newcmd(cmdLs)
 	TBuiltins["slen"] = newcmd(cmdSLen)
 	TBuiltins["llen"] = newcmd(cmdLLen)
@@ -201,25 +201,23 @@ func tcmdPuts(fr *Frame, argv []T) T {
 	return Empty
 }
 
-func cmdProc(fr *Frame, argv List) Any {
-	// This is an old cmdProc that installs a new TCommand functions.
-	// It's an ugly mix of old & new.   FIXME
-	name, aa, body := Argv3(argv)
-	alist := ParseList(aa)
+func tcmdProc(fr *Frame, argv []T) T {
+	name, aa, body := TArgv3(argv)
+	alist := newlist(ParseList(aa.String()))
 	astrs := make([]string, len(alist))
 	for i, arg := range alist {
-		astr := Str(arg)
+		astr := arg.String()
 		if !IsLocal(astr) {
 			panic(Sprintf("Cannot use nonlocal name %q for argument in proc", arg))
 		}
 		astrs[i] = astr
 	}
-	n := len(alist) + 1
+	n := len(alist) + 1  // Add 1 for argv[0] now rather than at proc call.
 
 	tcmd := func(fr2 *Frame, argv2 []T) T {
 		if argv2 == nil {
 			// Debug Data, if invoked with nil argv2.
-			return MkTl(newlist(argv))
+			return MkTl(argv)
 		}
 		if len(argv2) != n {
 			panic(Sprintf("Proc %q expects args %#v but got %#v", name, aa, argv2))
