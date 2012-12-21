@@ -28,6 +28,7 @@ func (fr *Frame) initTBuiltins() {
 
 	TBuiltins["if"] = tcmdIf
 	TBuiltins["get"] = tcmdGet
+	TBuiltins["getq"] = tcmdGetQ
 	TBuiltins["set"] = tcmdSet
 	TBuiltins["puts"] = tcmdPuts
 	TBuiltins["proc"] = newcmd(cmdProc)
@@ -175,6 +176,15 @@ func tcmdIf(fr *Frame, argv []T) T {
 func tcmdGet(fr *Frame, argv []T) T {
 	name := TArgv1(argv)
 	return fr.TGetVar(name.String())
+}
+
+func tcmdGetQ(fr *Frame, argv []T) T {
+	req, key := TArgv2(argv)
+
+	v := req.(Tv)
+	r := v.v.Interface().(*http.Request)
+
+	return MkTs(r.URL.Query().Get(key.String()))
 }
 
 func tcmdSet(fr *Frame, argv []T) T {
