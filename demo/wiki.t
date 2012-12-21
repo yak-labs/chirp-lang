@@ -32,4 +32,4 @@ proc list {w r} {
 /net/http/HandleFunc /view [http_handler view]
 /net/http/HandleFunc /list [http_handler list]
 
-/net/http/ListenAndServe 127.0.0.1:8080 [nil]
+/net/http/ListenAndServe 127.0.0.1:8080 ""

@@ -38,7 +38,6 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["list"] = tcmdList
 	TBuiltins["sat"] = tcmdSAt  // a.k.a. string index
 	TBuiltins["lat"] = tcmdLAt  // a.k.a. lindex
-	TBuiltins["nil"] = newcmd(cmdNil)
 	TBuiltins["http_handler"] = newcmd(cmdHttpHandler)
 	TBuiltins["foreach"] = tcmdForEach
 }
@@ -235,9 +234,6 @@ func tcmdProc(fr *Frame, argv []T) T {
 
 func tcmdLs(fr *Frame, argv []T) T {
 	panic("not usefully implemented yet")
-	//name := TArgv1(argv)
-	//fn := fr.G.TCmds[name.String()]
-	//return fn(fr, nil)
 }
 
 func tcmdSLen(fr *Frame, argv []T) T {
@@ -264,10 +260,6 @@ func tcmdSAt(fr *Frame, argv []T) T {
 	s, j := TArgv2(argv)
 	i := j.Int()
 	return MkTs(s.String()[i : i+1])
-}
-
-func cmdNil(fr *Frame, argv List) Any { // TODO
-	return http.Handler(nil)
 }
 
 func cmdHttpHandler(fr *Frame, argv List) Any {
