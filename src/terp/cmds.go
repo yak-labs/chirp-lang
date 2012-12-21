@@ -32,10 +32,10 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["set"] = tcmdSet
 	TBuiltins["puts"] = tcmdPuts
 	TBuiltins["proc"] = tcmdProc
-	TBuiltins["ls"] = newcmd(cmdLs)
-	TBuiltins["slen"] = newcmd(cmdSLen)
-	TBuiltins["llen"] = newcmd(cmdLLen)
-	TBuiltins["list"] = newcmd(cmdList)
+	TBuiltins["ls"] = tcmdLs
+	TBuiltins["slen"] = tcmdSLen
+	TBuiltins["llen"] = tcmdLLen
+	TBuiltins["list"] = tcmdList
 	TBuiltins["sat"] = tcmdSAt  // a.k.a. string index
 	TBuiltins["lat"] = tcmdLAt  // a.k.a. lindex
 	TBuiltins["nil"] = newcmd(cmdNil)
@@ -233,24 +233,25 @@ func tcmdProc(fr *Frame, argv []T) T {
 	return nil
 }
 
-func cmdLs(fr *Frame, argv List) Any {
-	name := Argv1(argv)
-	fn := fr.G.Cmds[Str(name)]
-	return fn(fr, nil)
+func tcmdLs(fr *Frame, argv []T) T {
+	panic("not usefully implemented yet")
+	//name := TArgv1(argv)
+	//fn := fr.G.TCmds[name.String()]
+	//return fn(fr, nil)
 }
 
-func cmdSLen(fr *Frame, argv List) Any {
-	a := Argv1(argv)
-	return float64(len(Str(a)))
+func tcmdSLen(fr *Frame, argv []T) T {
+	a := TArgv1(argv)
+	return MkTi(int64(len(a.String())))
 }
 
-func cmdLLen(fr *Frame, argv List) Any {
-	a := Argv1(argv)
-	return float64(len(ParseList(a)))
+func tcmdLLen(fr *Frame, argv []T) T {
+	a := TArgv1(argv)
+	return MkTi(int64(len(ParseList(a.String()))))
 }
 
-func cmdList(fr *Frame, argv List) Any {
-	return argv[1:]
+func tcmdList(fr *Frame, argv []T) T {
+	return MkTl(argv[1:])
 }
 
 func tcmdLAt(fr *Frame, argv []T) T {
