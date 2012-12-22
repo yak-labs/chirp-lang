@@ -233,6 +233,7 @@ func Must(a, b Any, extra ...Any) {
 
 func NewList(a ...Any) List { return List(a) }
 
+/*
 func ToList(a Any) List {
 	switch x := a.(type) {
 		case List: return x
@@ -247,13 +248,14 @@ func ToList(a Any) List {
 	}
 	return ParseList(Str(a))
 }
-func LAppend(p Any, a ...Any) List {
+func LAppend(p T, a ...Any) List {
 	v := ToList(p)
 	for _, e := range a {
 		v = append(v, e)
 	}
 	return v
 }
+*/
 
 ///////////////////////////////////////
 
@@ -311,27 +313,92 @@ func MkTv(a R.Value) T {
 	return Tv{v: a}
 }
 func MkT(a interface{}) T {
-	switch z := a.(type) {
-	case bool: return MkTb(z)
-	case float64: return MkTf(z)
-	case float32: return MkTf(float64(z))
-	case int: return MkTi(int64(z))
-	case int8: return MkTi(int64(z))
-	case int16: return MkTi(int64(z))
-	case int32: return MkTi(int64(z))
-	case int64: return MkTi(z)
-	case uint: return MkTu(uint64(z))
-	case uint8: return MkTu(uint64(z))
-	case uint16: return MkTu(uint64(z))
-	case uint32: return MkTu(uint64(z))
-	case uint64: return MkTu(z)
-	case string: return MkTs(z)
-	case T: panic("Already a T")
-	}
-	return MkTv(R.ValueOf(a))
-}
-	
+	switch x := a.(type) {
+	case T:
+		panic(Sprintf("Calling MkT() on a T: <%T> <%#v> %s", x, x, x.String()))
+	case R.Value:
+		// Some day we'll allow this, but for now, flag an error.
+		panic(Sprintf("Calling MkT() on a R.Value: <%T> <%#v> %s", x, x, x.String()))
+	case nil: return Empty
+/*
+	case bool: return MkTb(x)
 
+	case float64: return MkTf(x)
+	case float32: return MkTf(float64(x))
+
+	case int: return MkTi(int64(x))
+	case int8: return MkTi(int64(x))
+	case int16: return MkTi(int64(x))
+	case int32: return MkTi(int64(x))
+	case int64: return MkTi(x)
+
+	case uint: return MkTu(uint64(x))
+	case uint8: return MkTu(uint64(x))
+	case uint16: return MkTu(uint64(x))
+	case uint32: return MkTu(uint64(x))
+	case uint64: return MkTu(x)
+
+	case string: return MkTs(x)
+*/
+	}
+
+	// Use reflection to figure it out.
+	v := R.ValueOf(a)
+    if v.Kind() == R.Interface {
+		v = v.Elem()
+	}
+    for v.Kind() == R.Ptr {
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+
+	case R.Bool: return MkTb(v.Bool())
+
+    case R.Int:	return MkTi(v.Int())
+    case R.Int8:	return MkTi(v.Int())
+    case R.Int16:	return MkTi(v.Int())
+    case R.Int32:	return MkTi(v.Int())
+    case R.Int64:	return MkTi(v.Int())
+
+    case R.Uint:	return MkTu(v.Uint())
+    case R.Uint8:	return MkTu(v.Uint())
+    case R.Uint16:	return MkTu(v.Uint())
+    case R.Uint32:	return MkTu(v.Uint())
+    case R.Uint64:	return MkTu(v.Uint())
+    case R.Uintptr:	return MkTu(v.Uint())
+
+    case R.Float32:	return MkTf(v.Float())
+    case R.Float64:	return MkTf(v.Float())
+
+    case R.Complex64:
+    case R.Complex128:
+
+    case R.Array:
+    case R.Chan:
+    case R.Func:
+    case R.Interface:
+    case R.Map:
+    case R.Ptr:
+    case R.Slice:
+		var tmp *T
+		switch v.Type().Elem() {
+		case R.TypeOf(tmp).Elem():
+			return MkTl(v.Interface().([]T))
+		}
+		switch v.Type().Elem().Kind() {
+		case R.Uint8:
+			return MkTs(string(v.Interface().([]byte)))
+		}
+    case R.String:
+			return MkTs(v.Interface().(string))
+    case R.Struct:
+    case R.UnsafePointer:
+	}
+
+	// Everything else becomes a Tv
+	return MkTv(v)
+}
 
 func (t Tf) String() string {
 	return Sprintf("%g", t.f)
@@ -480,7 +547,6 @@ func (t Tv) Tl() Tl {
 	return Tl{l: []T{t,}}
 }
 
-
 func ToListElement(s string) string {
 	// TODO: Not perfect, but we are not doing \ yet.
 	// TODO: Broken for mismatched {}.
@@ -515,9 +581,20 @@ func old(a T) Any {
 
 // Convert old Any to new T
 func new(a Any) T {
+	log.Printf("Calling new(): <%T> <%#v> %s", a, a, a)
+	z := new2(a)
+	log.Printf("-------------> <%T> <%#v> %s", z, z, z)
+	return z
+}
+
+
+func new2(a Any) T {
 	switch x := a.(type) {
 	case T:
 		panic(Sprintf("Calling new() on a T: <%T> <%#v> %s", x, x, x.String()))
+	case R.Value:
+		// Some day we'll allow this, but for now, flag an error.
+		panic(Sprintf("Calling new() on a R.Value: <%T> <%#v> %s", x, x, x.String()))
 	case nil: return MkTs("")
 	case string: return MkTs(x)
 	case uint: return MkTu(uint64(x))
@@ -543,10 +620,13 @@ func new(a Any) T {
 		return MkTl(z)
 	}
 
-	// Everything else becomes a Tv using reflection Value.
-	v := R.ValueOf(a)
-	log.Printf("@@@@ new() converting to Tv: %#v", a)
-	return MkTv(v)
+	log.Printf("............ fallback to MkT()")
+	return MkT(a)
+
+	// // Everything else becomes a Tv using reflection Value.
+	// v := R.ValueOf(a)
+	// log.Printf("@@@@ new() converting to Tv: %#v", a)
+	// return MkTv(v)
 }
 
 // Adapt an old Command to a new TCommand

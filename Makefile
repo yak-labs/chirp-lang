@@ -4,7 +4,8 @@ all: ci goterp demo2 test
 goterp: src/generated/reflections.go src/*/*.go
 	GOPATH=$$(pwd) time go build -x goterp 
 test:
-	GOPATH=$$(pwd) time go test -i src/terp/*.go
+	GOPATH=$$(pwd) time go test -i src/terp/*test.go
+	GOPATH=$$(pwd) time go test src/terp/*test.go
 
 src/generated/reflections.go : src/mkreflections.go
 	mkdir -p src/generated

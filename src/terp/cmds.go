@@ -38,7 +38,7 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["list"] = tcmdList
 	TBuiltins["sat"] = tcmdSAt  // a.k.a. string index
 	TBuiltins["lat"] = tcmdLAt  // a.k.a. lindex
-	TBuiltins["http_handler"] = newcmd(cmdHttpHandler)
+	TBuiltins["http_handler"] = tcmdHttpHandler
 	TBuiltins["foreach"] = tcmdForEach
 }
 type BinaryFlop func(a, b float64) float64
@@ -251,9 +251,13 @@ func tcmdList(fr *Frame, argv []T) T {
 }
 
 func tcmdLAt(fr *Frame, argv []T) T {
-	v, j := TArgv2(argv)
-	i := j.Int()
-	return new(ParseList(v)[i])
+	tlist, ti := TArgv2(argv)
+	list := tlist.Tl().l
+	i := ti.Int()
+	if i < 0 || i > int64(len(list)) {
+		panic(Sprintf("lat: bad index: len(list)=%d but i=%d", len(list), i))
+	}
+	return list[i]
 }
 
 func tcmdSAt(fr *Frame, argv []T) T {
@@ -262,14 +266,15 @@ func tcmdSAt(fr *Frame, argv []T) T {
 	return MkTs(s.String()[i : i+1])
 }
 
-func cmdHttpHandler(fr *Frame, argv List) Any {
-	return func (w http.ResponseWriter, r *http.Request) {
-		v := make(List, len(argv)-1)
+func tcmdHttpHandler(fr *Frame, argv []T) T {
+	fn := func (w http.ResponseWriter, r *http.Request) {
+		v := make([]T, len(argv)-1)
 		copy(v, argv[1:])
-		v = LAppend(v, w)
-		v = LAppend(v, r)
-		_ = fr.Apply(v)
+		v = append(v, MkT(w))
+		v = append(v, MkT(r))
+		_ = fr.TApply(v)
 	}
+	return MkT(fn)
 }
 
 func tcmdForEach(fr *Frame, argv []T) T {
