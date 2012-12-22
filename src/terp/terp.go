@@ -344,13 +344,14 @@ func MkT(a interface{}) T {
 
 	// Use reflection to figure it out.
 	v := R.ValueOf(a)
+/*
     if v.Kind() == R.Interface {
 		v = v.Elem()
 	}
     for v.Kind() == R.Ptr {
 		v = v.Elem()
 	}
-
+*/
 	switch v.Kind() {
 
 	case R.Bool: return MkTb(v.Bool())
