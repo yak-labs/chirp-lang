@@ -25,12 +25,12 @@ func (fr *Frame) TEval(a T) (result T) {
 	rest := a.String()
 Loop:
 	for {
-		var words List
+		var words []T
 		words, rest = fr.ParseCmd(rest)
 		if len(words) == 0 {
 			break Loop
 		}
-		result = fr.TApply(new(words).(Tl).l)
+		result = fr.TApply(words)
 	}
 	if len(rest) > 0 {
 		panic(Sprintf("TEval: Did not eval entire string: rest=<%q>", rest))
@@ -88,12 +88,12 @@ func (fr *Frame) ParseSquare(s string) (result T, rest string) {
 
 Loop:
 	for {
-		var words List // OLD LIST TYPE
+		var words []T
 		words, rest = fr.ParseCmd(rest)
 		if len(words) == 0 {
 			break Loop
 		}
-		result = fr.TApply(newlist(words))
+		result = fr.TApply(words)
 	}
 
 	if len(rest) == 0 || rest[0] != ']' {
@@ -173,10 +173,10 @@ Loop:
 
 // Might return nonempty <rest> if it finds ']'
 // Returns next command as List (may be empty) (substituting as needed) and remaining string.
-func (fr *Frame) ParseCmd(str string) (z List, s string) {
+func (fr *Frame) ParseCmd(str string) (zcmd []T, s string) {
 	s = str
 	//- log.Printf("< ParseCmd < %#v\n", s)
-	z = make(List, 0, 8)
+	zcmd = make([]T, 0, 4)
 	var c uint8
 
 	// skip space or ;
@@ -193,31 +193,31 @@ func (fr *Frame) ParseCmd(str string) (z List, s string) {
 
 Loop:
 	for len(s) > 0 {
-		//- log.Printf("* ParseCmd * TopLoop * z=%#v * s=%q\n", z, s)
+		//- log.Printf("* ParseCmd * TopLoop * zcmd=%#v * s=%q\n", zcmd, s)
 		// found non-white
 		switch s[0] {
 		case ']':
 			break Loop
 		case '{':
 			newresult, rest := fr.ParseCurly(s)
-			z = append(z, old(newresult))
+			zcmd = append(zcmd, newresult)
 			s = rest
 		case '[':
 			newresult, rest := fr.ParseSquare(s)
-			z = append(z, old(newresult))
+			zcmd = append(zcmd, newresult)
 			s = rest
 		case '"':
 			newresult, rest := fr.ParseQuote(s)
-			z = append(z, old(newresult))
+			zcmd = append(zcmd, newresult)
 			s = rest
 		default:
 			newresult, rest := fr.ParseWord(s)
-			z = append(z, old(newresult))
+			zcmd = append(zcmd, newresult)
 			s = rest
 		}
 
 		// skip white
-		//- log.Printf("* ParseCmd * skip white * z=%#v * s=%q\n", z, s)
+		//- log.Printf("* ParseCmd * skip white * zcmd=%#v * s=%q\n", zcmd, s)
 		n = len(s)
 		i = 0
 	Skip:
@@ -241,11 +241,11 @@ Loop:
 			s = s[1:]  // Omit the semicolon or newline
 			break Loop // end of cmd
 		}
-		//- log.Printf("* ParseCmd * End Loop * z=%#v * s=%q\n", z, s)
+		//- log.Printf("* ParseCmd * End Loop * zcmd=%#v * s=%q\n", zcmd, s)
 	} // End Loop
-	//- log.Printf("* ParseCmd * Break Loop * z=%#v * s=%q\n", z, s)
+	//- log.Printf("* ParseCmd * Break Loop * zcmd=%#v * s=%q\n", zcmd, s)
 
-	//- log.Printf("> ParseCmd > %#v > %q\n", z, s)
+	//- log.Printf("> ParseCmd > %#v > %q\n", zcmd, s)
 	return
 }
 
