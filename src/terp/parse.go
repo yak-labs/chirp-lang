@@ -78,13 +78,13 @@ Loop:
 
 // TODO: ParseSquare is too much like Eval.
 // Parse Square Bracketed subcommand, returning result and new position
-func (fr *Frame) ParseSquare(s string) (result Any, rest string) {
+func (fr *Frame) ParseSquare(s string) (result T, rest string) {
 	//- log.Printf("< ParseSquare < %#v\n", s)
-	result = "" // In case there are no commands.
 	if s[0] != '[' {
 		panic("ParseSquare should begin at open square")
 	}
 	rest = s[1:]
+	result = Empty // In case there are no commands.
 
 Loop:
 	for {
@@ -93,10 +93,11 @@ Loop:
 		if len(words) == 0 {
 			break Loop
 		}
-		result = old(fr.TApply(newlist(words)))
+		result = fr.TApply(newlist(words))
 	}
+
 	if len(rest) == 0 || rest[0] != ']' {
-		panic("ParseSquare: missing end bracket")
+		panic("ParseSquare: missing end bracket: s=" + Repr(s))
 	}
 	rest = rest[1:]
 	//- log.Printf("> ParseSquare > %#v > %q\n", result, rest)
@@ -117,8 +118,8 @@ Loop:
 		switch c {
 		case '[':
 			// Mid-word, squares should return stringlike result.
-			result, rest := fr.ParseSquare(s[i:])
-			buf.WriteString(new(result).String())
+			newresult, rest := fr.ParseSquare(s[i:])
+			buf.WriteString(newresult.String())
 			s = rest
 			n = len(s)
 			i = 0
@@ -150,8 +151,8 @@ Loop:
 		switch c {
 		case '[':
 			// Mid-word, squares should return stringlike result.
-			result2, rest2 := fr.ParseSquare(s[i:])
-			buf.WriteString(Str(result2))
+			newresult2, rest2 := fr.ParseSquare(s[i:])
+			buf.WriteString(newresult2.String())
 			s = rest2
 			n = len(s)
 			i = 0
@@ -204,8 +205,8 @@ Loop:
 			z = append(z, old(newresult))
 			s = rest
 		case '[':
-			result, rest := fr.ParseSquare(s)
-			z = append(z, result)
+			newresult, rest := fr.ParseSquare(s)
+			z = append(z, old(newresult))
 			s = rest
 		case '"':
 			result, rest := fr.ParseQuote(s)
