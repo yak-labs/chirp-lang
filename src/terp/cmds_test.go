@@ -55,9 +55,20 @@ var tests = `
     }
   }
   must 15 [tri 5]
+
+  proc range n {
+    if {< [get n] 1} {
+	  list
+	} else {
+	  set m [- [get n] 1]
+	  set z "[range [get m]] [get m]"
+	  get z
+	}
+  }
+  must " 0 1 2 3 4" [range 5]
 `
 
 func TestFoo(a *testing.T) {
 	fr := New()
-	fr.Eval(tests)
+	fr.TEval(MkTs(tests))
 }

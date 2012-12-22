@@ -122,26 +122,15 @@ func TArgv3(argv []T) (T, T, T) {
 	return argv[1], argv[2], argv[3]
 }
 
-func cmdMust(fr *Frame, argv List) Any {
-	x := Str(argv[1])
-	y := Str(argv[2])
-
-	if x == y {
-		return argv[2]
-	}
-
-	panic("FAILED: must: " + Repr(argv) + " -- x: " + x + " -- y: " + y)
-}
 func tcmdMust(fr *Frame, argv []T) T {
 	xx, yy := TArgv2(argv)
 	x := xx.String()
 	y := yy.String()
 
-	if x == y {
-		return argv[2]
+	if x != y {
+		panic("FAILED: must: " + Repr(argv) + " #### x=<" + x + "> #### y=<" + y + "> ####")
 	}
-
-	panic("FAILED: must: " + Repr(argv) + " -- x: " + x + " -- y: " + y)
+	return Empty
 }
 
 func tcmdIf(fr *Frame, argv []T) T {
@@ -284,7 +273,7 @@ func tcmdForEach(fr *Frame, argv []T) T {
 	
 	for _, e := range l {
 		fr.TSetVar(v.String(), e)
-		fr.Eval(body.String())
+		fr.TEval(body)
 	}
 
 	return Empty

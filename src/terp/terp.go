@@ -107,19 +107,16 @@ func (fr *Frame) TSetVar(name string, x T) {
 	fr.TGetVarScope(name)[name] = x
 }
 
-func (fr *Frame) Apply(argv List) Any {
-	// Use TApply instead.
-	b := newlist(argv)
-	z := fr.TApply(b)
-	return old(z)
-}
-
 func (fr *Frame) TApply(argv []T) T {
-	log.Printf("< TApply < %#v\n", argv)
 	head := argv[0]
+	log.Printf("< TApply < %q", head)
+	for ai, av := range argv[1:] {
+		log.Printf("< ...... < [%d] (%T) ## %#v ## %q", ai, av, av, av.String())
+	}
+
+	// Some day we will not require Ts; for now, it helps debug.
 	cmdName, ok := head.(Ts)
 	if !ok {
-		// Some day this may not be true; for now, it helps debug.
 		panic(Sprintf("Command must be a string: %#v", head))
 	}
 
@@ -148,7 +145,7 @@ func (fr *Frame) TApply(argv []T) T {
 		panic(Sprintf("Command not found: %q", cmdName.s))
 	}
 	z := fn(fr, argv)
-	log.Printf("> TApply > %#v\n", z)
+	log.Printf("> TApply > (%T) ## %#v ## %q", z, z, z.String())
 	return z
 }
 

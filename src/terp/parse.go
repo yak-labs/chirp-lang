@@ -10,23 +10,13 @@ func White(ch uint8) bool {
 	return ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n'
 }
 
-func WhiteNotNewline(ch uint8) bool {
-	return ch == ' ' || ch == '\t' || ch == '\r'
-}
-
 func WhiteOrSemi(ch uint8) bool {
 	return ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n' || ch == ';'
 }
 
-func (fr *Frame) Eval(a Any) (result Any) {
-	// Redirect to TEval.
-	b := new(a)
-	z := fr.TEval(b)
-	return old(z)
-}
 func (fr *Frame) TEval(a T) (result T) {
 	result = MkTs("")  // In case of empty eval.
-	log.Printf("< TEval < %s\n", a)
+	log.Printf("< TEval < (%T) ## %#v ## %q\n", a, a, a.String())
 
 	if v, ok := a.(Tl); ok {
 		return fr.TApply(v.l)
@@ -45,7 +35,7 @@ Loop:
 	if len(rest) > 0 {
 		panic(Sprintf("TEval: Did not eval entire string: rest=<%q>", rest))
 	}
-	log.Printf("> TEval > %#v\n", result)
+	log.Printf("> TEval > (%T) ## %#v ## %q\n", result, result, result.String())
 	return
 }
 
@@ -88,7 +78,7 @@ Loop:
 // TODO: ParseSquare is too much like Eval.
 // Parse Square Bracketed subcommand, returning result and new position
 func (fr *Frame) ParseSquare(s string) (result Any, rest string) {
-	log.Printf("< ParseSquare < %#v\n", s)
+	//- log.Printf("< ParseSquare < %#v\n", s)
 	result = "" // In case there are no commands.
 	if s[0] != '[' {
 		panic("ParseSquare should begin at open square")
@@ -102,18 +92,18 @@ Loop:
 		if len(words) == 0 {
 			break Loop
 		}
-		result = fr.Apply(words)
+		result = old(fr.TApply(newlist(words)))
 	}
 	if len(rest) == 0 || rest[0] != ']' {
 		panic("ParseSquare: missing end bracket")
 	}
 	rest = rest[1:]
-	log.Printf("> ParseSquare > %#v > %q\n", result, rest)
+	//- log.Printf("> ParseSquare > %#v > %q\n", result, rest)
 	return
 }
 
 func (fr *Frame) ParseQuote(s string) (result Any, rest string) {
-	log.Printf("< ParseQuote < %#v\n", s)
+	//- log.Printf("< ParseQuote < %#v\n", s)
 	if s[0] != '"' {
 		panic("ParseCurly should begin at open curly")
 	}
@@ -127,7 +117,7 @@ Loop:
 		case '[':
 			// Mid-word, squares should return stringlike result.
 			result, rest := fr.ParseSquare(s[i:])
-			buf.WriteString(Str(result))
+			buf.WriteString(new(result).String())
 			s = rest
 			n = len(s)
 			i = 0
@@ -143,13 +133,13 @@ Loop:
 	}
 	result = buf.String()
 	rest = s[i:]
-	log.Printf("> ParseQuote > %#v > %q\n", result, rest)
+	//- log.Printf("> ParseQuote > %#v > %q\n", result, rest)
 	return
 }
 
 // Parse a bareword, returning result and new position
 func (fr *Frame) ParseWord(s string) (result Any, rest string) {
-	log.Printf("< ParseWord < %#v\n", s)
+	//- log.Printf("< ParseWord < %#v\n", s)
 	i := 0
 	n := len(s)
 	buf := bytes.NewBuffer(nil)
@@ -177,7 +167,7 @@ Loop:
 	}
 	result = buf.String()
 	rest = s[i:]
-	log.Printf("> ParseWord > %#v > %q\n", result, rest)
+	//- log.Printf("> ParseWord > %#v > %q\n", result, rest)
 	return
 }
 
@@ -185,7 +175,7 @@ Loop:
 // Returns next command as List (may be empty) (substituting as needed) and remaining string.
 func (fr *Frame) ParseCmd(str string) (z List, s string) {
 	s = str
-	log.Printf("< ParseCmd < %#v\n", s)
+	//- log.Printf("< ParseCmd < %#v\n", s)
 	z = make(List, 0, 8)
 	var c uint8
 
@@ -203,7 +193,7 @@ func (fr *Frame) ParseCmd(str string) (z List, s string) {
 
 Loop:
 	for len(s) > 0 {
-		log.Printf("* ParseCmd * TopLoop * z=%#v * s=%q\n", z, s)
+		//- log.Printf("* ParseCmd * TopLoop * z=%#v * s=%q\n", z, s)
 		// found non-white
 		switch s[0] {
 		case ']':
@@ -227,7 +217,7 @@ Loop:
 		}
 
 		// skip white
-		log.Printf("* ParseCmd * skip white * z=%#v * s=%q\n", z, s)
+		//- log.Printf("* ParseCmd * skip white * z=%#v * s=%q\n", z, s)
 		n = len(s)
 		i = 0
 	Skip:
@@ -251,11 +241,11 @@ Loop:
 			s = s[1:]  // Omit the semicolon or newline
 			break Loop // end of cmd
 		}
-		log.Printf("* ParseCmd * End Loop * z=%#v * s=%q\n", z, s)
+		//- log.Printf("* ParseCmd * End Loop * z=%#v * s=%q\n", z, s)
 	} // End Loop
-	log.Printf("* ParseCmd * Break Loop * z=%#v * s=%q\n", z, s)
+	//- log.Printf("* ParseCmd * Break Loop * z=%#v * s=%q\n", z, s)
 
-	log.Printf("> ParseCmd > %#v > %q\n", z, s)
+	//- log.Printf("> ParseCmd > %#v > %q\n", z, s)
 	return
 }
 
