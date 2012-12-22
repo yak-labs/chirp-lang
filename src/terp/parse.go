@@ -104,7 +104,7 @@ Loop:
 	return
 }
 
-func (fr *Frame) ParseQuote(s string) (result Any, rest string) {
+func (fr *Frame) ParseQuote(s string) (T, string) {
 	//- log.Printf("< ParseQuote < %#v\n", s)
 	if s[0] != '"' {
 		panic("ParseQuote should begin at open Quote")
@@ -133,10 +133,8 @@ Loop:
 			i++
 		}
 	}
-	result = buf.String()
-	rest = s[i:]
 	//- log.Printf("> ParseQuote > %#v > %q\n", result, rest)
-	return
+	return MkTs(buf.String()), s[i:]
 }
 
 // Parse a bareword, returning result and new position
@@ -209,8 +207,8 @@ Loop:
 			z = append(z, old(newresult))
 			s = rest
 		case '"':
-			result, rest := fr.ParseQuote(s)
-			z = append(z, result)
+			newresult, rest := fr.ParseQuote(s)
+			z = append(z, old(newresult))
 			s = rest
 		default:
 			newresult, rest := fr.ParseWord(s)
