@@ -40,10 +40,10 @@ Loop:
 }
 
 // Parse nested curlies, returning contents and new position
-func (fr *Frame) ParseCurly(s string) (result Any, rest string) {
+func (fr *Frame) ParseCurly(s string) (result T, rest string) {
 	if s[0] != '{' {
 		panic("ParseCurly should begin at open curly")
-	} // '}'
+	} // vim: '}'
 	n := len(s)
 	i := 1
 
@@ -65,12 +65,13 @@ Loop:
 		buf.WriteByte(c)
 		i++
 	}
+	// vim: '{'
 	if c != '}' {
-		panic("ParseCurly: missing end brace:" + Repr(c))
+		panic("ParseCurly: missing end curly:" + Repr(c))
 	}
 	i++
 
-	result = buf.String()
+	result = MkTs(buf.String())
 	rest = s[i:]
 	return
 }
@@ -105,7 +106,7 @@ Loop:
 func (fr *Frame) ParseQuote(s string) (result Any, rest string) {
 	//- log.Printf("< ParseQuote < %#v\n", s)
 	if s[0] != '"' {
-		panic("ParseCurly should begin at open curly")
+		panic("ParseQuote should begin at open Quote")
 	}
 	i := 1
 	n := len(s)
@@ -200,7 +201,7 @@ Loop:
 			break Loop
 		case '{':
 			result, rest := fr.ParseCurly(s)
-			z = append(z, result)
+			z = append(z, old(result))
 			s = rest
 		case '[':
 			result, rest := fr.ParseSquare(s)
