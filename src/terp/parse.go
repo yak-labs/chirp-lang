@@ -173,10 +173,10 @@ Loop:
 
 // Might return nonempty <rest> if it finds ']'
 // Returns next command as List (may be empty) (substituting as needed) and remaining string.
-func (fr *Frame) ParseCmd(str string) (zcmd []T, s string) {
+func (fr *Frame) ParseCmd(str string) (zwords []T, s string) {
 	s = str
 	//- log.Printf("< ParseCmd < %#v\n", s)
-	zcmd = make([]T, 0, 4)
+	zwords = make([]T, 0, 4)
 	var c uint8
 
 	// skip space or ;
@@ -193,31 +193,29 @@ func (fr *Frame) ParseCmd(str string) (zcmd []T, s string) {
 
 Loop:
 	for len(s) > 0 {
-		//- log.Printf("* ParseCmd * TopLoop * zcmd=%#v * s=%q\n", zcmd, s)
 		// found non-white
 		switch s[0] {
 		case ']':
 			break Loop
 		case '{':
 			newresult, rest := fr.ParseCurly(s)
-			zcmd = append(zcmd, newresult)
+			zwords = append(zwords, newresult)
 			s = rest
 		case '[':
 			newresult, rest := fr.ParseSquare(s)
-			zcmd = append(zcmd, newresult)
+			zwords = append(zwords, newresult)
 			s = rest
 		case '"':
 			newresult, rest := fr.ParseQuote(s)
-			zcmd = append(zcmd, newresult)
+			zwords = append(zwords, newresult)
 			s = rest
 		default:
 			newresult, rest := fr.ParseWord(s)
-			zcmd = append(zcmd, newresult)
+			zwords = append(zwords, newresult)
 			s = rest
 		}
 
 		// skip white
-		//- log.Printf("* ParseCmd * skip white * zcmd=%#v * s=%q\n", zcmd, s)
 		n = len(s)
 		i = 0
 	Skip:
@@ -241,11 +239,7 @@ Loop:
 			s = s[1:]  // Omit the semicolon or newline
 			break Loop // end of cmd
 		}
-		//- log.Printf("* ParseCmd * End Loop * zcmd=%#v * s=%q\n", zcmd, s)
 	} // End Loop
-	//- log.Printf("* ParseCmd * Break Loop * zcmd=%#v * s=%q\n", zcmd, s)
-
-	//- log.Printf("> ParseCmd > %#v > %q\n", zcmd, s)
 	return
 }
 
