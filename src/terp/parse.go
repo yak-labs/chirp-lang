@@ -249,14 +249,10 @@ Loop:
 	return
 }
 
-func ParseList(a Any) List {
-	if v, ok := a.(List); ok {
-		return v
-	}
-	s := Str(a)
+func ParseList(s string) []T {
 	n := len(s)
 	i := 0
-	z := make(List, 0, 8)
+	z := make([]T, 0, 4)
 
 	for i < n {
 		var c uint8
@@ -308,7 +304,7 @@ func ParseList(a Any) List {
 				i++
 			}
 		}
-		z = append(z, buf.String())
+		z = append(z, MkTs(buf.String()))
 	}
 	return z
 }

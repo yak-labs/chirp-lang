@@ -191,7 +191,7 @@ func tcmdPuts(fr *Frame, argv []T) T {
 
 func tcmdProc(fr *Frame, argv []T) T {
 	name, aa, body := TArgv3(argv)
-	alist := newlist(ParseList(aa.String()))
+	alist := aa.Tl().l
 	astrs := make([]string, len(alist))
 	for i, arg := range alist {
 		astr := arg.String()
@@ -232,7 +232,7 @@ func tcmdSLen(fr *Frame, argv []T) T {
 
 func tcmdLLen(fr *Frame, argv []T) T {
 	a := TArgv1(argv)
-	return MkTi(int64(len(ParseList(a.String()))))
+	return MkTi(int64(len(a.Tl().l)))
 }
 
 func tcmdList(fr *Frame, argv []T) T {

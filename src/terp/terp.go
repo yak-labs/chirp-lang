@@ -222,37 +222,28 @@ func Str(a Any) string {
 	return Sprintf("{%#v}", a)
 }
 
-func Must(a, b Any, extra ...Any) {
-	if a != b {
-		panic(Repr(a) + " vs. " + Repr(b) + " :: " + Repr(extra))
+func TMust(a, b T) {
+	if a.String() != b.String() {
+		panic(Show(a) + " .vs. " + Show(b))
 	}
+}
+// MustT takes a string and a T
+func MustT(a string, b T) {
+	TMust(MkTs(a), b)
+}
+
+func Must(a, b Any) {
+	// Otherwise use Repr equality
+	if Repr(a) != Repr(b) {
+		panic(Repr(a) + " .vs. " + Repr(b))
+	}
+}
+
+func Show(a T) string {
+	return Sprintf("{(%T) ## %#v ## %q}", a, a, a.String())
 }
 
 func NewList(a ...Any) List { return List(a) }
-
-/*
-func ToList(a Any) List {
-	switch x := a.(type) {
-		case List: return x
-		case []Any: return List(x)
-		case []interface{}:
-			z := make([]Any, 0, 4)
-			for _, e := range x {
-				z = append(z, e)
-			}
-			return List(z)
-		case string: return ParseList(x)
-	}
-	return ParseList(Str(a))
-}
-func LAppend(p T, a ...Any) List {
-	v := ToList(p)
-	for _, e := range a {
-		v = append(v, e)
-	}
-	return v
-}
-*/
 
 ///////////////////////////////////////
 
@@ -463,15 +454,8 @@ func (t Ts) Ts() Ts {
 	return t
 }
 func (t Ts) Tl() Tl {
-	v := ParseList(t.s)
-	z := make([]T, len(v))
-	for i, e := range v {
-		z[i] = MkT(e)
-	}
-	return Tl{l: z}
+	return Tl{l: ParseList(t.s)}
 }
-
-
 
 func (t Tl) String() string {
 	z := ""

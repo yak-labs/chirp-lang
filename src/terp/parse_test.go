@@ -12,8 +12,8 @@ func TestSimpleList3(t *testing.T) {
 		panic("len not 3")
 	}
 	Must(3, len(a))
-	Must("one", a[0])
-	Must("three", a[2])
+	MustT("one", a[0])
+	MustT("three", a[2])
 }
 
 func TestT2(t *testing.T) {
@@ -22,10 +22,10 @@ func TestT2(t *testing.T) {
 		panic("len not 3")
 	}
 	println(Repr(a))
-	Must(3, len(a), a)
-	Must("one", a[0])
-	Must(" number two ", a[1])
-	Must("three", a[2])
+	Must(3, len(a))
+	MustT("one", a[0])
+	MustT(" number two ", a[1])
+	MustT("three", a[2])
 }
 
 /*
