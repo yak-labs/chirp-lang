@@ -139,7 +139,7 @@ Loop:
 }
 
 // Parse a bareword, returning result and new position
-func (fr *Frame) ParseWord(s string) (result Any, rest string) {
+func (fr *Frame) ParseWord(s string) (T, string) {
 	//- log.Printf("< ParseWord < %#v\n", s)
 	i := 0
 	n := len(s)
@@ -150,9 +150,9 @@ Loop:
 		switch c {
 		case '[':
 			// Mid-word, squares should return stringlike result.
-			result, rest := fr.ParseSquare(s[i:])
-			buf.WriteString(Str(result))
-			s = rest
+			result2, rest2 := fr.ParseSquare(s[i:])
+			buf.WriteString(Str(result2))
+			s = rest2
 			n = len(s)
 			i = 0
 		case ']':
@@ -166,10 +166,10 @@ Loop:
 			i++
 		}
 	}
-	result = buf.String()
-	rest = s[i:]
+	// result = MkTs(buf.String())
+	// rest = s[i:]
 	//- log.Printf("> ParseWord > %#v > %q\n", result, rest)
-	return
+	return MkTs(buf.String()), s[i:]
 }
 
 // Might return nonempty <rest> if it finds ']'
@@ -200,8 +200,8 @@ Loop:
 		case ']':
 			break Loop
 		case '{':
-			result, rest := fr.ParseCurly(s)
-			z = append(z, old(result))
+			newresult, rest := fr.ParseCurly(s)
+			z = append(z, old(newresult))
 			s = rest
 		case '[':
 			result, rest := fr.ParseSquare(s)
@@ -212,8 +212,8 @@ Loop:
 			z = append(z, result)
 			s = rest
 		default:
-			result, rest := fr.ParseWord(s)
-			z = append(z, result)
+			newresult, rest := fr.ParseWord(s)
+			z = append(z, old(newresult))
 			s = rest
 		}
 
