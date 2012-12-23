@@ -1,7 +1,7 @@
 package terp
 
 import (
-	//"bytes"
+	"bytes"
 	. "fmt"
 	"go/ast"
 	"log"
@@ -161,6 +161,14 @@ func Must(a, b interface{}) {
 
 func Show(a T) string {
 	return Sprintf("{(%T) ## %#v ## %q}", a, a, a.String())
+}
+
+func Showv(a []T) string {
+	buf := bytes.NewBufferString(Sprintf("Slice of T with %d slots:", len(a)))
+	for i, e := range a {
+		buf.WriteString(Sprintf("\n    ... [%d] = %s", i, Show(e)))
+	}
+	return buf.String()
 }
 
 // func NewList(a ...interface{}) List { return List(a) }

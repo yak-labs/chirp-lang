@@ -8,6 +8,9 @@ import (
 
 var reflectTests = `
 	must	abcdefghi	[/fmt/Sprintf {abc%sghi} def]
+
+	set buf [call /bytes/NewBufferString Hello]
+	must 5 [send $buf Len]
 `
 
 func TestReflect(a *testing.T) {

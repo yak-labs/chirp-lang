@@ -82,21 +82,28 @@ func TTruth(a T) bool {
 
 func TArgv1(argv []T) T {
 	if len(argv) != 1+1 {
-		panic(Sprintf("Expected 1 arguments, but got argv=%#v", argv))
+		panic(Sprintf("Expected 1 arguments, but got argv=%s", Showv(argv)))
 	}
 	return argv[1]
 }
 
 func TArgv2(argv []T) (T, T) {
 	if len(argv) != 2+1 {
-		panic(Sprintf("Expected 2 arguments, but got argv=%#v", argv))
+		panic(Sprintf("Expected 2 arguments, but got argv=%s", Showv(argv)))
 	}
 	return argv[1], argv[2]
 }
 
+func TArgv2v(argv []T) (T, T, []T) {
+	if len(argv) < 2+1 {
+		panic(Sprintf("Expected at least 2 arguments, but got argv=%s", Showv(argv)))
+	}
+	return argv[1], argv[2], argv[3:]
+}
+
 func TArgv3(argv []T) (T, T, T) {
 	if len(argv) != 3+1 {
-		panic(Sprintf("Expected 3 arguments, but got argv=%#v", argv))
+		panic(Sprintf("Expected 3 arguments, but got argv=%s", Showv(argv)))
 	}
 	return argv[1], argv[2], argv[3]
 }

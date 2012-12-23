@@ -106,23 +106,6 @@ func AdaptToValue(a T, t R.Type) R.Value {
 	return R.ValueOf(a.Raw())
 }
 
-func tcmdSend(fr *Frame, argv []T) T {
-	t, meth := TArgv2(argv)
-
-	tv := t.(Tv)
-
-	log.Printf("tv.v = %#v", tv.v)
-	log.Printf("tv.v.Type() = %s", tv.v.Type())
-	log.Printf("tv.v.Kind() = %s", tv.v.Kind())
-	log.Printf("meth.String() = %#v", meth.String())
-	m := tv.v.MethodByName(meth.String())
-	log.Printf("m = %#v", m)
-
-	vals := m.Call([]R.Value {})
-
-	return MkT(vals[0].Interface())
-}
-
 func tcmdElem(fr *Frame, argv []T) T {
 	p := TArgv1(argv)
 
@@ -146,13 +129,30 @@ func tcmdCall(fr *Frame, argv []T) T {
 	log.Printf("Call fn=%s  len(argv)=%d", funcName, len(argv))
 
 	fn := findExternalGoFunctionAsValue(funcName)
-	return call(fr, funcName, fn, argv)
+	return commonCall(fr, funcName, fn, argv[2:])
 }
 
-func call(fr *Frame, funcName string, fn R.Value, argv []T) T {
-	ty := R.TypeOf(fn.Interface())
+func tcmdSend(fr *Frame, argv []T) T {
+	t, meth, args := TArgv2v(argv)
+	log.Printf("----send----receiver = %s", Show(t))
+	methName := meth.String()
+	log.Printf("----send----method = %q", methName)
 
-	log.Printf("... fn: <%s> %s: %#v", ty.Kind(), ty, fn.Interface())
+	tv, ok := t.(Tv)
+	if !ok {
+		panic(Sprintf("'send' command expected Tv receiver, but got %s", Show(t)))
+	}
+
+	fn := tv.v.MethodByName(methName)
+	return commonCall(fr, "Method:" + methName + ":" + tv.v.Type().String(), fn, args)
+}
+
+// commonCall is common to both "call" and "send".
+// args already has function name or receiver and message name stripped; it's just the args.
+func commonCall(fr *Frame, funcName string, fn R.Value, args []T) T {
+	ty := fn.Type()
+
+	log.Printf("... fn <%s> type: <%s> %s", funcName, ty.Kind(), ty)
 
 	nin := ty.NumIn()
 	nout := ty.NumOut()
@@ -168,18 +168,18 @@ func call(fr *Frame, funcName string, fn R.Value, argv []T) T {
 
 	// Check num args
 	if vari {
-		if len(argv)-2 < nin-1 {
-			panic(Sprintf("command <%s> expected at least %d args but got %d.", funcName, nin-1, len(argv)-2))
+		if len(args) < nin-1 {
+			panic(Sprintf("command <%s> expected at least %d args but got %d.", funcName, nin-1, len(args)))
 		}
 	} else {
-		if len(argv)-2 != nin {
-			panic(Sprintf("command <%s> expected %d args but got %d.", funcName, nin, len(argv)-2))
+		if len(args) != nin {
+			panic(Sprintf("command <%s> expected %d args but got %d.", funcName, nin, len(args)))
 		}
 	}
 
 	// Convert actual args to Values, into pp. 
-	pp := make([]R.Value, len(argv)-2)
-	for i, p := range argv[2:] {
+	pp := make([]R.Value, len(args))
+	for i, p := range args {
 		var target R.Type
 		if vari && i >= nin-1 {
 			target = ty.In(nin-1).Elem()  // element type of variadic args...t
