@@ -34,12 +34,13 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["slen"] = tcmdSLen
 	TBuiltins["llen"] = tcmdLLen
 	TBuiltins["list"] = tcmdList
-	TBuiltins["sat"] = tcmdSAt  // a.k.a. string index
-	TBuiltins["lat"] = tcmdLAt  // a.k.a. lindex
+	TBuiltins["sat"] = tcmdSAt // a.k.a. string index
+	TBuiltins["lat"] = tcmdLAt // a.k.a. lindex
 	TBuiltins["http_handler"] = tcmdHttpHandler
 	TBuiltins["foreach"] = tcmdForEach
 	TBuiltins["while"] = tcmdWhile
 }
+
 type BinaryFlop func(a, b float64) float64
 type BinaryFlopBool func(a, b float64) bool
 
@@ -186,7 +187,7 @@ func tcmdProc(fr *Frame, argv []T) T {
 		}
 		astrs[i] = astr
 	}
-	n := len(alist) + 1  // Add 1 for argv[0] now rather than at proc call.
+	n := len(alist) + 1 // Add 1 for argv[0] now rather than at proc call.
 
 	tcmd := func(fr2 *Frame, argv2 []T) T {
 		if argv2 == nil {
@@ -242,7 +243,7 @@ func tcmdSAt(fr *Frame, argv []T) T {
 }
 
 func tcmdHttpHandler(fr *Frame, argv []T) T {
-	fn := func (w http.ResponseWriter, r *http.Request) {
+	fn := func(w http.ResponseWriter, r *http.Request) {
 		v := make([]T, len(argv)-1)
 		copy(v, argv[1:])
 		v = append(v, MkT(w))
@@ -256,7 +257,7 @@ func tcmdForEach(fr *Frame, argv []T) T {
 	v, list, body := TArgv3(argv)
 
 	l := list.Tl().l
-	
+
 	for _, e := range l {
 		fr.TSetVar(v.String(), e)
 		fr.TEval(body)

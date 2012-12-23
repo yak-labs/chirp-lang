@@ -6,8 +6,8 @@
 package main
 
 import (
-	. "fmt"
 	"exp/types"
+	. "fmt"
 	"go/ast"
 	"os"
 	"strings"

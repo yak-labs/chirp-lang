@@ -11,7 +11,7 @@ import (
 )
 
 var errorInterfaceType R.Type = R.TypeOf(errors.New).Out(0)
-	
+
 func findExternalGoFunctionAsValue(name string) R.Value {
 	if len(name) < 2 || name[0] != '/' {
 		panic("Doesnt start with /: " + Repr(name))
@@ -40,41 +40,41 @@ func AdaptToValue(a T, t R.Type) R.Value {
 			return R.ValueOf(true)
 		}
 		return R.ValueOf(false)
-    case R.Int:
+	case R.Int:
 		return R.ValueOf(int(a.Int()))
-    case R.Int8:
+	case R.Int8:
 		return R.ValueOf(int8(a.Int()))
-    case R.Int16:
+	case R.Int16:
 		return R.ValueOf(int16(a.Int()))
-    case R.Int32:
+	case R.Int32:
 		return R.ValueOf(int32(a.Int()))
-    case R.Int64:
+	case R.Int64:
 		return R.ValueOf(a.Int())
-    case R.Uint:
+	case R.Uint:
 		return R.ValueOf(uint(a.Uint()))
-    case R.Uint8:
+	case R.Uint8:
 		return R.ValueOf(uint8(a.Uint()))
-    case R.Uint16:
+	case R.Uint16:
 		return R.ValueOf(uint16(a.Uint()))
-    case R.Uint32:
+	case R.Uint32:
 		return R.ValueOf(uint32(a.Uint()))
-    case R.Uint64:
+	case R.Uint64:
 		return R.ValueOf(a.Uint())
-    case R.Uintptr:
+	case R.Uintptr:
 		return R.ValueOf(uintptr(a.Uint()))
-    case R.Float32:
+	case R.Float32:
 		return R.ValueOf(uint32(a.Float()))
-    case R.Float64:
+	case R.Float64:
 		return R.ValueOf(a.Float())
-    case R.Complex64:
-    case R.Complex128:
-    case R.Array:
-    case R.Chan:
+	case R.Complex64:
+	case R.Complex128:
+	case R.Array:
+	case R.Chan:
 		if a.IsEmpty() {
 			log.Printf("AdaptToValue: Nil for Chan (%s), due to IsEmpty.", t)
 			return R.Zero(t)
 		}
-    case R.Func:
+	case R.Func:
 		if a.IsEmpty() {
 			log.Printf("AdaptToValue: Nil for Func (%s), due to IsEmpty.", t)
 			return R.Zero(t)
@@ -83,21 +83,21 @@ func AdaptToValue(a T, t R.Type) R.Value {
 		if v.Kind() == R.Func {
 			return v
 		}
-    case R.Interface:
+	case R.Interface:
 		if a.IsEmpty() {
 			log.Printf("AdaptToValue: Nil for Interface (%s), due to IsEmpty.", t)
 			return R.Zero(t)
 		}
-    case R.Map:
-    case R.Ptr:
+	case R.Map:
+	case R.Ptr:
 		if a.IsEmpty() {
 			log.Printf("AdaptToValue: Nil for Ptr (%s), due to IsEmpty.", t)
 			return R.Zero(t)
 		}
-    case R.Slice:
-    case R.String:
-    case R.Struct:
-    case R.UnsafePointer:
+	case R.Slice:
+	case R.String:
+	case R.Struct:
+	case R.UnsafePointer:
 	}
 	// We haven't checked this is correct;
 	//  cmdCall will reject it, if it won't work.
@@ -144,7 +144,7 @@ func tcmdSend(fr *Frame, argv []T) T {
 	}
 
 	fn := tv.v.MethodByName(methName)
-	return commonCall(fr, "Method:" + methName + ":" + tv.v.Type().String(), fn, args)
+	return commonCall(fr, "Method:"+methName+":"+tv.v.Type().String(), fn, args)
 }
 
 // commonCall is common to both "call" and "send".
@@ -156,7 +156,7 @@ func commonCall(fr *Frame, funcName string, fn R.Value, args []T) T {
 
 	nin := ty.NumIn()
 	nout := ty.NumOut()
-	vari := ty.IsVariadic()  // Last arg has "..." and presents as slice type
+	vari := ty.IsVariadic() // Last arg has "..." and presents as slice type
 
 	// Log the function's expected arguments.
 	for i := 0; i < nin; i++ {
@@ -182,7 +182,7 @@ func commonCall(fr *Frame, funcName string, fn R.Value, args []T) T {
 	for i, p := range args {
 		var target R.Type
 		if vari && i >= nin-1 {
-			target = ty.In(nin-1).Elem()  // element type of variadic args...t
+			target = ty.In(nin - 1).Elem() // element type of variadic args...t
 		} else {
 			target = ty.In(i)
 		}
@@ -196,7 +196,7 @@ func commonCall(fr *Frame, funcName string, fn R.Value, args []T) T {
 	xx := fn.Call(pp)
 	log.Printf("...(called)...")
 
-    // Convert results from Values into zz.
+	// Convert results from Values into zz.
 	zz := make([]T, len(xx))
 	for i, x := range xx {
 		z := x.Interface()
@@ -217,9 +217,9 @@ func commonCall(fr *Frame, funcName string, fn R.Value, args []T) T {
 	// Decide how to return, based on number of results.
 	switch len(zz) {
 	case 0:
-		return Empty  // If no result, return the Tcl Empty
+		return Empty // If no result, return the Tcl Empty
 	case 1:
-		return zz[0]  // If single result, return it simply.
+		return zz[0] // If single result, return it simply.
 	}
-	return MkTl(zz)   // If multiple results, return a list of them.
+	return MkTl(zz) // If multiple results, return a list of them.
 }

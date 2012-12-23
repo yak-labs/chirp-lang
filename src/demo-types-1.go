@@ -1,8 +1,8 @@
 package main
 
 import (
-	. "fmt"
 	"exp/types"
+	. "fmt"
 	"go/ast"
 	"go/token"
 )

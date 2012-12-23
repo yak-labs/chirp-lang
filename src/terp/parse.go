@@ -15,7 +15,7 @@ func WhiteOrSemi(ch uint8) bool {
 }
 
 func (fr *Frame) TEval(a T) (result T) {
-	result = MkTs("")  // In case of empty eval.
+	result = MkTs("") // In case of empty eval.
 	log.Printf("< TEval < (%T) ## %#v ## %q\n", a, a, a.String())
 
 	if v, ok := a.(Tl); ok {
@@ -167,7 +167,7 @@ Loop:
 			newresult3, rest3 := fr.ParseDollar(s[i:])
 
 			// Special case, the entire word is dollar-substituted. 
-			if i == 0 && buf.Len() == 0 && (len(rest3) == 0 || WhiteOrSemi(rest3[0]) || rest3[0]==']') {
+			if i == 0 && buf.Len() == 0 && (len(rest3) == 0 || WhiteOrSemi(rest3[0]) || rest3[0] == ']') {
 				return newresult3, rest3
 			}
 
