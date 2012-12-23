@@ -1,11 +1,14 @@
-all: ci goterp demo2 test
+all: ci goterp test
 
 
 goterp: src/generated/reflections.go src/*/*.go
 	GOPATH=$$(pwd) time go build -x goterp 
+	: : : : : COMPILED OK
 test:
 	GOPATH=$$(pwd) time go test -i src/terp/*test.go
+	: : : DEPENDENT PACKAGES INSTALLED.
 	GOPATH=$$(pwd) time go test src/terp/*test.go
+	: : : : : TESTED OK
 
 src/generated/reflections.go : src/mkreflections.go
 	mkdir -p src/generated
