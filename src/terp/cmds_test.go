@@ -66,6 +66,18 @@ var tests = `
 	}
   }
   must " 0 1 2 3 4" [range 5]
+
+  proc factorial_with_while n {
+  	set z 1
+	while {> $n 0} {
+		set z [* $z $n]
+		set n [- $n 1]
+	}
+	get z
+  }
+  must 120 [factorial_with_while 5]
+  must 1 [factorial_with_while 1]
+  must 1 [factorial_with_while 0]
 `
 
 func TestFoo(a *testing.T) {

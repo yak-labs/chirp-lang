@@ -1,7 +1,7 @@
 package terp
 
 import (
-	"bytes"
+	//"bytes"
 	. "fmt"
 	"go/ast"
 	"log"
@@ -11,18 +11,13 @@ import (
 	"sync"
 )
 
-type Any interface{}
 
-type List []Any
-type Dict map[string]Any
 type TDict map[string]T
 
-type Command func(fr *Frame, argv List) Any
 type TCommand func(fr *Frame, argv []T) T
 
 type TScope map[string]T
 
-type CmdScope map[string]Command
 type TCmdScope map[string]TCommand
 
 type Frame struct {
@@ -35,7 +30,6 @@ type Frame struct {
 }
 
 type Global struct {
-	Cmds CmdScope
 	TCmds TCmdScope
 	Fr   Frame // global scope
 
@@ -44,7 +38,6 @@ type Global struct {
 
 func New() *Frame {
 	g := &Global{
-		Cmds: make(CmdScope),
 		TCmds: make(TCmdScope),
 		Fr: Frame{
 			TVars: make(TScope),
@@ -126,7 +119,6 @@ func (fr *Frame) TApply(argv []T) T {
 	head := argv[0]
 	log.Printf("< TApply < %q", head)
 	for ai, av := range argv[1:] {
-		log.Printf("< ...... < [%d] (%T)", ai, av)
 		log.Printf("< ...... < [%d] (%T) ## %#v ## %q", ai, av, av, av.String())
 	}
 
@@ -148,78 +140,7 @@ func (fr *Frame) TApply(argv []T) T {
 	return z
 }
 
-func Bool2Int(b bool) int {
-	if b {return 1}
-	return 0
-}
-func Bool2Str(b bool) string {
-	if b {return "1"}
-	return "0"
-}
-func Float32Str(x float32) string {
-	if float32(int64(x)) == x {
-		return Sprintf("%d", int64(x))
-	}
-	return Sprintf("%g", float32(x))
-}
-func Float64Str(x float64) string {
-	if float64(int64(x)) == x {
-		return Sprintf("%d", int64(x))
-	}
-	return Sprintf("%g", float64(x))
-}
-func List2Str(v List) string {
-	buf := bytes.NewBuffer(nil)
-	sep := ""
-	for _, e := range v {
-		buf.WriteString(sep)
-		sep = " "
-		estr := Any2ListElement(e)
-		buf.WriteString(estr)
-	}
-	return buf.String()
-}
-func Any2ListElement(a Any) string {
-	// TODO: Not perfect, but we are not doing \ yet.
-	// TODO: Broken for mismatched {}.
-	if a == nil {
-		return "{}"
-	}
-	s := Str(a)
-	if s == "" {
-		return "{}"
-	}
-
-	if strings.ContainsAny(s, " \t\n\r{}\\") {
-		return "{" + s + "}"
-	}
-	return s
-}
-func Repr(a Any) string { return Sprintf("REPR<<%#v>>", a) }
-func Str(a Any) string {
-	switch x := a.(type) {
-	case nil: return ""
-	case string: return x
-	case uint: return Sprintf("%d", x)
-	case uint8: return Sprintf("%d", x)
-	case uint16: return Sprintf("%d", x)
-	case uint32: return Sprintf("%d", x)
-	case uint64: return Sprintf("%d", x)
-	case uintptr: return Sprintf("%d", x)
-	case int: return Sprintf("%d", x)
-	case int8: return Sprintf("%d", x)
-	case int16: return Sprintf("%d", x)
-	case int32: return Sprintf("%d", x)
-	case int64: return Sprintf("%d", x)
-	case float32: return Float32Str(x)
-	case float64: return Float64Str(x)
-	case bool: return Bool2Str(x)
-	case error: return Sprintf("%#v", x)
-	case List: return List2Str(x)
-	}
-	// panic(Sprintf("DEFAULT Str: %#v", a))
-	return Sprintf("{%#v}", a)
-}
+func Repr(a interface{}) string { return Sprintf("REPR<<%#v>>", a) }
 
 func TMust(a, b T) {
 	if a.String() != b.String() {
@@ -231,7 +152,7 @@ func MustT(a string, b T) {
 	TMust(MkTs(a), b)
 }
 
-func Must(a, b Any) {
+func Must(a, b interface{}) {
 	// Otherwise use Repr equality
 	if Repr(a) != Repr(b) {
 		panic(Repr(a) + " .vs. " + Repr(b))
@@ -242,7 +163,7 @@ func Show(a T) string {
 	return Sprintf("{(%T) ## %#v ## %q}", a, a, a.String())
 }
 
-func NewList(a ...Any) List { return List(a) }
+// func NewList(a ...interface{}) List { return List(a) }
 
 ///////////////////////////////////////
 

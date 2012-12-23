@@ -4,11 +4,9 @@ import (
 	. "fmt"
 	"log"
 	"net/http"
-	"strconv"
 )
 
 var _ = log.Printf
-var _ = strconv.ParseFloat
 
 var TBuiltins map[string]TCommand = make(map[string]TCommand, 0)
 
@@ -40,6 +38,7 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["lat"] = tcmdLAt  // a.k.a. lindex
 	TBuiltins["http_handler"] = tcmdHttpHandler
 	TBuiltins["foreach"] = tcmdForEach
+	TBuiltins["while"] = tcmdWhile
 }
 type BinaryFlop func(a, b float64) float64
 type BinaryFlopBool func(a, b float64) bool
@@ -79,26 +78,6 @@ func TTruth(a T) bool {
 	}
 	// To Do: Value(nil) Value(false) are false.
 	return true
-}
-func Argv1(argv List) Any {
-	if len(argv) != 1+1 {
-		panic(Sprintf("Expected 1 arguments, but got %#v", argv))
-	}
-	return argv[1]
-}
-
-func Argv2(argv List) (Any, Any) {
-	if len(argv) != 2+1 {
-		panic(Sprintf("Expected 2 arguments, but got %#v", argv))
-	}
-	return argv[1], argv[2]
-}
-
-func Argv3(argv List) (Any, Any, Any) {
-	if len(argv) != 3+1 {
-		panic(Sprintf("Expected 3 arguments, but got %#v", argv))
-	}
-	return argv[1], argv[2], argv[3]
 }
 
 func TArgv1(argv []T) T {
@@ -279,3 +258,17 @@ func tcmdForEach(fr *Frame, argv []T) T {
 	return Empty
 }
 
+func tcmdWhile(fr *Frame, argv []T) T {
+	cond, body := TArgv2(argv)
+
+	for {
+		c := fr.TEval(cond)
+		if !c.Truth() {
+			break
+		}
+
+		fr.TEval(body)
+	}
+
+	return Empty
+}
