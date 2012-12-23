@@ -1,30 +1,30 @@
 proc home {w r} {
-	display "HomePage" [get w]
+	display "HomePage" $w
 }
 
 proc display {page w} {
 	set pagef "[get page].wik"
-	/fmt/Fprintf [get w] "(display( %s ))" [/io/ioutil/ReadFile [get pagef]]
+	/fmt/Fprintf $w "(display( %s ))" [/io/ioutil/ReadFile $pagef]
 }
 
 proc view {w r} {
 	set page [
-		getq [get r] page
+		getq $r page
 	]
 
-	display [get page] [get w]
+	display $page $w
 }
 
 proc list {w r} {
 	set dinfo [/io/ioutil/ReadDir .]
 	set finfo [index $dinfo 0]
-	set fname [send [get finfo] Name]
-	/fmt/Fprintf [get w] "( %s ) .... " [get fname]
+	set fname [send $finfo Name]
+	/fmt/Fprintf $w "( %s ) .... " $fname
 
-	set flist [get dinfo]
-	foreach f [get flist] {
-		set fname [send [get f] Name]
-		/fmt/Fprintf [get w] "{ %s }  " [get fname]
+	set flist  $dinfo
+	foreach f  $flist {
+		set fname [send $f Name]
+		/fmt/Fprintf $w "{ %s }  " $fname
 	}
 }
 
