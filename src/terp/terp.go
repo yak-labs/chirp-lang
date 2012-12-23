@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"generated"
+	// G "generated"
 )
 
 type Any interface{}
@@ -107,6 +107,23 @@ func (fr *Frame) TSetVar(name string, x T) {
 	fr.TGetVarScope(name)[name] = x
 }
 
+func (fr *Frame) FindCommand(name T) TCommand {
+	// Some day we will not require Ts; for now, it helps debug.
+	cmdName, ok := name.(Ts)
+	if !ok {
+		panic(Sprintf("Restriction: Command must be a string: %#v", name))
+	}
+
+	fn, ok := fr.G.TCmds[cmdName.s]
+	if !ok {
+		fn, ok = TBuiltins[cmdName.s]
+	}
+	if !ok {
+		panic(Sprintf("FindCommand: command not found: %q", cmdName.s))
+	}
+	return fn
+}
+
 func (fr *Frame) TApply(argv []T) T {
 	head := argv[0]
 	log.Printf("< TApply < %q", head)
@@ -117,33 +134,16 @@ func (fr *Frame) TApply(argv []T) T {
 	// Some day we will not require Ts; for now, it helps debug.
 	cmdName, ok := head.(Ts)
 	if !ok {
-		panic(Sprintf("Command must be a string: %#v", head))
+		panic(Sprintf("Command must be a string: %s", Show(head)))
 	}
 
-	fn, ok := fr.G.TCmds[cmdName.s]
-	log.Printf("Looked in TCmds %v %v %v", fn, ok, cmdName.s)
-	if !ok {
-		fn, ok = TBuiltins[cmdName.s]
-		log.Printf("Looked in TBuiltins %v %v %v", fn, ok, cmdName.s)
+	if len(cmdName.s) > 1 && cmdName.s[0] == '/' {
+		call := []T{MkTs("call"), nil,}
+		call = append(call, argv...)  // Append all of argv.
+		return fr.TApply(call)        // Recurse.
 	}
-	if !ok {
-		/**/
-		_, ok = generated.Funcs[cmdName.s]
-		log.Printf("Looked in gen.Funcs -- %v %v", ok, cmdName.s)
-		if ok {
-			fn = TBuiltins["call"]  // FIXME when tcmdCall is written.
-			tmp := []T{MkTs("call"), cmdName}
-			for _, a := range argv[1:] {
-				tmp = append(tmp, a)
-			}
-			argv = tmp
-		    log.Printf("NEW argv: $#v", argv)
-		}
-		/**/
-	}
-	if !ok {
-		panic(Sprintf("Command not found: %q", cmdName.s))
-	}
+
+	fn := fr.FindCommand(head)
 	z := fn(fr, argv)
 	log.Printf("> TApply > (%T) ## %#v ## %q", z, z, z.String())
 	return z
@@ -248,28 +248,31 @@ func NewList(a ...Any) List { return List(a) }
 ///////////////////////////////////////
 
 type T interface {
+	Raw() interface{}
 	String() string
 	Float() float64
 	Int() int64
 	Uint() uint64
 	Bool() bool
 	ListElement() string
+	Truth() bool    // Like Python, empty values and 0 values are false.
+	IsEmpty() bool  // Would String() return ""?
 
 	Tf() Tf
 	Ts() Ts
 	Tl() Tl
 }
 
-type Tf struct {  // Tfloat
+type Tf struct {  // Implements T.
 	f float64
 }
-type Ts struct {  // Tstring
+type Ts struct {  // Implements T.
 	s string
 }
-type Tl struct {  // Tlist
+type Tl struct {  // Implements T.
 	l []T
 }
-type Tv struct {  // Tvalue
+type Tv struct {  // Implements T.
 	v R.Value
 }
 
@@ -301,6 +304,7 @@ func MkTv(a R.Value) T {
 	return Tv{v: a}
 }
 func MkT(a interface{}) T {
+	log.Printf("MkT <-- (%T)   %v", a, a) 
 	switch x := a.(type) {
 	case T:
 		panic(Sprintf("Calling MkT() on a T: <%T> <%#v> %s", x, x, x.String()))
@@ -365,11 +369,29 @@ func MkT(a interface{}) T {
 
     case R.Array:
     case R.Chan:
+		if v.IsNil() {
+			return Empty
+		}
     case R.Func:
+		if v.IsNil() {
+			return Empty
+		}
     case R.Interface:
+		if v.IsNil() {
+			return Empty
+		}
     case R.Map:
+		if v.IsNil() {
+			return Empty
+		}
     case R.Ptr:
+		if v.IsNil() {
+			return Empty
+		}
     case R.Slice:
+		if v.IsNil() {
+			return Empty
+		}
 		var tmp *T
 		switch v.Type().Elem() {
 		case R.TypeOf(tmp).Elem():
@@ -386,14 +408,26 @@ func MkT(a interface{}) T {
 	}
 
 	// Everything else becomes a Tv
+	log.Printf("MkT --> defaulting to Tv")
 	return MkTv(v)
 }
 
+// Tf implements T
+
+func (t Tf) Raw() interface{} {
+	return t.f
+}
 func (t Tf) String() string {
 	return Sprintf("%g", t.f)
 }
 func (t Tf) ListElement() string {
 	return t.String()
+}
+func (t Tf) Truth() bool {
+	return t.f != 0
+}
+func (t Tf) IsEmpty() bool {
+	return false
 }
 func (t Tf) Float() float64 {
 	return t.f
@@ -421,12 +455,22 @@ func (t Tf) Tl() Tl {
 }
 
 
+// Ts implements T
 
+func (t Ts) Raw() interface{} {
+	return t.s
+}
 func (t Ts) String() string {
 	return t.s
 }
 func (t Ts) ListElement() string {
 	return ToListElement(t.s)
+}
+func (t Ts) Truth() bool {
+	return t.s != ""
+}
+func (t Ts) IsEmpty() bool {
+	return t.s == ""
 }
 func (t Ts) Float() float64 {
 	z, err := strconv.ParseFloat(t.s, 64)
@@ -457,6 +501,15 @@ func (t Ts) Tl() Tl {
 	return Tl{l: ParseList(t.s)}
 }
 
+// Tl implements T
+
+func (t Tl) Raw() interface{} {
+	z := make([]interface{}, len(t.l))
+	for i, e := range t.l {
+		z[i] = e.Raw()  // Recurse.
+	}
+	return z
+}
 func (t Tl) String() string {
 	z := ""
 	for k, v := range t.l {
@@ -469,6 +522,12 @@ func (t Tl) String() string {
 }
 func (t Tl) ListElement() string {
 	return ToListElement(t.String())
+}
+func (t Tl) Truth() bool {
+	return len(t.l) != 0
+}
+func (t Tl) IsEmpty() bool {
+	return len(t.l) == 0
 }
 func (t Tl) Float() float64 {
 	if len(t.l) != 1 {panic("cant")}
@@ -499,6 +558,11 @@ func (t Tl) Tl() Tl {
 }
 
 
+// Tv implements T
+
+func (t Tv) Raw() interface{} {
+	return t.v.Interface()
+}
 func (t Tv) String() string {
 	s := Sprintf("Value:%s:%s:%d", t.v.Kind(), t.v.Type(), t.v.Addr())
 	log.Printf("Warning: converting to Tv to String: %q", s)
@@ -506,6 +570,14 @@ func (t Tv) String() string {
 }
 func (t Tv) ListElement() string {
 	return ToListElement(t.String())
+}
+func (t Tv) Truth() bool {
+	// TODO
+	panic("Restriction: cannot test Tv for Truth")
+}
+func (t Tv) IsEmpty() bool {
+	// TODO
+	panic("Restriction: cannot test Tv for IsEmpty")
 }
 func (t Tv) Float() float64 {
 	panic("cant yet")
@@ -544,99 +616,99 @@ func ToListElement(s string) string {
 
 
 
-// Convert new T to old Any
-func old(a T) Any {
-	log.Printf("@@@@ old() reconstituting: <%T> %#v", a, a)
-	switch x := a.(type) {
-	case Tf:
-		return x.f
-	case Ts:
-		return x.s
-	case Tl:
-		return x.l
-	case Tv:
-		log.Printf("@@@@ old() reconstituting from Tv: %#v", x.v.Interface())
-		return x.v.Interface()
-	}
-	panic(Sprintf("old: %#v", a))
-}
-
-// Convert old Any to new T
-func new(a Any) T {
-	log.Printf("Calling new(): <%T> <%#v> %s", a, a, a)
-	z := new2(a)
-	log.Printf("-------------> <%T> <%#v> %s", z, z, z)
-	return z
-}
-
-
-func new2(a Any) T {
-	switch x := a.(type) {
-	case T:
-		panic(Sprintf("Calling new() on a T: <%T> <%#v> %s", x, x, x.String()))
-	case R.Value:
-		// Some day we'll allow this, but for now, flag an error.
-		panic(Sprintf("Calling new() on a R.Value: <%T> <%#v> %s", x, x, x.String()))
-	case nil: return MkTs("")
-	case string: return MkTs(x)
-	case uint: return MkTu(uint64(x))
-	case uint8: return MkTu(uint64(x))
-	case uint16: return MkTu(uint64(x))
-	case uint32: return MkTu(uint64(x))
-	case uint64: return MkTu(x)
-	case uintptr: return MkTu(uint64(x))
-	case int: return MkTi(int64(x))
-	case int8: return MkTi(int64(x))
-	case int16: return MkTi(int64(x))
-	case int32: return MkTi(int64(x))
-	case int64: return MkTi(x)
-	case float32: return MkTf(float64(x))
-	case float64: return MkTf(x)
-	case bool: return MkTi(int64(Bool2Int(x)))
-	case error: return MkTv(R.ValueOf(x))
-	case List: 
-		z := make([]T, len(x))
-		for i, e := range x {
-			z[i] = new(e)
-		}
-		return MkTl(z)
-	}
-
-	log.Printf("............ fallback to MkT()")
-	return MkT(a)
-
-	// // Everything else becomes a Tv using reflection Value.
-	// v := R.ValueOf(a)
-	// log.Printf("@@@@ new() converting to Tv: %#v", a)
-	// return MkTv(v)
-}
-
-// Adapt an old Command to a new TCommand
-func newcmd(cmd Command) TCommand {
-	return func(fr *Frame, argv []T) T {
-		b := make(List, len(argv))
-		for i, e := range argv {
-			b[i] = old(e)
-		}
-		z := cmd(fr, b)
-		return new(z)
-	}
-}
-
-func oldlist(a []T) List {
-	z := make(List, len(a))
-	for i, e := range a {
-		z[i] = old(e)
-	}
-	return z
-}
-
-func newlist(a List) []T {
-	z := make([]T, len(a))
-	for i, e := range a {
-		z[i] = new(e)
-	}
-	return z
-}
-
-
+//# // Convert new T to old Any
+//# func old(a T) Any {
+//# 	log.Printf("@@@@ old() reconstituting: <%T> %#v", a, a)
+//# 	switch x := a.(type) {
+//# 	case Tf:
+//# 		return x.f
+//# 	case Ts:
+//# 		return x.s
+//# 	case Tl:
+//# 		return x.l
+//# 	case Tv:
+//# 		log.Printf("@@@@ old() reconstituting from Tv: %#v", x.v.Interface())
+//# 		return x.v.Interface()
+//# 	}
+//# 	panic(Sprintf("old: %#v", a))
+//# }
+//# 
+//# // Convert old Any to new T
+//# func new(a Any) T {
+//# 	log.Printf("Calling new(): <%T> <%#v> %s", a, a, a)
+//# 	z := new2(a)
+//# 	log.Printf("-------------> <%T> <%#v> %s", z, z, z)
+//# 	return z
+//# }
+//# 
+//# 
+//# func new2(a Any) T {
+//# 	switch x := a.(type) {
+//# 	case T:
+//# 		panic(Sprintf("Calling new() on a T: <%T> <%#v> %s", x, x, x.String()))
+//# 	case R.Value:
+//# 		// Some day we'll allow this, but for now, flag an error.
+//# 		panic(Sprintf("Calling new() on a R.Value: <%T> <%#v> %s", x, x, x.String()))
+//# 	case nil: return MkTs("")
+//# 	case string: return MkTs(x)
+//# 	case uint: return MkTu(uint64(x))
+//# 	case uint8: return MkTu(uint64(x))
+//# 	case uint16: return MkTu(uint64(x))
+//# 	case uint32: return MkTu(uint64(x))
+//# 	case uint64: return MkTu(x)
+//# 	case uintptr: return MkTu(uint64(x))
+//# 	case int: return MkTi(int64(x))
+//# 	case int8: return MkTi(int64(x))
+//# 	case int16: return MkTi(int64(x))
+//# 	case int32: return MkTi(int64(x))
+//# 	case int64: return MkTi(x)
+//# 	case float32: return MkTf(float64(x))
+//# 	case float64: return MkTf(x)
+//# 	case bool: return MkTi(int64(Bool2Int(x)))
+//# 	case error: return MkTv(R.ValueOf(x))
+//# 	case List: 
+//# 		z := make([]T, len(x))
+//# 		for i, e := range x {
+//# 			z[i] = new(e)
+//# 		}
+//# 		return MkTl(z)
+//# 	}
+//# 
+//# 	log.Printf("............ fallback to MkT()")
+//# 	return MkT(a)
+//# 
+//# 	// // Everything else becomes a Tv using reflection Value.
+//# 	// v := R.ValueOf(a)
+//# 	// log.Printf("@@@@ new() converting to Tv: %#v", a)
+//# 	// return MkTv(v)
+//# }
+//# 
+//# // Adapt an old Command to a new TCommand
+//# func newcmd(cmd Command) TCommand {
+//# 	return func(fr *Frame, argv []T) T {
+//# 		b := make(List, len(argv))
+//# 		for i, e := range argv {
+//# 			b[i] = old(e)
+//# 		}
+//# 		z := cmd(fr, b)
+//# 		return new(z)
+//# 	}
+//# }
+//# 
+//# func oldlist(a []T) List {
+//# 	z := make(List, len(a))
+//# 	for i, e := range a {
+//# 		z[i] = old(e)
+//# 	}
+//# 	return z
+//# }
+//# 
+//# func newlist(a List) []T {
+//# 	z := make([]T, len(a))
+//# 	for i, e := range a {
+//# 		z[i] = new(e)
+//# 	}
+//# 	return z
+//# }
+//# 
+//# 

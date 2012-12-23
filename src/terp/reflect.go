@@ -10,21 +10,24 @@ import (
 	G "generated"
 )
 
-func Extern(name string) Any {
-	if len(name) == 0 || name[0] != '/' {
-		return nil
+var errorInterfaceType R.Type = R.TypeOf(errors.New).Out(0)
+	
+func findExternalGoFunctionAsValue(name string) R.Value {
+	if len(name) < 2 || name[0] != '/' {
+		panic("Doesnt start with /: " + Repr(name))
 	}
-	if f, ok := G.Funcs[name]; ok {
-		return f
+	var f interface{}
+	var ok bool
+	if f, ok = G.Funcs[name]; !ok {
+		panic("External command not found in G.Funcs" + Repr(name))
 	}
-	if t, ok := G.Types[name]; ok {
-		return R.TypeOf(t).Elem()
-	}
-	return nil
+	z := R.ValueOf(f)
+	Must(R.Func, z.Kind())
+	return z
 }
 
 func (fr *Frame) initReflect() {
-
+/*
 	TBuiltins["lspkg"] = newcmd(cmdLsPkg)
 
 	TBuiltins["peek"] = newcmd(cmdPeek)
@@ -37,14 +40,15 @@ func (fr *Frame) initReflect() {
 
 	TBuiltins["funcX"] = newcmd(cmdFuncX)
 	TBuiltins["typeX"] = newcmd(cmdTypeX)
-	TBuiltins["call"] = newcmd(cmdCall)
+*/
+	TBuiltins["call"] = tcmdCall
 	TBuiltins["send"] = tcmdSend
 	TBuiltins["elem"] = tcmdElem
 	TBuiltins["index"] = tcmdIndex
 	TBuiltins["tolist"] = tcmdToList // Hack
-
 }
 
+/*
 func cmdFuncX(fr *Frame, argv List) Any {
 	a := Str(Argv1(argv))
 	f := G.Funcs[a]
@@ -56,6 +60,7 @@ func cmdTypeX(fr *Frame, argv List) Any {
 	x := G.Types[a]
 	return R.TypeOf(x).Elem()
 }
+*/
 
 func AdaptToValue(a T, t R.Type) R.Value {
 	switch t.Kind() {
@@ -94,20 +99,40 @@ func AdaptToValue(a T, t R.Type) R.Value {
     case R.Complex128:
     case R.Array:
     case R.Chan:
+		if a.IsEmpty() {
+			log.Printf("AdaptToValue: Nil for Chan (%s), due to IsEmpty.", t)
+			return R.Zero(t)
+		}
     case R.Func:
+		if a.IsEmpty() {
+			log.Printf("AdaptToValue: Nil for Func (%s), due to IsEmpty.", t)
+			return R.Zero(t)
+		}
 		v := R.ValueOf(a)
 		if v.Kind() == R.Func {
 			return v
 		}
     case R.Interface:
+		if a.IsEmpty() {
+			log.Printf("AdaptToValue: Nil for Interface (%s), due to IsEmpty.", t)
+			return R.Zero(t)
+		}
     case R.Map:
     case R.Ptr:
+		if a.IsEmpty() {
+			log.Printf("AdaptToValue: Nil for Ptr (%s), due to IsEmpty.", t)
+			return R.Zero(t)
+		}
     case R.Slice:
     case R.String:
     case R.Struct:
     case R.UnsafePointer:
 	}
-	panic(Sprintf("cannot AdaptToValue from %T to %s", a, t))
+	// We haven't checked this is correct;
+	//  cmdCall will reject it, if it won't work.
+	// But maybe we can do better, so log it.
+	log.Printf("AdaptToValue: Default: for type <%s>: %s", t, Show(a))
+	return R.ValueOf(a.Raw())
 }
 
 func tcmdSend(fr *Frame, argv []T) T {
@@ -145,85 +170,86 @@ func tcmdIndex(fr *Frame, argv []T) T {
 	return MkT(z.Interface())
 }
 
-func cmdCall(fr *Frame, argv List) Any {
-	a := argv[1]
+func tcmdCall(fr *Frame, argv []T) T {
+	funcName := argv[1].String()
+	log.Printf("Call fn=%s", funcName)
 
-	if s, ok := a.(string); ok {
-		ext := Extern(s)
-		if ext != nil {
-			a = ext
-		}
-	}
+	fn := findExternalGoFunctionAsValue(funcName)
+	ty := R.TypeOf(fn.Interface())
 
-	ty := R.TypeOf(a)
-	if ty.Kind() != R.Func {
-		panic("argv1 not Func: " + Repr(a))
-	}
+	log.Printf("... fn: <%s> %s: %#v", ty.Kind(), ty, fn.Interface())
+
 	nin := ty.NumIn()
 	nout := ty.NumOut()
-	log.Printf("NumIn=%d NumOut=%d", nin, nout)
+	vari := ty.IsVariadic()  // Last arg has "..." and presents as slice type
+
+	// Log the function's expected arguments.
 	for i := 0; i < nin; i++ {
-		log.Printf("Type expect in[%d] : <%s> %s", i, ty.In(i).Kind(), ty.In(i))
-	}
-
-	pp := make([]R.Value, 0, 4)
-	for i, p := range argv[2:] {
-		if p == nil || p == "" {
-			// pp = append(pp, R.Zero(R.TypeOf(p)))
-			// TODO fix for ...
-			pp = append(pp, R.Zero(ty.In(i)))
-		} else {
-			pp = append(pp, R.ValueOf(p))
-		}
-	}
-
-	for i, ai := range argv[2:] {
-		if ai == nil {
-			log.Printf("Type actual in[%d] : nil  %T", i, ai)
-		} else {
-			log.Printf("Type actual in[%d] : <%s> %T = %#v", i, R.TypeOf(ai).Kind(), ai, ai)
-		}
-		if pp[i].Kind() == R.Interface {
-			log.Printf("............. <%s> %s  <%x @ %x>", pp[i].Kind(), pp[i], pp[i].InterfaceData()[0], pp[i].InterfaceData()[1]) 
-		} else {
-			log.Printf("............. <%s> %s", pp[i].Kind(), pp[i]) 
-		}
+		log.Printf("... fn expect in[%d] : <%s> %s", i, ty.In(i).Kind(), ty.In(i))
 	}
 	for i := 0; i < nout; i++ {
-		log.Printf("Type out[%d] : <%s>  %s", i, ty.Out(i).Kind(), ty.Out(i))
+		log.Printf("... fn returns out[%d] : <%s>  %s", i, ty.Out(i).Kind(), ty.Out(i))
 	}
 
-	log.Printf("...(calling)...  %#v  (  %#v  )", a, pp)
-	xx := R.ValueOf(a).Call(pp)
+	// Check num args
+	if vari {
+		if len(argv)-2 < nin-1 {
+			panic(Sprintf("command <%s> expected at least %d args but got %d.", funcName, nin-1, len(argv)-2))
+		}
+	} else {
+		if len(argv)-2 != nin {
+			panic(Sprintf("command <%s> expected %d args but got %d.", funcName, nin, len(argv)-2))
+		}
+	}
+
+	// Convert actual args to Values, into pp. 
+	pp := make([]R.Value, len(argv)-2)
+	for i, p := range argv[2:] {
+		var target R.Type
+		if vari && i >= nin-1 {
+			target = ty.In(nin-1).Elem()  // element type of variadic args...t
+		} else {
+			target = ty.In(i)
+		}
+		pp[i] = AdaptToValue(p, target)
+		log.Printf("........ passing [%d] %s as (%s) %s", i, Show(p), pp[i].Kind().String(), pp[i].Type().String())
+
+	}
+
+	// Call it.
+	log.Printf("...(calling)...  %#v  (  %#v  )", funcName, pp)
+	xx := fn.Call(pp)
 	log.Printf("...(called)...")
 
-	zz := make(List, 0, len(xx))
+    // Convert results from Values into zz.
+	zz := make([]T, len(xx))
 	for i, x := range xx {
 		z := x.Interface()
-		log.Printf("Result out[%d] : %T = %#v", i, z, z)
-		zz = append(zz, z)
+		zz[i] = MkT(z)
+		log.Printf("........ result [%d] %s from (%s) %s", i, Show(zz[i]), x.Kind().String(), x.Type().String())
 	}
 
-	errorI := R.TypeOf(errors.New).Out(0)
-	
-	// if nout > 0 && ty.Out(nout-1).Name() == "error" #
-	if nout > 0 && ty.Out(nout-1).Implements(errorI) {
+	// If last arg is type error, remove it if nil, or panic it.
+	if nout > 0 && ty.Out(nout-1).Implements(errorInterfaceType) {
 		log.Printf("Last result implements error; checking it: %#v", zz[nout-1])
-		if zz[nout-1] != nil {
-			panic(zz[nout-1])
+		if !xx[nout-1].IsNil() {
+			panic(Sprintf("call %q returns error: %q", funcName, xx[nout-1].Interface().(error).Error()))
 		}
 		log.Printf("Last result implements error; was nil; dropping it.")
 		zz = zz[:nout-1]
 	}
+
+	// Decide how to return, based on number of results.
 	switch len(zz) {
 	case 0:
-		return nil
+		return Empty  // If no result, return the Tcl Empty
 	case 1:
-		return zz[0]
+		return zz[0]  // If single result, return it simply.
 	}
-	return zz
+	return MkTl(zz)   // If multiple results, return a list of them.
 }
 
+/*
 func cmdLsPkg(fr *Frame, argv List) Any {
 	switch len(argv) {
 	case 1 + 1:
@@ -276,6 +302,7 @@ func cmdAnyV(fr *Frame, argv List) Any {
 	v := a.(R.Value)
 	return v.Interface()
 }
+*/
 
 func tcmdToList(fr *Frame, argv []T) T {
 	a := TArgv1(argv)
