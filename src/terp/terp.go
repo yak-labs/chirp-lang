@@ -603,10 +603,15 @@ func (t Tv) Ts() Ts {
 }
 func (t Tv) Tl() Tl {
 	switch t.v.Kind() {
+	// Treat Pointer and Interface as a singleton list.
 	case R.Ptr, R.Interface:
 		x := MkT(t.v.Elem().Interface())
 		return MkTl([]T{x})
+	// Slices and Arrays are naturally lists (unless they're bytes)
 	case R.Slice, R.Array:
+		if t.v.Type().Elem().Kind() == R.Uint8 {
+			panic(Sprintf("Slice of Uint8 should not be in Tv: %q", string(t.v.Interface().([]byte))))
+		}
 		n := t.v.Len()
 		z := make([]T, n)
 		for i := 0; i < n; i++ {
