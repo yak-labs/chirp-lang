@@ -269,7 +269,7 @@ func tcmdHttpHandler(fr *Frame, argv []T) T {
 func tcmdForEach(fr *Frame, argv []T) T {
 	v, list, body := TArgv3(argv)
 
-	l := list.(Tl).l
+	l := list.Tl().l
 	
 	for _, e := range l {
 		fr.TSetVar(v.String(), e)

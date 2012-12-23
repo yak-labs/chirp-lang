@@ -27,40 +27,11 @@ func findExternalGoFunctionAsValue(name string) R.Value {
 }
 
 func (fr *Frame) initReflect() {
-/*
-	TBuiltins["lspkg"] = newcmd(cmdLsPkg)
-
-	TBuiltins["peek"] = newcmd(cmdPeek)
-	TBuiltins["type"] = newcmd(cmdType)
-	TBuiltins["kindT"] = newcmd(cmdKindT)
-	TBuiltins["kind"] = newcmd(cmdKind)
-	TBuiltins["value"] = newcmd(cmdValue)
-	TBuiltins["zeroT"] = newcmd(cmdZeroT)
-	TBuiltins["anyV"] = newcmd(cmdAnyV)
-
-	TBuiltins["funcX"] = newcmd(cmdFuncX)
-	TBuiltins["typeX"] = newcmd(cmdTypeX)
-*/
 	TBuiltins["call"] = tcmdCall
 	TBuiltins["send"] = tcmdSend
 	TBuiltins["elem"] = tcmdElem
 	TBuiltins["index"] = tcmdIndex
-	TBuiltins["tolist"] = tcmdToList // Hack
 }
-
-/*
-func cmdFuncX(fr *Frame, argv List) Any {
-	a := Str(Argv1(argv))
-	f := G.Funcs[a]
-	return R.ValueOf(f)
-}
-
-func cmdTypeX(fr *Frame, argv List) Any {
-	a := Str(Argv1(argv))
-	x := G.Types[a]
-	return R.TypeOf(x).Elem()
-}
-*/
 
 func AdaptToValue(a T, t R.Type) R.Value {
 	switch t.Kind() {
@@ -247,75 +218,4 @@ func tcmdCall(fr *Frame, argv []T) T {
 		return zz[0]  // If single result, return it simply.
 	}
 	return MkTl(zz)   // If multiple results, return a list of them.
-}
-
-/*
-func cmdLsPkg(fr *Frame, argv List) Any {
-	switch len(argv) {
-	case 1 + 1:
-		//key := Str(Argv1(argv))
-		//return G.Members[key]
-	case 0 + 1:
-		//for k, v := range G.Members {
-		//	log.Printf("KEY: %#v\n", k)
-		//	log.Printf("VALUE: %#v\n", v)
-		//}
-		//return len(G.Members)
-	}
-	panic("Bad argv to cmdLsPkg")
-}
-
-func cmdPeek(fr *Frame, argv List) Any {
-	a := Argv1(argv)
-	return Repr(a)
-}
-
-func cmdType(fr *Frame, argv List) Any {
-	a := Argv1(argv)
-	return R.TypeOf(a)
-}
-
-func cmdKindT(fr *Frame, argv List) Any {
-	a := Argv1(argv)
-	t := a.(R.Type)
-	return t.Kind().String()
-}
-
-func cmdKind(fr *Frame, argv List) Any {
-	a := Argv1(argv)
-	return R.ValueOf(a).Kind().String()
-}
-
-func cmdValue(fr *Frame, argv List) Any {
-	a := Argv1(argv)
-	return R.ValueOf(a)
-}
-
-func cmdZeroT(fr *Frame, argv List) Any {
-	a := Argv1(argv)
-	t := a.(R.Type)
-	return R.Zero(t)
-}
-
-func cmdAnyV(fr *Frame, argv List) Any {
-	a := Argv1(argv)
-	v := a.(R.Value)
-	return v.Interface()
-}
-*/
-
-func tcmdToList(fr *Frame, argv []T) T {
-	a := TArgv1(argv)
-
-	v := a.(Tv).v
-	n := v.Len()
-	z := []T {}
-
-	for i := 0; i < n; i++ {
-		z = append(z, MkT(v.Index(i).Interface()))
-		log.Printf("tcmdToTList: z <- %s", z)
-	}
-
-	log.Printf("tcmdToList: MkTl from <%T> <%s>", z, z)
-	return MkTl(z)
 }

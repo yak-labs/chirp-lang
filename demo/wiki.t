@@ -21,7 +21,7 @@ proc list {w r} {
 	set fname [send [get finfo] Name]
 	/fmt/Fprintf [get w] "( %s ) .... " [get fname]
 
-	set flist [tolist [get dinfo]]
+	set flist [get dinfo]
 	foreach f [get flist] {
 		set fname [send [get f] Name]
 		/fmt/Fprintf [get w] "{ %s }  " [get fname]
