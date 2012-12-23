@@ -125,6 +125,12 @@ Loop:
 			i = 0
 		case ']':
 			panic("ParseQuote: CloseSquareBracket inside Quote")
+		case '$':
+			newresult3, rest3 := fr.ParseDollar(s[i:])
+			buf.WriteString(newresult3.String())
+			s = rest3
+			n = len(s)
+			i = 0
 		case '"':
 			i++
 			break Loop
@@ -143,6 +149,7 @@ func (fr *Frame) ParseWord(s string) (T, string) {
 	i := 0
 	n := len(s)
 	buf := bytes.NewBuffer(nil)
+
 Loop:
 	for i < n {
 		c := s[i]
@@ -156,6 +163,18 @@ Loop:
 			i = 0
 		case ']':
 			break Loop
+		case '$':
+			newresult3, rest3 := fr.ParseDollar(s[i:])
+
+			// Special case, the entire word is dollar-substituted. 
+			if i == 0 && buf.Len() == 0 && (len(rest3) == 0 || WhiteOrSemi(rest3[0]) || rest3[0]==']') {
+				return newresult3, rest3
+			}
+
+			buf.WriteString(newresult3.String())
+			s = rest3
+			n = len(s)
+			i = 0
 		case ' ', '\t', '\n', '\r', ';':
 			break Loop
 		case '"':
@@ -169,6 +188,31 @@ Loop:
 	// rest = s[i:]
 	//- log.Printf("> ParseWord > %#v > %q\n", result, rest)
 	return MkTs(buf.String()), s[i:]
+}
+
+// Parse a variable name after a '$', returning result and new position
+func (fr *Frame) ParseDollar(s string) (T, string) {
+	//- log.Printf("< ParseDollar < %#v\n", s)
+	Must(uint('$'), s[0])
+	i := 1
+	n := len(s)
+	buf := bytes.NewBuffer(nil)
+Loop:
+	for i < n {
+		c := s[i]
+		if 'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || '0' <= c && c <= '9' || c == '_' {
+			buf.WriteByte(c)
+		} else {
+			break Loop
+		}
+		i++
+	}
+
+	varName := buf.String()
+	if len(varName) < 1 {
+		panic(Sprintf("Empty Variable Name after $ here: %q", s))
+	}
+	return fr.TGetVar(varName), s[i:]
 }
 
 // Might return nonempty <rest> if it finds ']'

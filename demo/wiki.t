@@ -17,7 +17,7 @@ proc view {w r} {
 
 proc list {w r} {
 	set dinfo [/io/ioutil/ReadDir .]
-	set finfo [index [get dinfo] 0]
+	set finfo [index $dinfo 0]
 	set fname [send [get finfo] Name]
 	/fmt/Fprintf [get w] "( %s ) .... " [get fname]
 

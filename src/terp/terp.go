@@ -293,6 +293,9 @@ func MkTu(a uint64) Tf {
 	return Tf{f: float64(a)}
 }
 func MkTs(a string) Ts {
+	if len(a) > 6 && a[:6] == "Value:" {
+		panic(666)
+	}
 	return Ts{s: a}
 }
 func MkTl(a []T) Tl {
@@ -304,6 +307,8 @@ func MkTv(a R.Value) T {
 }
 func MkT(a interface{}) T {
 	log.Printf("MkT <-- (%T)   %v", a, a) 
+
+	// Very specific type cases.
 	switch x := a.(type) {
 	case T:
 		panic(Sprintf("Calling MkT() on a T: <%T> <%#v> %s", x, x, x.String()))
@@ -311,38 +316,16 @@ func MkT(a interface{}) T {
 		// Some day we'll allow this, but for now, flag an error.
 		panic(Sprintf("Calling MkT() on a R.Value: <%T> <%#v> %s", x, x, x.String()))
 	case nil: return Empty
-/*
-	case bool: return MkTb(x)
 
-	case float64: return MkTf(x)
-	case float32: return MkTf(float64(x))
+	case string:
+		if len(x) > 6 && x[:6] == "Value:" {
+			panic(666)
+		}
 
-	case int: return MkTi(int64(x))
-	case int8: return MkTi(int64(x))
-	case int16: return MkTi(int64(x))
-	case int32: return MkTi(int64(x))
-	case int64: return MkTi(x)
-
-	case uint: return MkTu(uint64(x))
-	case uint8: return MkTu(uint64(x))
-	case uint16: return MkTu(uint64(x))
-	case uint32: return MkTu(uint64(x))
-	case uint64: return MkTu(x)
-
-	case string: return MkTs(x)
-*/
 	}
 
 	// Use reflection to figure it out.
 	v := R.ValueOf(a)
-/*
-    if v.Kind() == R.Interface {
-		v = v.Elem()
-	}
-    for v.Kind() == R.Ptr {
-		v = v.Elem()
-	}
-*/
 	switch v.Kind() {
 
 	case R.Bool: return MkTb(v.Bool())
@@ -391,15 +374,23 @@ func MkT(a interface{}) T {
 		if v.IsNil() {
 			return Empty
 		}
-		var tmp *T
+
+		/*
+		// This will convert slices to lists.
+		// Is this a good idea?
+		return Tv{v: v}.Tl()
+		*/
+
+		var pointerToT *T
 		switch v.Type().Elem() {
-		case R.TypeOf(tmp).Elem():
+		case R.TypeOf(pointerToT).Elem(): // i.e. case T
 			return MkTl(v.Interface().([]T))
 		}
 		switch v.Type().Elem().Kind() {
 		case R.Uint8:
 			return MkTs(string(v.Interface().([]byte)))
 		}
+
     case R.String:
 			return MkTs(v.Interface().(string))
     case R.Struct:
