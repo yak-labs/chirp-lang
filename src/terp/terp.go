@@ -128,6 +128,7 @@ func (fr *Frame) TApply(argv []T) T {
 	head := argv[0]
 	log.Printf("< TApply < %q", head)
 	for ai, av := range argv[1:] {
+		log.Printf("< ...... < [%d] (%T)", ai, av)
 		log.Printf("< ...... < [%d] (%T) ## %#v ## %q", ai, av, av, av.String())
 	}
 
@@ -138,8 +139,8 @@ func (fr *Frame) TApply(argv []T) T {
 	}
 
 	if len(cmdName.s) > 1 && cmdName.s[0] == '/' {
-		call := []T{MkTs("call"), nil,}
-		call = append(call, argv...)  // Append all of argv.
+		call := []T{MkTs("call"), head,}
+		call = append(call, argv[1:]...)  // Append all but first of argv.
 		return fr.TApply(call)        // Recurse.
 	}
 
@@ -564,7 +565,7 @@ func (t Tv) Raw() interface{} {
 	return t.v.Interface()
 }
 func (t Tv) String() string {
-	s := Sprintf("Value:%s:%s:%d", t.v.Kind(), t.v.Type(), t.v.Addr())
+	s := Sprintf("Value:%s:%s", t.v.Kind(), t.v.Type())
 	log.Printf("Warning: converting to Tv to String: %q", s)
 	return s
 }
@@ -576,8 +577,13 @@ func (t Tv) Truth() bool {
 	panic("Restriction: cannot test Tv for Truth")
 }
 func (t Tv) IsEmpty() bool {
-	// TODO
-	panic("Restriction: cannot test Tv for IsEmpty")
+	switch t.v.Kind() {
+	// IsNil() can only be called on this 6 Kinds:
+	case R.Struct, R.Interface, R.Ptr, R.Slice, R.Map, R.Chan:
+		return t.v.IsNil()
+	}
+	// Strings, numbers, and bools should not be in Tv so we don't look for emptiness or zeroness in them.
+	return false
 }
 func (t Tv) Float() float64 {
 	panic("cant yet")

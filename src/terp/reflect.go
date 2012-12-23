@@ -172,7 +172,7 @@ func tcmdIndex(fr *Frame, argv []T) T {
 
 func tcmdCall(fr *Frame, argv []T) T {
 	funcName := argv[1].String()
-	log.Printf("Call fn=%s", funcName)
+	log.Printf("Call fn=%s  len(argv)=%d", funcName, len(argv))
 
 	fn := findExternalGoFunctionAsValue(funcName)
 	ty := R.TypeOf(fn.Interface())

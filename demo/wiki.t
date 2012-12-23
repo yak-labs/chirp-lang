@@ -19,12 +19,12 @@ proc list {w r} {
 	set dinfo [/io/ioutil/ReadDir .]
 	set finfo [index [get dinfo] 0]
 	set fname [send [get finfo] Name]
-	/fmt/Fprintf [get w] "%s" [get fname]
+	/fmt/Fprintf [get w] "( %s ) .... " [get fname]
 
 	set flist [tolist [get dinfo]]
 	foreach f [get flist] {
 		set fname [send [get f] Name]
-		/fmt/Fprintf [get w] "%s" [get fname]
+		/fmt/Fprintf [get w] "{ %s }  " [get fname]
 	}
 }
 
