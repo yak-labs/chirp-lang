@@ -516,7 +516,7 @@ func (t Tv) Truth() bool {
 func (t Tv) IsEmpty() bool {
 	switch t.v.Kind() {
 	// IsNil() can only be called on this 6 Kinds:
-	case R.Struct, R.Interface, R.Ptr, R.Slice, R.Map, R.Chan:
+	case R.Func, R.Interface, R.Ptr, R.Slice, R.Map, R.Chan:
 		return t.v.IsNil()
 	}
 	// Strings, numbers, and bools should not be in Tv so we don't look for emptiness or zeroness in them.

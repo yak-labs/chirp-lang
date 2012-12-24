@@ -247,7 +247,14 @@ func derefChain(fr *Frame, chain []T) R.Value {
 
 	// For additional names, use Fields (or other navigation) to deref.
 	for _, e := range chain[1:] {
+		log.Printf("------DEREF <<< type(av)=<%s>%s", av.Kind(), av.Type())
+		if av.Kind() == R.Ptr || av.Kind() == R.Interface {
+			log.Printf("------DEREF %s", av.Kind())
+			av = av.Elem()
+		}
+		log.Printf("------DEREF BY %q", e.String())
 		av2 := av.FieldByName(e.String())
+		log.Printf("------DEREF >>> type(av)=<%s>%s", av2.Kind(), av2.Type())
 		if ! av2.IsValid() {
 			// Better: ShowValue(av)
 			panic(Sprintf("invalid field %s of %s", e.String(), Show(MkT(av.Interface()))))
@@ -268,8 +275,30 @@ func tcmdGet(fr *Frame, argv []T) T {
 }
 
 func tcmdSet(fr *Frame, argv []T) T {
-	name, x := TArgv2(argv)
-	fr.TSetVar(name.String(), x)
+	n := len(argv)
+	switch n {
+	case 0, 1, 2:
+		panic(Sprintf("set command expects at least two args, got %q", Showv(argv)))
+	case 3:
+		name, x := TArgv2(argv)
+		start := name.String()
+		log.Printf(".... start=%q", start)
+		if len(start) == 0 || start[0] != '/' {
+			log.Printf(".... TSetVar %q %s", start, Show(x))
+			fr.TSetVar(name.String(), x)
+			return x
+		}
+	}
+
+	// Case 4 or more:
+	loc := derefChain(fr, argv[1:n-1])  // Location to assign to.
+	if !loc.CanSet() {
+		panic(Sprintf("set command deref'ed to an Unsetable Location: %q", Showv(argv)))
+	}
+
+	x := argv[n-1] // The value to be assigned.
+	zv := AdaptToValue(x, loc.Type())
+	log.Printf(".... Reflect Set loc <%s> %s = %s", zv.Kind(), zv.Type(), Show(x))
+	loc.Set(zv)
 	return x
 }
-
