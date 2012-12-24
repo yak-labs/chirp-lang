@@ -248,6 +248,11 @@ func derefChain(fr *Frame, chain []T) R.Value {
 	// For additional names, use Fields (or other navigation) to deref.
 	for _, e := range chain[1:] {
 		log.Printf("------DEREF <<< type(av)=<%s>%s", av.Kind(), av.Type())
+		if avv, ok := av.Interface().(Tv); ok {
+			av = avv.v
+			log.Printf("------DEREF Tv -> (%s) %s: %s", av.Kind(), av.Type(), av.Interface())
+			log.Printf("----------------- %#v", av.Interface())
+		}
 		if av.Kind() == R.Ptr || av.Kind() == R.Interface {
 			log.Printf("------DEREF %s", av.Kind())
 			av = av.Elem()

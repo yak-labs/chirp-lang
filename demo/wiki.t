@@ -1,8 +1,28 @@
+proc GetQuery {r key} {
+	send [send [get r URL] Query] Get $key
+}
+
+proc ModeHtml {w} {
+	send [send $w Header] Set "Content-Type" "text/html"
+}
+
 proc home {w r} {
+	ModeHtml $w
+
+	/fmt/Fprintf $w "<ul>"
+	/fmt/Fprintf $w "<li>(xyz=( %s ))  " [GetQuery $r xyz]
+	/fmt/Fprintf $w "<li>(Path=( %s ))  " [get r URL Path]
+	/fmt/Fprintf $w "<li>(RawQuery=( %s ))  " [get r URL RawQuery]
+	/fmt/Fprintf $w "<li>(User=( %s ))  " [get r URL User]
+	/fmt/Fprintf $w "<li>(Host=( %s ))  " [get r URL Host]
+	/fmt/Fprintf $w "<li>(Scheme=( %s ))  " [get r URL Scheme]
+	/fmt/Fprintf $w "</ul>"
+
 	display "HomePage" $w
 }
 
 proc display {page w} {
+	
 	set pagef "[get page].wik"
 	/fmt/Fprintf $w "(display( %s ))" [/io/ioutil/ReadFile $pagef]
 }
