@@ -25,7 +25,6 @@ proc home {w r} {
 }
 
 proc display {page w} {
-	
 	set pagef "[get page].wik"
 	/fmt/Fprintf $w "(display( %s ))" [/io/ioutil/ReadFile $pagef]
 }
@@ -33,7 +32,7 @@ proc display {page w} {
 proc view {w r} {
 	starter $w $r
 	set page [GetQuery $r page]
-	if {catch {/io/ioutil/ReadFile "$page.wik"} junk } {
+	if {catch {/io/ioutil/ReadFile "$page.wik"} junk} {
 		/fmt/Fprintf $w "Page Not Found: $page"
 	} else {
 		display $page $w
@@ -42,17 +41,17 @@ proc view {w r} {
 
 proc list {w r} {
 	starter $w $r
-	set dinfo [/io/ioutil/ReadDir .]
-	set finfo [index $dinfo 0]
-	set fname [send $finfo Name]
-	/fmt/Fprintf $w "( %s ) .... " $fname
-
-	set flist  $dinfo
-	foreach f  $flist {
+	foreach f [/io/ioutil/ReadDir .] {
 		set fname [send $f Name]
-		/fmt/Fprintf $w "{ %s }  " $fname
+		if {send $ValidName MatchString $fname} {
+			/fmt/Fprintf $w "{ %s }  " $fname
+		} else {
+			/fmt/Fprintf $w "{ NOT %s }  " $fname
+		}
 	}
 }
+
+set ValidName [/regexp/MustCompile {^[A-Z][a-z]+[A-Z][A-Za-z0-9_]*[.]wik$}]
 
 /net/http/HandleFunc / [http_handler home]
 /net/http/HandleFunc /view [http_handler view]
