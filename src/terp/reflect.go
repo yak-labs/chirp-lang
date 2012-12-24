@@ -228,28 +228,39 @@ func commonCall(fr *Frame, funcName string, fn R.Value, args []T) T {
 
 func derefChain(fr *Frame, chain []T) R.Value {
 	Must(true, len(chain) > 0)
-	a := fr.TGetVar(chain[0].String())
-	av := R.ValueOf(a)
+	// First name in chain is starting variable name.
+	start := chain[0].String()
+
+	var av R.Value
+	if len(start) > 0 && start[0] == '/' {
+		// Case Go Var
+		ptr, ok := G.Vars[start]
+		if !ok {
+			panic(Sprintf("Cannot find std lib Go var %q", start))
+		}
+		av = R.ValueOf(ptr).Elem()
+	} else {
+		// Case Tcl Var
+		a := fr.TGetVar(start)
+		av = R.ValueOf(a)
+	}
+
+	// For additional names, use Fields (or other navigation) to deref.
 	for _, e := range chain[1:] {
 		av2 := av.FieldByName(e.String())
 		if ! av2.IsValid() {
 			// Better: ShowValue(av)
 			panic(Sprintf("invalid field %s of %s", e.String(), Show(MkT(av.Interface()))))
 		}
-
 		av = av2
 	}
-
 	return av
 }
 
 func tcmdGet(fr *Frame, argv []T) T {
-	// name, more := TArgv1v(argv)
-	// a := fr.TGetVar(name.String())
-	// _ = more
-	// return a
-
 	z := derefChain(fr, argv[1:]).Interface()
+
+	// We might have a T, or we might have some other Go value.
 	if zt, ok := z.(T); ok {
 		return zt
 	}
