@@ -25,9 +25,6 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["must"] = tcmdMust
 
 	TBuiltins["if"] = tcmdIf
-	TBuiltins["get"] = tcmdGet
-	TBuiltins["getq"] = tcmdGetQ
-	TBuiltins["set"] = tcmdSet
 	TBuiltins["puts"] = tcmdPuts
 	TBuiltins["proc"] = tcmdProc
 	TBuiltins["ls"] = tcmdLs
@@ -39,6 +36,9 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["http_handler"] = tcmdHttpHandler
 	TBuiltins["foreach"] = tcmdForEach
 	TBuiltins["while"] = tcmdWhile
+
+	// Hacks
+	TBuiltins["getq"] = tcmdGetQ  // Quick hack to get Query String, until reflection can do it.
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -88,6 +88,13 @@ func TArgv1(argv []T) T {
 	return argv[1]
 }
 
+func TArgv1v(argv []T) (T, []T) {
+	if len(argv) < 1+1 {
+		panic(Sprintf("Expected at least 1 argument, but got argv=%s", Showv(argv)))
+	}
+	return argv[1], argv[2:]
+}
+
 func TArgv2(argv []T) (T, T) {
 	if len(argv) != 2+1 {
 		panic(Sprintf("Expected 2 arguments, but got argv=%s", Showv(argv)))
@@ -107,6 +114,13 @@ func TArgv3(argv []T) (T, T, T) {
 		panic(Sprintf("Expected 3 arguments, but got argv=%s", Showv(argv)))
 	}
 	return argv[1], argv[2], argv[3]
+}
+
+func TArgv3v(argv []T) (T, T, T, []T) {
+	if len(argv) < 3+1 {
+		panic(Sprintf("Expected at least 3 arguments, but got argv=%s", Showv(argv)))
+	}
+	return argv[1], argv[2], argv[3], argv[4:]
 }
 
 func tcmdMust(fr *Frame, argv []T) T {
@@ -147,26 +161,6 @@ func tcmdIf(fr *Frame, argv []T) T {
 	}
 
 	return Empty
-}
-
-func tcmdGet(fr *Frame, argv []T) T {
-	name := TArgv1(argv)
-	return fr.TGetVar(name.String())
-}
-
-func tcmdGetQ(fr *Frame, argv []T) T {
-	req, key := TArgv2(argv)
-
-	v := req.(Tv)
-	r := v.v.Interface().(*http.Request)
-
-	return MkTs(r.URL.Query().Get(key.String()))
-}
-
-func tcmdSet(fr *Frame, argv []T) T {
-	name, x := TArgv2(argv)
-	fr.TSetVar(name.String(), x)
-	return x
 }
 
 func tcmdPuts(fr *Frame, argv []T) T {
@@ -280,3 +274,13 @@ func tcmdWhile(fr *Frame, argv []T) T {
 
 	return Empty
 }
+
+func tcmdGetQ(fr *Frame, argv []T) T {
+	req, key := TArgv2(argv)
+
+	v := req.(Tv)
+	r := v.v.Interface().(*http.Request)
+
+	return MkTs(r.URL.Query().Get(key.String()))
+}
+

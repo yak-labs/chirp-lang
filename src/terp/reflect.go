@@ -5,7 +5,6 @@ import (
 	. "fmt"
 	"log"
 	R "reflect"
-	//"strconv"
 
 	G "generated"
 )
@@ -29,6 +28,9 @@ func findExternalGoFunctionAsValue(name string) R.Value {
 func (fr *Frame) initReflect() {
 	TBuiltins["call"] = tcmdCall
 	TBuiltins["send"] = tcmdSend
+	TBuiltins["get"] = tcmdGet
+	TBuiltins["set"] = tcmdSet
+
 	TBuiltins["elem"] = tcmdElem
 	TBuiltins["index"] = tcmdIndex
 }
@@ -223,3 +225,40 @@ func commonCall(fr *Frame, funcName string, fn R.Value, args []T) T {
 	}
 	return MkTl(zz) // If multiple results, return a list of them.
 }
+
+func derefChain(fr *Frame, chain []T) R.Value {
+	Must(true, len(chain) > 0)
+	a := fr.TGetVar(chain[0].String())
+	av := R.ValueOf(a)
+	for _, e := range chain[1:] {
+		av2 := av.FieldByName(e.String())
+		if ! av2.IsValid() {
+			// Better: ShowValue(av)
+			panic(Sprintf("invalid field %s of %s", e.String(), Show(MkT(av.Interface()))))
+		}
+
+		av = av2
+	}
+
+	return av
+}
+
+func tcmdGet(fr *Frame, argv []T) T {
+	// name, more := TArgv1v(argv)
+	// a := fr.TGetVar(name.String())
+	// _ = more
+	// return a
+
+	z := derefChain(fr, argv[1:]).Interface()
+	if zt, ok := z.(T); ok {
+		return zt
+	}
+	return MkT(z)
+}
+
+func tcmdSet(fr *Frame, argv []T) T {
+	name, x := TArgv2(argv)
+	fr.TSetVar(name.String(), x)
+	return x
+}
+
