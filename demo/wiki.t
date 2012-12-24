@@ -10,6 +10,8 @@ proc starter {w r} {
 	ModeHtml $w
 
 	/fmt/Fprintf $w "<ul>"
+	/fmt/Fprintf $w {<li> <a href="/list">List Of Pages</a>}
+	/fmt/Fprintf $w {<li> <a href="/">Home Page</a>}
 	/fmt/Fprintf $w "<li>(xyz=( %s ))  " [GetQuery $r xyz]
 	/fmt/Fprintf $w "<li>(Path=( %s ))  " [get r URL Path]
 	/fmt/Fprintf $w "<li>(RawQuery=( %s ))  " [get r URL RawQuery]
@@ -41,17 +43,21 @@ proc view {w r} {
 
 proc list {w r} {
 	starter $w $r
+	/fmt/Fprintf $w "<ul>"
 	foreach f [/io/ioutil/ReadDir .] {
 		set fname [send $f Name]
-		if {send $ValidName MatchString $fname} {
-			/fmt/Fprintf $w "{ %s }  " $fname
+		set m [send $ValidName FindStringSubmatch $fname]
+		if {get m} {
+			set name [lat $m 1]
+			/fmt/Fprintf $w {<li> <a href="/view?page=%s">"%s"</a> for filename %s} $name $name $fname
 		} else {
-			/fmt/Fprintf $w "{ NOT %s }  " $fname
+			/fmt/Fprintf $w {<li> Invalid Filename: %s} $fname
 		}
 	}
+	/fmt/Fprintf $w "</ul>"
 }
 
-set ValidName [/regexp/MustCompile {^[A-Z][a-z]+[A-Z][A-Za-z0-9_]*[.]wik$}]
+set ValidName [/regexp/MustCompile {^([A-Z][a-z]+[A-Z][A-Za-z0-9_]*)[.]wik$}]
 
 /net/http/HandleFunc / [http_handler home]
 /net/http/HandleFunc /view [http_handler view]
