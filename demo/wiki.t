@@ -6,7 +6,7 @@ proc ModeHtml {w} {
 	send [send $w Header] Set "Content-Type" "text/html"
 }
 
-proc home {w r} {
+proc starter {w r} {
 	ModeHtml $w
 
 	/fmt/Fprintf $w "<ul>"
@@ -17,7 +17,10 @@ proc home {w r} {
 	/fmt/Fprintf $w "<li>(Host=( %s ))  " [get r URL Host]
 	/fmt/Fprintf $w "<li>(Scheme=( %s ))  " [get r URL Scheme]
 	/fmt/Fprintf $w "</ul>"
+}
 
+proc home {w r} {
+	starter $w $r
 	display "HomePage" $w
 }
 
@@ -28,14 +31,14 @@ proc display {page w} {
 }
 
 proc view {w r} {
-	set page [
-		getq $r page
-	]
+	starter $w $r
+	set page [GetQuery $r page]
 
 	display $page $w
 }
 
 proc list {w r} {
+	starter $w $r
 	set dinfo [/io/ioutil/ReadDir .]
 	set finfo [index $dinfo 0]
 	set fname [send $finfo Name]
