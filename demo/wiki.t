@@ -33,8 +33,11 @@ proc display {page w} {
 proc view {w r} {
 	starter $w $r
 	set page [GetQuery $r page]
-
-	display $page $w
+	if {catch {/io/ioutil/ReadFile "$page.wik"} junk } {
+		/fmt/Fprintf $w "Page Not Found: $page"
+	} else {
+		display $page $w
+	}
 }
 
 proc list {w r} {

@@ -36,9 +36,7 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["http_handler"] = tcmdHttpHandler
 	TBuiltins["foreach"] = tcmdForEach
 	TBuiltins["while"] = tcmdWhile
-
-	// Hacks
-	TBuiltins["getq"] = tcmdGetQ  // Quick hack to get Query String, until reflection can do it.
+	TBuiltins["catch"] = tcmdCatch
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -275,12 +273,18 @@ func tcmdWhile(fr *Frame, argv []T) T {
 	return Empty
 }
 
-func tcmdGetQ(fr *Frame, argv []T) T {
-	req, key := TArgv2(argv)
+func tcmdCatch(fr *Frame, argv []T) (status T) {
+	body, varT := TArgv2(argv)
+	varName := varT.String()
 
-	v := req.(Tv)
-	r := v.v.Interface().(*http.Request)
+	defer func() {
+		if r := recover(); r != nil {
+			fr.TSetVar(varName, MkT(r))
+			status = MkTi(1)
+		}
+	}()
 
-	return MkTs(r.URL.Query().Get(key.String()))
+	z := fr.TEval(body)
+	fr.TSetVar(varName, z)
+	return MkTi(0)
 }
-
