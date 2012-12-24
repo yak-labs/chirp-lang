@@ -1,6 +1,7 @@
 package terp
 
 import (
+	"bytes"
 	. "fmt"
 	"log"
 	"net/http"
@@ -37,6 +38,9 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["foreach"] = tcmdForEach
 	TBuiltins["while"] = tcmdWhile
 	TBuiltins["catch"] = tcmdCatch
+	TBuiltins["eval"] = tcmdEval
+	TBuiltins["uplevel"] = tcmdUplevel
+	TBuiltins["concat"] = tcmdConcat
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -170,7 +174,7 @@ func tcmdPuts(fr *Frame, argv []T) T {
 
 func tcmdProc(fr *Frame, argv []T) T {
 	name, aa, body := TArgv3(argv)
-	alist := aa.Tl().l
+	alist := aa.List()
 	astrs := make([]string, len(alist))
 	for i, arg := range alist {
 		astr := arg.String()
@@ -211,7 +215,7 @@ func tcmdSLen(fr *Frame, argv []T) T {
 
 func tcmdLLen(fr *Frame, argv []T) T {
 	a := TArgv1(argv)
-	return MkTi(int64(len(a.Tl().l)))
+	return MkTi(int64(len(a.List())))
 }
 
 func tcmdList(fr *Frame, argv []T) T {
@@ -220,7 +224,7 @@ func tcmdList(fr *Frame, argv []T) T {
 
 func tcmdLAt(fr *Frame, argv []T) T {
 	tlist, ti := TArgv2(argv)
-	list := tlist.Tl().l
+	list := tlist.List()
 	i := ti.Int()
 	if i < 0 || i > int64(len(list)) {
 		panic(Sprintf("lat: bad index: len(list)=%d but i=%d", len(list), i))
@@ -248,7 +252,7 @@ func tcmdHttpHandler(fr *Frame, argv []T) T {
 func tcmdForEach(fr *Frame, argv []T) T {
 	v, list, body := TArgv3(argv)
 
-	l := list.Tl().l
+	l := list.List()
 
 	for _, e := range l {
 		fr.TSetVar(v.String(), e)
@@ -287,4 +291,61 @@ func tcmdCatch(fr *Frame, argv []T) (status T) {
 	z := fr.TEval(body)
 	fr.TSetVar(varName, z)
 	return MkTi(0)
+}
+
+func tcmdEval(fr *Frame, argv []T) (status T) {
+	return EvalOrApplyLists(fr, argv[1:])
+}
+
+func tcmdUplevel(fr *Frame, argv []T) (status T) {
+	specArg, rest := TArgv1v(argv)
+	spec := specArg.String()
+
+	// Special case for #0 meaning global.
+	if spec == "#0" {
+		return EvalOrApplyLists(&fr.G.Fr, rest)
+	}
+
+	// Count back number of frames specified.
+	level := specArg.Int()
+	for i := int64(0); i < level; i++ {
+		if fr.Prev != nil {
+			fr = fr.Prev
+		}
+	}
+	return EvalOrApplyLists(fr, rest)
+}
+
+func EvalOrApplyLists(fr *Frame, lists []T) T {
+	// Are they already lists?
+	areLists := true
+	for _, e := range lists {
+		_, ok := e.(Tl)
+		if !ok {
+			areLists = false
+		}
+	}
+
+	if areLists {
+		return fr.TApply(ConcatLists(lists))
+	}
+
+	buf := bytes.NewBuffer(nil)
+	for _, e := range lists {
+		buf.WriteString(e.String())
+		buf.WriteRune(' ')
+	}
+	return fr.TEval(MkTs(buf.String()))
+}
+
+func ConcatLists(lists []T) []T {
+	z := make([]T, 0, 4)
+	for _, e := range lists {
+		z = append(z, e.List() ...)
+	}
+	return z
+}
+
+func tcmdConcat(fr *Frame, argv []T) (status T) {
+	return MkTl(ConcatLists(argv[1:]))
 }

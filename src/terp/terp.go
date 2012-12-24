@@ -171,8 +171,6 @@ func Showv(a []T) string {
 	return buf.String()
 }
 
-// func NewList(a ...interface{}) List { return List(a) }
-
 ///////////////////////////////////////
 
 type T interface {
@@ -185,10 +183,7 @@ type T interface {
 	ListElement() string
 	Truth() bool   // Like Python, empty values and 0 values are false.
 	IsEmpty() bool // Would String() return ""?
-
-	Tf() Tf
-	Ts() Ts
-	Tl() Tl
+	List() []T
 }
 
 type Tf struct { // Implements T.
@@ -378,14 +373,8 @@ func (t Tf) Bool() bool {
 	}
 	return true
 }
-func (t Tf) Tf() Tf {
-	return t
-}
-func (t Tf) Ts() Ts {
-	return Ts{s: t.String()}
-}
-func (t Tf) Tl() Tl {
-	return Tl{l: []T{t}}
+func (t Tf) List() []T {
+	return []T{t}
 }
 
 // Ts implements T
@@ -424,14 +413,8 @@ func (t Ts) Bool() bool {
 	}
 	return true
 }
-func (t Ts) Tf() Tf {
-	return MkTf(t.Float())
-}
-func (t Ts) Ts() Ts {
-	return t
-}
-func (t Ts) Tl() Tl {
-	return Tl{l: ParseList(t.s)}
+func (t Ts) List() []T {
+	return ParseList(t.s)
 }
 
 // Tl implements T
@@ -486,14 +469,8 @@ func (t Tl) Bool() bool {
 	}
 	return true
 }
-func (t Tl) Tf() Tf {
-	return MkTf(t.Float())
-}
-func (t Tl) Ts() Ts {
-	return MkTs(t.String())
-}
-func (t Tl) Tl() Tl {
-	return t
+func (t Tl) List() []T {
+	return t.l
 }
 
 // Tv implements T
@@ -534,18 +511,25 @@ func (t Tv) Uint() uint64 {
 func (t Tv) Bool() bool {
 	panic("cant yet")
 }
-func (t Tv) Tf() Tf {
-	return Tf{f: t.Float()}
-}
-func (t Tv) Ts() Ts {
-	return Ts{s: t.String()}
-}
-func (t Tv) Tl() Tl {
+func (t Tv) List() []T {
+/***  
+	Is this a good idea?
+
+	At times, it is really convenient to have a Raw Slice be a list. 
+
+	But other times, we want to edit that Raw Slice in place.
+
+	Maybe this is right -- only when you explicitly ask for a List() do we explode it.
+
+	Is treating Ptr and Iface like a Singleton List a good idea?
+***/
 	switch t.v.Kind() {
+
 	// Treat Pointer and Interface as a singleton list.
 	case R.Ptr, R.Interface:
 		x := MkT(t.v.Elem().Interface())
-		return MkTl([]T{x})
+		return []T{x}
+
 	// Slices and Arrays are naturally lists (unless they're bytes)
 	case R.Slice, R.Array:
 		if t.v.Type().Elem().Kind() == R.Uint8 {
@@ -556,9 +540,10 @@ func (t Tv) Tl() Tl {
 		for i := 0; i < n; i++ {
 			z[i] = MkT(t.v.Index(i).Interface())
 		}
-		return MkTl(z)
+		return z
 	}
-	return Tl{l: []T{t}}
+/********/
+	return []T{t}
 }
 
 func ToListElement(s string) string {
