@@ -46,6 +46,7 @@ func New() *Frame {
 	g.Fr.G = g
 	g.Fr.initTBuiltins()
 	g.Fr.initReflect()
+	g.Fr.initExpr()
 	return &g.Fr
 }
 
@@ -512,10 +513,10 @@ func (t Tv) Bool() bool {
 	panic("cant yet")
 }
 func (t Tv) List() []T {
-/***  
+/***
 	Is this a good idea?
 
-	At times, it is really convenient to have a Raw Slice be a list. 
+	At times, it is really convenient to have a Raw Slice be a list.
 
 	But other times, we want to edit that Raw Slice in place.
 
