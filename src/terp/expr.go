@@ -1,9 +1,5 @@
 package terp
 
-import (
-	"bytes"
-)
-
 func (fr *Frame) initExpr() {
 	TBuiltins["expr"] = tcmdExpr
 }
@@ -28,14 +24,14 @@ func (fr *Frame) TEvalExpr(a T) (result T) {
 func (fr *Frame) ParseExpression(s string) (result T) {
 	i := 0
 	n := len(s)
-	buff := bytes.NewBuffer(nil)
+	result = Empty
 
 	for i < n {
 		c := s[i]
 		switch c {
 		case '[':
 			sqResult, rest := fr.ParseSquare(s[i:])
-			buff.WriteString(sqResult.String())
+			result = sqResult
 
 			s = rest
 			n = len(s)
@@ -47,5 +43,5 @@ func (fr *Frame) ParseExpression(s string) (result T) {
 		}
 	}
 
-	return MkTs(buff.String())
+	return result
 }

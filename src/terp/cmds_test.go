@@ -27,7 +27,7 @@ var tests = `
   must 1 [== [+ 1 3] [+ 2 2]]
   must 1 [> 0.334 [/ 1 3]]
   must 1 [< 0.333 [/ 1 3]]
-  must 23 [if {== 0.5 [/ 1 2]} {+ 20 3} else {+ 40 2}]
+  must 23 [if {[== 0.5 [/ 1 2]]} {+ 20 3} else {+ 40 2}]
 
   set a 100; set b 20; must 120 [+ [get a] [get b]]
   must 81028 [+ "8[get a]8" [get b]]
@@ -48,7 +48,7 @@ var tests = `
   must 16 [double 8]
   must 16 [square 4]
   proc tri n {
-    if {< [get n] 1} {
+    if {[< [get n] 1]} {
       + 0
     } else {
       + [get n] [tri [- [get n] 1]]
@@ -57,7 +57,7 @@ var tests = `
   must 15 [tri 5]
 
   proc range n {
-    if {< [get n] 1} {
+    if {[< [get n] 1]} {
 	  list
 	} else {
 	  set m [- [get n] 1]
@@ -69,7 +69,7 @@ var tests = `
 
   proc factorial_with_while n {
   	set z 1
-	while {> $n 0} {
+	while {[> $n 0]} {
 		set z [* $z $n]
 		set n [- $n 1]
 	}
