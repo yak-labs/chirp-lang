@@ -6,7 +6,7 @@ import (
 	. "terp"
 )
 
-var tests = `
+var cmdTests = `
   must 0 [+ ]
   must 5 [+ 5]
   must 9 [+ 4 5]
@@ -82,5 +82,5 @@ var tests = `
 
 func TestFoo(a *testing.T) {
 	fr := New()
-	fr.TEval(MkTs(tests))
+	fr.TEval(MkTs(cmdTests))
 }

@@ -5,7 +5,7 @@ import (
   . "terp"
 )
 
-var tests = `
+var exprTests = `
   must 9 [expr { [+ 4 5] }]
   must 9 [expr { 4 + 5 }]
   must 20 [expr { 4 * 5 }]
@@ -14,5 +14,5 @@ var tests = `
 
 func TestExpr(a *testing.T) {
   fr := New()
-  fr.TEval(MkTs(tests))
+  fr.TEval(MkTs(exprTests))
 }

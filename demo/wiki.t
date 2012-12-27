@@ -34,7 +34,7 @@ proc display {page w} {
 proc view {w r} {
 	starter $w $r
 	set page [GetQuery $r page]
-	if {catch {/io/ioutil/ReadFile "$page.wik"} junk} {
+	if {[catch {/io/ioutil/ReadFile "$page.wik"} junk]} {
 		/fmt/Fprintf $w "Page Not Found: $page"
 	} else {
 		display $page $w
@@ -47,7 +47,7 @@ proc list {w r} {
 	foreach f [/io/ioutil/ReadDir .] {
 		set fname [send $f Name]
 		set m [send $ValidName FindStringSubmatch $fname]
-		if {get m} {
+		if {[get m]} {
 			set name [lat $m 1]
 			/fmt/Fprintf $w {<li> <a href="/view?page=%s">"%s"</a> for filename %s} $name $name $fname
 		} else {
