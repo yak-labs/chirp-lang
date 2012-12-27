@@ -18,6 +18,7 @@ var imports = make(map[string]*ast.Object)
 var packages = []string{
 	// Defaults used if no cmd line args are specified.
 	"bufio", "io", "os", "bytes", "strings", "fmt", "net/http",
+	"regexp", "io/ioutil",
 }
 
 func RemarkScope(pack string, sc *ast.Scope) {
