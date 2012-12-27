@@ -1,5 +1,5 @@
 proc GetQuery {r key} {
-	send [send [get r URL] Query] Get $key
+	send [send [getf $r URL] Query] Get $key
 }
 
 proc ModeHtml {w} {
@@ -13,11 +13,11 @@ proc starter {w r} {
 	/fmt/Fprintf $w {<li> <a href="/list">List Of Pages</a>}
 	/fmt/Fprintf $w {<li> <a href="/">Home Page</a>}
 	/fmt/Fprintf $w "<li>(xyz=( %s ))  " [GetQuery $r xyz]
-	/fmt/Fprintf $w "<li>(Path=( %s ))  " [get r URL Path]
-	/fmt/Fprintf $w "<li>(RawQuery=( %s ))  " [get r URL RawQuery]
-	/fmt/Fprintf $w "<li>(User=( %s ))  " [get r URL User]
-	/fmt/Fprintf $w "<li>(Host=( %s ))  " [get r URL Host]
-	/fmt/Fprintf $w "<li>(Scheme=( %s ))  " [get r URL Scheme]
+	/fmt/Fprintf $w "<li>(Path=( %s ))  " [getf $r URL Path]
+	/fmt/Fprintf $w "<li>(RawQuery=( %s ))  " [getf $r URL RawQuery]
+	/fmt/Fprintf $w "<li>(User=( %s ))  " [getf $r URL User]
+	/fmt/Fprintf $w "<li>(Host=( %s ))  " [getf $r URL Host]
+	/fmt/Fprintf $w "<li>(Scheme=( %s ))  " [getf $r URL Scheme]
 	/fmt/Fprintf $w "</ul>"
 }
 

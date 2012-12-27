@@ -28,8 +28,8 @@ func findExternalGoFunctionAsValue(name string) R.Value {
 func (fr *Frame) initReflect() {
 	TBuiltins["call"] = tcmdCall
 	TBuiltins["send"] = tcmdSend
-	TBuiltins["get"] = tcmdGet
-	TBuiltins["set"] = tcmdSet
+	TBuiltins["getf"] = tcmdGetf
+	TBuiltins["setf"] = tcmdSetf
 
 	TBuiltins["elem"] = tcmdElem
 	TBuiltins["index"] = tcmdIndex
@@ -226,35 +226,17 @@ func commonCall(fr *Frame, funcName string, fn R.Value, args []T) T {
 	return MkTl(zz) // If multiple results, return a list of them.
 }
 
-func derefChain(fr *Frame, chain []T) R.Value {
-	Must(true, len(chain) > 0)
-	// First name in chain is starting variable name.
-	start := chain[0].String()
-
-	var av R.Value
-	if len(start) > 0 && start[0] == '/' {
-		// Case Go Var
-		ptr, ok := G.Vars[start]
-		if !ok {
-			panic(Sprintf("Cannot find std lib Go var %q", start))
-		}
-		av = R.ValueOf(ptr).Elem()
-	} else {
-		// Case Tcl Var
-		a := fr.TGetVar(start)
-		av = R.ValueOf(a)
-	}
+func derefChain(fr *Frame, argv []T) R.Value {
+	start, rest := TArgv1v(argv)
+	av := R.ValueOf(start.Raw())
 
 	// For additional names, use Fields (or other navigation) to deref.
-	for _, e := range chain[1:] {
+	for _, e := range rest {
 		log.Printf("------DEREF <<< type(av)=<%s>%s", av.Kind(), av.Type())
-		if avv, ok := av.Interface().(Tv); ok {
-			av = avv.v
-			log.Printf("------DEREF Tv -> (%s) %s: %s", av.Kind(), av.Type(), av.Interface())
-			log.Printf("----------------- %#v", av.Interface())
-		}
+
+		// TODO: IS IT OKAY TO DEREF Ptr or Interface?
 		if av.Kind() == R.Ptr || av.Kind() == R.Interface {
-			log.Printf("------DEREF %s", av.Kind())
+			log.Printf("------EXTRA DEREF %s", av.Kind())
 			av = av.Elem()
 		}
 		log.Printf("------DEREF BY %q", e.String())
@@ -269,34 +251,14 @@ func derefChain(fr *Frame, chain []T) R.Value {
 	return av
 }
 
-func tcmdGet(fr *Frame, argv []T) T {
-	z := derefChain(fr, argv[1:]).Interface()
-
-	// We might have a T, or we might have some other Go value.
-	if zt, ok := z.(T); ok {
-		return zt
-	}
+func tcmdGetf(fr *Frame, argv []T) T {
+	z := derefChain(fr, argv).Interface()
 	return MkT(z)
 }
 
-func tcmdSet(fr *Frame, argv []T) T {
+func tcmdSetf(fr *Frame, argv []T) T {
 	n := len(argv)
-	switch n {
-	case 0, 1, 2:
-		panic(Sprintf("set command expects at least two args, got %q", Showv(argv)))
-	case 3:
-		name, x := TArgv2(argv)
-		start := name.String()
-		log.Printf(".... start=%q", start)
-		if len(start) == 0 || start[0] != '/' {
-			log.Printf(".... TSetVar %q %s", start, Show(x))
-			fr.TSetVar(name.String(), x)
-			return x
-		}
-	}
-
-	// Case 4 or more:
-	loc := derefChain(fr, argv[1:n-1])  // Location to assign to.
+	loc := derefChain(fr, argv[:n-1])  // Location to assign to.
 	if !loc.CanSet() {
 		panic(Sprintf("set command deref'ed to an Unsetable Location: %q", Showv(argv)))
 	}

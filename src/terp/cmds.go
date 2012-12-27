@@ -41,6 +41,8 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["eval"] = tcmdEval
 	TBuiltins["uplevel"] = tcmdUplevel
 	TBuiltins["concat"] = tcmdConcat
+	TBuiltins["set"] = tcmdSet
+	TBuiltins["get"] = tcmdGet
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -348,4 +350,19 @@ func ConcatLists(lists []T) []T {
 
 func tcmdConcat(fr *Frame, argv []T) (status T) {
 	return MkTl(ConcatLists(argv[1:]))
+}
+
+func tcmdGet(fr *Frame, argv []T) (status T) {
+    name := TArgv1(argv)
+    return fr.TGetVar(name.String())
+}
+
+func tcmdSet(fr *Frame, argv []T) (status T) {
+	if len(argv) == 2 {
+		// Normal Tcl allows 'set' to 'get'
+		return tcmdGet(fr, argv)
+	}
+    name, x := TArgv2(argv)
+    fr.TSetVar(name.String(), x)
+    return x
 }
