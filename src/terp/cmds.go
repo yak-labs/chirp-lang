@@ -156,7 +156,7 @@ func tcmdIf(fr *Frame, argv []T) T {
 		panic(Sprintf("Wrong len(argv) for if: %#v", argv))
 	}
 
-	if TTruth(fr.TEval(cond)) {
+	if TTruth(fr.TEvalExpr(cond)) {
 		return fr.TEval(yes)
 	}
 
@@ -168,7 +168,7 @@ func tcmdIf(fr *Frame, argv []T) T {
 }
 
 func tcmdPuts(fr *Frame, argv []T) T {
-	// TODO:  accept a Writer as first arg.  
+	// TODO:  accept a Writer as first arg.
 	out := TArgv1(argv)
 	Println(out)
 	return Empty
@@ -268,7 +268,7 @@ func tcmdWhile(fr *Frame, argv []T) T {
 	cond, body := TArgv2(argv)
 
 	for {
-		c := fr.TEval(cond)
+		c := fr.TEvalExpr(cond)
 		if !c.Truth() {
 			break
 		}
