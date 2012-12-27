@@ -36,33 +36,48 @@ func isOperator(ch uint8) bool {
 		ch == '&' || ch == '|' || ch == '^' || ch == '?' || ch == ':'
 }
 
-// Binary operation
-type BinOp func(a, b float64) float64
+// Floating point binary operation
+type FloatBinOp func(a, b float64) float64
 
 // Binary expression tree node.
-type BinExpr struct {
-	left   *BinExpr
-	right  *BinExpr
-	op     BinOp
-	value  float64
+type BinExpr interface {
+	Value() float64
+}
+
+// Holds a binary floating point operation.
+type FloatOpExpr struct {
+	left  BinExpr
+	right BinExpr
+	op    FloatBinOp
 }
 
 // Initializes a new instance of a binary expression.
-func NewBinExpr() *BinExpr {
-	return &BinExpr{left: nil, right: nil, op: nil, value: 0.0}
+func NewFloatOpExpr(op FloatBinOp) *FloatOpExpr {
+	return &FloatOpExpr{left: nil, right: nil, op: op}
 }
 
 // Resolves the value of a binary expression.
-func (bex *BinExpr) Value() float64 {
-	if bex.left == nil && bex.right == nil && bex.op == nil {
-		return bex.value
+func (flop FloatOpExpr) Value() float64 {
+	if flop.left == nil || flop.right == nil || flop.op == nil {
+		panic("FloatOpExpr.Value(): Incomplete binary expression.")
 	}
 
-	if bex.left == nil && bex.right == nil && bex.op == nil {
-		panic("BinExpr.Value(): Incomplete binary expression.")
-	}
+	return flop.op(flop.left.Value(), flop.right.Value())
+}
 
-	return bex.op(bex.left.Value(), bex.right.Value())
+// Holds a floating point value in the binary expression tree.
+type FloatVal struct {
+	val float64
+}
+
+// Initializes a new instance of a float value.
+func NewFloatVal(num float64) *FloatVal {
+	return &FloatVal{val: num}
+}
+
+// Returns the value held in the node.
+func (v FloatVal) Value() float64 {
+	return v.val
 }
 
 // Takes the string that represents an expression and returns the result.
@@ -70,57 +85,63 @@ func (fr *Frame) ParseExpression(s string) (result T) {
 	i := 0
 	n := len(s)
 	result = Empty
-	bex := NewBinExpr()
+	var bex BinExpr = nil
 
+Loop:
 	for i < n {
 		c := s[i]
 
 		switch {
 		case c == '[':
 			sqResult, rest := fr.ParseSquare(s[i:])
-			result = sqResult
-
 			s = rest
 			n = len(s)
 			i = 0
+
+			result = sqResult
 
 		case c == ']':
 			panic("ParseExpression: CloseSquareBracket inside Expression")
 
 		case isNumeric(c) || c == '.' && isNumeric(s[i+1]):
 			num, rest := fr.ParseNumber(s[i:])
-
-			if bex.left == nil {
-				bex.left = NewBinExpr()
-				bex.left.value = num
-			}
-
-			if bex.left != nil && bex.op != nil && bex.right == nil {
-				bex.right = NewBinExpr()
-				bex.right.value = num
-			}
-
 			s = rest
 			n = len(s)
 			i = 0
+
+			if bex == nil {
+				bex = NewFloatVal(num)
+				continue Loop
+			}
+
+			switch t := bex.(type) {
+			case *FloatOpExpr:
+				switch {
+				case t.left != nil && t.right != nil:
+					panic("ParseExpression: No place to put operand.")
+				case t.left == nil:
+					t.left = NewFloatVal(num)
+				case t.right == nil:
+					t.right = NewFloatVal(num)
+				}
+
+			default:
+				panic("ParseExpression: Unexpected expression node type.")
+			}
 
 		case isOperator(c):
 			op, rest := fr.ParseOperator(s[i:])
-
-			switch {
-			case bex.op == nil:
-				bex.op = op
-
-			case bex.op != nil:
-				newNode := NewBinExpr()
-				newNode.left = bex
-				newNode.op = op
-				bex = newNode
-			}
-
 			s = rest
 			n = len(s)
 			i = 0
+
+			if bex == nil {
+				panic("ParseExpression: Operator missing an operand.")
+			}
+
+			newNode := NewFloatOpExpr(op)
+			newNode.left = bex
+			bex = newNode
 
 		default:
 			i++
@@ -140,6 +161,7 @@ func (fr *Frame) ParseNumber(s string) (float64, string) {
 	decimal := false // only allow one decimal per number
 	buf := bytes.NewBuffer(nil)
 
+Loop:
 	for i < n {
 		c := s[i]
 
@@ -154,23 +176,23 @@ func (fr *Frame) ParseNumber(s string) (float64, string) {
 
 		// An operator or whitespace signifies the end of the number.
 		case isOperator(c) || White(c):
-			vstr := buf.String()
-
-			if v, ok := strconv.ParseFloat(vstr, 64); ok == nil {
-				return v, s[i:]
-			}
-
-			panic(Sprintf("ParseNumber: Could not parse float from: %s", vstr))
+			break Loop
 
 		default:
 			panic(Sprintf("ParseNumber: Unexpected character, '%c', found while parsing number.", c))
 		}
 	}
 
-	panic("ParseNumber: No number found.")
+	vstr := buf.String()
+
+	if v, ok := strconv.ParseFloat(vstr, 64); ok == nil {
+		return v, s[i:]
+	}
+
+	panic(Sprintf("ParseNumber: Could not parse float from: %s", vstr))
 }
 
-func (fr *Frame) ParseOperator(s string) (BinOp, string) {
+func (fr *Frame) ParseOperator(s string) (FloatBinOp, string) {
 	i := 0
 	n := len(s)
 	buf := bytes.NewBuffer(nil)
