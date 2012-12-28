@@ -47,25 +47,44 @@ var cmdTests = `
   proc square {x} {* [get x] [get x]}
   must 16 [double 8]
   must 16 [square 4]
-  proc tri n {
+  proc triang n {
     if {[< [get n] 1]} {
       + 0
     } else {
-      + [get n] [tri [- [get n] 1]]
+      + [get n] [triang [- [get n] 1]]
     }
   }
-  must 15 [tri 5]
+  must 15 [triang 5]
 
   proc range n {
-    if {[< [get n] 1]} {
-	  list
-	} else {
-	  set m [- [get n] 1]
-	  set z "[range [get m]] [get m]"
-	  get z
-	}
+    if {[< $n 1]} {
+      list
+    } else {
+      set m [- $n 1]
+      concat [range $m] [list $m]
+    }
   }
-  must " 0 1 2 3 4" [range 5]
+  must "" [range 0]
+  must "0" [range 1]
+  must "0 1 2 3 4" [range 5]
+
+  yproc yrange n {
+      set i 0
+      while {[< $i $n]} {
+          yield $i 
+          set i [+ $i 1]
+      }
+  }
+  must "" [concat [yrange 0]]
+  must "0" [concat [yrange 1]]
+  must "0 1 2 3 4" [concat [yrange 5]]
+
+  yproc ytriangs nums {
+      foreach n $nums {
+          yield [triang $n]
+      }
+  }
+  must "1 3 6 10 15" [concat [ytriangs "1 2 3 4 5"]]
 
   proc factorial_with_while n {
   	set z 1

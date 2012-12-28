@@ -28,6 +28,8 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["if"] = tcmdIf
 	TBuiltins["puts"] = tcmdPuts
 	TBuiltins["proc"] = tcmdProc
+	TBuiltins["yproc"] = tcmdYProc
+	TBuiltins["yield"] = tcmdYield
 	TBuiltins["ls"] = tcmdLs
 	TBuiltins["slen"] = tcmdSLen
 	TBuiltins["llen"] = tcmdLLen
@@ -204,6 +206,62 @@ func tcmdProc(fr *Frame, argv []T) T {
 
 	fr.G.TCmds[name.String()] = tcmd
 	return Empty
+}
+
+func tcmdYProc(fr *Frame, argv []T) T {
+	name, aa, body := TArgv3(argv)
+	alist := aa.List()
+	astrs := make([]string, len(alist))
+	for i, arg := range alist {
+		astr := arg.String()
+		if !IsLocal(astr) {
+			panic(Sprintf("Cannot use nonlocal name %q for argument in yproc", arg))
+		}
+		astrs[i] = astr
+	}
+	n := len(alist) + 1 // Add 1 for argv[0] now rather than at proc call.
+
+	tcmd := func(fr2 *Frame, argv2 []T) T {
+		if argv2 == nil {
+			// Debug Data, if invoked with nil argv2.
+			return MkTl(argv)
+		}
+		if len(argv2) != n {
+			panic(Sprintf("yproc %q expects args %#v but got %#v", name, aa, argv2))
+		}
+		fr3 := fr2.NewFrame()
+		for i, arg := range astrs {
+			fr3.TSetVar(arg, argv2[i+1])
+		}
+
+		// Begin difference from Proc.
+		ch := make(chan T, 0)
+		fr3.Chan = ch
+
+		go func() {
+			fr3.TEval(body)
+			close(ch)
+		}()
+
+		return MkTy(ch)
+		// End difference from Proc.
+	}
+
+	fr.G.TCmds[name.String()] = tcmd
+	return Empty
+}
+
+func tcmdYield(fr *Frame, argv []T) T {
+	if len(argv)==2 {
+		// Write exactly 1 arg on the channel.
+		fr.Chan <- argv[1]
+		return argv[1]
+	}
+
+	// Write more than 1 arg in a list.
+	z := MkTl(argv[1:])
+	fr.Chan <- z
+	return z
 }
 
 func tcmdLs(fr *Frame, argv []T) T {

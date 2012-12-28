@@ -6,6 +6,12 @@ proc triang n {
 	}
 }
 
+yproc ytriangs nums {
+	foreach n $nums {
+		yield [triang $n]
+	}
+}
+
 proc factorial n {
 	if {[< $n 1]} {
 		* 1 
@@ -23,7 +29,23 @@ proc range n {
 	}
 }
 
-foreach i [range 20] {
+yproc yrange n {
+	set i 0
+	while {[< $i $n]} {
+		yield $i
+		set i [+ $i 1]
+	}
+}
+
+foreach i [range 10] {
 	puts "The triang of $i is [triang $i]"
 	puts "The factorial of $i is [factorial $i]"
+}
+
+foreach i [yrange 10] {
+	puts "The triang of $i is [triang $i]"
+}
+
+foreach t [ytriangs [yrange 10]] {
+	puts "The triang is $t"
 }

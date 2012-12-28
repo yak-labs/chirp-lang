@@ -26,6 +26,7 @@ type Frame struct {
 	Prev *Frame
 	G    *Global
 	Mu   sync.Mutex
+	Chan	chan<- T  // for yproc & yield
 }
 
 type Global struct {
@@ -200,7 +201,15 @@ type Tv struct { // Implements T.
 	v R.Value
 }
 
+type Ty struct { // Implements T.
+	y <-chan T
+}
+
 var Empty = MkTs("")
+
+func MkTy(ch <-chan T) Ty {
+	return Ty{y: ch}
+}
 
 func MkTb(a bool) Tf {
 	if a {
@@ -340,6 +349,48 @@ func MkT(a interface{}) T {
 	// Everything else becomes a Tv
 	log.Printf("MkT --> defaulting to Tv")
 	return MkTv(v)
+}
+
+// Ty implements T
+
+
+func (y Ty) Raw() interface{} {
+	panic("not implemented on generator (Ty)")
+}
+func (y Ty) String() string {
+	return Repr(y)
+}
+func (y Ty) Float() float64 {
+	panic("not implemented on generator (Ty)")
+}
+func (y Ty) Int() int64 {
+	panic("not implemented on generator (Ty)")
+}
+func (y Ty) Uint() uint64 {
+	panic("not implemented on generator (Ty)")
+}
+func (y Ty) Bool() bool {
+	panic("not implemented on generator (Ty)")
+}
+func (y Ty) ListElement() string {
+	panic("not implemented on generator (Ty)")
+}
+func (y Ty) Truth() bool {
+	panic("not implemented on generator (Ty)")
+}
+func (y Ty) IsEmpty() bool {
+	panic("not implemented on generator (Ty)")
+}
+func (y Ty) List() []T {
+	z := make([]T, 0, 4)
+	for {
+		t := <-y.y
+		if t == nil {
+			break
+		}
+		z = append(z, t)
+	}
+	return z
 }
 
 // Tf implements T
