@@ -18,8 +18,8 @@ func (fr *Frame) TEval(a T) (result T) {
 	result = MkTs("") // In case of empty eval.
 	log.Printf("< TEval < (%T) ## %#v ## %q\n", a, a, a.String())
 
-	if v, ok := a.(Tl); ok {
-		return fr.TApply(v.l)
+	if a.IsPreservedByList() {
+		return fr.TApply(a.List())
 	}
 
 	rest := a.String()

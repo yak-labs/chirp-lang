@@ -120,8 +120,11 @@ func tcmdElem(fr *Frame, argv []T) T {
 func tcmdIndex(fr *Frame, argv []T) T {
 	slice, i := TArgv2(argv)
 
-	tv := slice.(Tv)
-	z := tv.v.Index(int(i.Int()))
+	rv := slice.QuickReflectValue()
+	if !rv.IsValid() {
+		panic("cannot 'index' on non-reflect-value")
+	}
+	z := rv.Index(int(i.Int()))
 
 	return MkT(z.Interface())
 }
@@ -135,18 +138,18 @@ func tcmdCall(fr *Frame, argv []T) T {
 }
 
 func tcmdSend(fr *Frame, argv []T) T {
-	t, meth, args := TArgv2v(argv)
-	log.Printf("----send----receiver = %s", Show(t))
+	r, meth, args := TArgv2v(argv)
+	log.Printf("----send----receiver = %s", Show(r))
 	methName := meth.String()
 	log.Printf("----send----method = %q", methName)
 
-	tv, ok := t.(Tv)
-	if !ok {
-		panic(Sprintf("'send' command expected Tv receiver, but got %s", Show(t)))
+	rv := r.QuickReflectValue()
+	if !rv.IsValid() {
+		panic("cannot 'send' to non-reflect-value")
 	}
 
-	fn := tv.v.MethodByName(methName)
-	return commonCall(fr, "Method:"+methName+":"+tv.v.Type().String(), fn, args)
+	fn := rv.MethodByName(methName)
+	return commonCall(fr, "Method:"+methName+":"+rv.Type().String(), fn, args)
 }
 
 // commonCall is common to both "call" and "send".
