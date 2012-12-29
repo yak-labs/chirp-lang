@@ -167,6 +167,18 @@ var cmdTests = `
   must 42 [UpGet bar]
   UpSet bar 54
   must 54 $bar
+
+  list -- test of "hash"
+  set h [hash]
+  hset $h color purple
+  must purple [hget $h color]
+  hset $h pigs [list S M L]
+  must M [lat [hget $h pigs] 1]
+  hset $h color red
+  must red [hget $h color]
+  must "color pigs" [hkeys $h]
+  hdel $h color
+  must "pigs" [hkeys $h]
 `
 
 func TestFoo(a *testing.T) {

@@ -49,6 +49,11 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["return"] = tcmdReturn
 	TBuiltins["break"] = tcmdBreak
 	TBuiltins["continue"] = tcmdContinue
+	TBuiltins["hash"] = tcmdHash
+	TBuiltins["hget"] = tcmdHGet  // FIXME: temporary: Use getf
+	TBuiltins["hset"] = tcmdHSet  // FIXME: temporary: Use setf
+	TBuiltins["hdel"] = tcmdHDel  // FIXME: temporary: Use delf
+	TBuiltins["hkeys"] = tcmdHKeys  // FIXME: temporary: use keys
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -557,13 +562,55 @@ func tcmdReturn(fr *Frame, argv []T) T {
 	if len(argv) > 2 {
 		z = MkTl(argv[1:])
 	}
+	// Jump with status RETURN.
 	panic(Jump{Status: RETURN, Result: z})
 }
 
 func tcmdBreak(fr *Frame, argv []T) T {
-	panic(Jump{Status: BREAK})
+	panic(Jump{Status: BREAK}) // Jump with status BREAK.
 }
 
 func tcmdContinue(fr *Frame, argv []T) T {
-	panic(Jump{Status: CONTINUE})
+	panic(Jump{Status: CONTINUE}) // Jump with status CONTINUE.
+}
+
+func tcmdHash(fr *Frame, argv []T) T {
+	return MkTh()
+}
+
+func tcmdHGet(fr *Frame, argv []T) T {
+    hash, key := TArgv2(argv)
+	h := hash.(Th).h
+	k := key.String()
+	value := h[k]
+	if value == nil {
+		panic(Sprintf("Hash does not contain key: %q", k))
+	}
+    return value
+}
+
+func tcmdHSet(fr *Frame, argv []T) T {
+    hash, key, value := TArgv3(argv)
+	h := hash.(Th).h
+	k := key.String()
+	h[k] = value
+	return value
+}
+
+func tcmdHDel(fr *Frame, argv []T) T {
+    hash, key := TArgv2(argv)
+	h := hash.(Th).h
+	k := key.String()
+	h[k] = nil // TODO: how to delete?
+	return Empty
+}
+
+func tcmdHKeys(fr *Frame, argv []T) T {
+    hash := TArgv1(argv)
+	h := hash.(Th).h
+	z := make([]T, 0, len(h))
+	for _, k := range SortedKeysOfHash(h) {
+		z = append(z, MkTs(k))
+	}
+	return MkTl(z)
 }

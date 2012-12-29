@@ -6,12 +6,13 @@ import (
 	"go/ast"
 	"log"
 	R "reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
 )
 
-type Hash map[string]T
+type Hash map[string]T // TODO: Mutex
 
 type TCommand func(fr *Frame, argv []T) T
 
@@ -216,13 +217,15 @@ func Showv(a []T) string {
 
 ///////////////////////////////////////
 
+// T is an interface to any Tcl value.
+// Use them only through these methods, or fix these methods.
 type T interface {
 	Raw() interface{}
 	String() string
 	Float() float64
 	Int() int64
 	Uint() uint64
-	Bool() bool
+	Bool() bool  // TODO:  Use Truth() instead.
 	ListElement() string
 	Truth() bool   // Like Python, empty values and 0 values are false.
 	IsEmpty() bool // Would String() return ""?
@@ -230,31 +233,42 @@ type T interface {
 	HeadTail() (hd, tl T)
 }
 
+// Tf is a Tcl value holding a float64.
 type Tf struct { // Implements T.
 	f float64
 }
+// Ts is a Tcl value holding a string.
 type Ts struct { // Implements T.
 	s string
 }
+// Tl is a Tcl value holding a List.
 type Tl struct { // Implements T.
 	l []T
 }
+// Tv is a Tcl value holding a Go reflect.Value.
+// It is a handle to non-Tcl Go objets.
 type Tv struct { // Implements T.
 	v R.Value
 }
-
+// Ty holds a channel for reading from a generator (yproc command).
 type Ty struct { // Implements T.
 	ch <-chan T
 	hd T
 	tl T
 }
+// Th holds a Hash.
+type Th struct { // Imlements T.
+	h Hash
+}
 
 var Empty = MkTs("")
 
+func MkTh() Th {
+	return Th{h: make(Hash, 4)}
+}
 func MkTy(ch <-chan T) Ty {
 	return Ty{ch: ch}
 }
-
 func MkTb(a bool) Tf {
 	if a {
 		return MkTi(1)
@@ -393,6 +407,76 @@ func MkT(a interface{}) T {
 	// Everything else becomes a Tv
 	log.Printf("MkT --> defaulting to Tv")
 	return MkTv(v)
+}
+
+// Th implements T
+
+func (t Th) Raw() interface{} {
+	panic("not implemented on generator (Th)")
+}
+func (t Th) String() string {
+	return Repr(t)
+}
+func (t Th) Float() float64 {
+	panic("not implemented on generator (Th)")
+}
+func (t Th) Int() int64 {
+	panic("not implemented on generator (Th)")
+}
+func (t Th) Uint() uint64 {
+	panic("not implemented on generator (Th)")
+}
+func (t Th) Bool() bool {
+	panic("not implemented on generator (Th)")
+}
+func (t Th) ListElement() string {
+	panic("not implemented on generator (Th)")
+}
+func (t Th) Truth() bool {
+	return len(t.h) > 0
+}
+func (t Th) IsEmpty() bool {
+	return len(t.h) == 0
+}
+
+type SortListByStringTSlice []T
+func (p SortListByStringTSlice) Len() int { return len(p) }
+func (p SortListByStringTSlice) Less(i, j int) bool { return p[i].String() < p[j].String() }
+func (p SortListByStringTSlice) Swap(i, j int) { p[j], p[i] = p[i], p[j] }
+
+func SortListByString(list []T) () {
+	sort.Sort(SortListByStringTSlice(list))
+}
+
+func SortedKeysOfHash(h Hash) []string {
+	// TODO: mutex
+	keys := make([]string, 0, len(h))
+
+	for k, v := range h {
+		if v == nil {
+			continue  // Omit phantoms and deletions.
+		}
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func (t Th) List() []T {
+	keys := SortedKeysOfHash(t.h)
+	z := make([]T, 0, 2*len(keys))
+	// TODO: mutex
+	for _, k := range keys {
+		v := t.h[k]
+		if v == nil {
+			continue  // Omit phantoms and deletions.
+		}
+		z = append(z, MkTs(k), v)
+	}
+	return z
+}
+func (t Th) HeadTail() (hd, tl T) {
+	return MkTl(t.List()).HeadTail()
 }
 
 // Ty implements T
