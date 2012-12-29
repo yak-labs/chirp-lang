@@ -225,10 +225,11 @@ type T interface {
 	Float() float64
 	Int() int64
 	Uint() uint64
-	ListElement() string
+	ListElementString() string
 	Truth() bool   // Like Python, empty values and 0 values are false.
 	IsEmpty() bool // Would String() return ""?
 	List() []T
+	QuickList() []T
 	HeadTail() (hd, tl T)
 	Hash() Hash
 }
@@ -426,7 +427,7 @@ func (t Th) Int() int64 {
 func (t Th) Uint() uint64 {
 	panic("not implemented on generator (Th)")
 }
-func (t Th) ListElement() string {
+func (t Th) ListElementString() string {
 	panic("not implemented on generator (Th)")
 }
 func (t Th) Truth() bool {
@@ -459,6 +460,7 @@ func SortedKeysOfHash(h Hash) []string {
 	return keys
 }
 
+func (t Th) QuickList() []T {return nil}
 func (t Th) List() []T {
 	keys := SortedKeysOfHash(t.h)
 	z := make([]T, 0, 2*len(keys))
@@ -496,7 +498,7 @@ func (t Ty) Int() int64 {
 func (t Ty) Uint() uint64 {
 	panic("not implemented on generator (Ty)")
 }
-func (t Ty) ListElement() string {
+func (t Ty) ListElementString() string {
 	panic("not implemented on generator (Ty)")
 }
 func (t Ty) Truth() bool {
@@ -505,6 +507,7 @@ func (t Ty) Truth() bool {
 func (t Ty) IsEmpty() bool {
 	panic("not implemented on generator (Ty)")
 }
+func (t Ty) QuickList() []T {return t.List()} // Quicker than String().
 func (t Ty) List() []T {
 	z := make([]T, 0, 4)
 	for {
@@ -540,7 +543,7 @@ func (t Tf) Raw() interface{} {
 func (t Tf) String() string {
 	return Sprintf("%g", t.f)
 }
-func (t Tf) ListElement() string {
+func (t Tf) ListElementString() string {
 	return t.String()
 }
 func (t Tf) Truth() bool {
@@ -558,6 +561,7 @@ func (t Tf) Int() int64 {
 func (t Tf) Uint() uint64 {
 	return uint64(t.f)
 }
+func (t Tf) QuickList() []T {return t.List()} // Quicker than String().
 func (t Tf) List() []T {
 	return []T{t}
 }
@@ -576,8 +580,8 @@ func (t Ts) Raw() interface{} {
 func (t Ts) String() string {
 	return t.s
 }
-func (t Ts) ListElement() string {
-	return ToListElement(t.s)
+func (t Ts) ListElementString() string {
+	return ToListElementString(t.s)
 }
 func (t Ts) Truth() bool {
 	return t.s != "" && t.s != "0" // TODO: Reconsider Truth.
@@ -598,6 +602,7 @@ func (t Ts) Int() int64 {
 func (t Ts) Uint() uint64 {
 	return uint64(t.Float()) //TODO
 }
+func (t Ts) QuickList() []T {return nil}  // String() is quicker.
 func (t Ts) List() []T {
 	return ParseList(t.s)
 }
@@ -623,12 +628,12 @@ func (t Tl) String() string {
 		if k > 0 {
 			z += " "
 		}
-		z += v.ListElement()
+		z += v.ListElementString()
 	}
 	return z
 }
-func (t Tl) ListElement() string {
-	return ToListElement(t.String())
+func (t Tl) ListElementString() string {
+	return ToListElementString(t.String())
 }
 func (t Tl) Truth() bool {
 	return len(t.l) != 0
@@ -654,6 +659,7 @@ func (t Tl) Uint() uint64 {
 	}
 	return t.l[0].Uint()
 }
+func (t Tl) QuickList() []T {return t.l}
 func (t Tl) List() []T {
 	return t.l
 }
@@ -677,8 +683,8 @@ func (t Tv) String() string {
 	log.Printf("Warning: converting to Tv to String: %q", s)
 	return s
 }
-func (t Tv) ListElement() string {
-	return ToListElement(t.String())
+func (t Tv) ListElementString() string {
+	return ToListElementString(t.String())
 }
 func (t Tv) Truth() bool {
 	// TODO
@@ -702,6 +708,7 @@ func (t Tv) Int() int64 {
 func (t Tv) Uint() uint64 {
 	panic("cant yet")
 }
+func (t Tv) QuickList() []T {return nil}  // TODO
 func (t Tv) List() []T {
 /***
 	Is this a good idea?
@@ -740,7 +747,7 @@ func (t Tv) HeadTail() (hd, tl T) {
 	return MkTl(t.List()).HeadTail()
 }
 
-func ToListElement(s string) string {
+func ToListElementString(s string) string {
 	// TODO: Not perfect, but we are not doing \ yet.
 	// TODO: Broken for mismatched {}.
 	if s == "" {
