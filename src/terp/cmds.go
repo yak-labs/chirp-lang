@@ -312,11 +312,15 @@ func tcmdHttpHandler(fr *Frame, argv []T) T {
 func tcmdForEach(fr *Frame, argv []T) T {
 	v, list, body := TArgv3(argv)
 
-	l := list.List()
+	for {
+		hd, tl := list.HeadTail()
+		if hd == nil {
+			break
+		}
 
-	for _, e := range l {
-		fr.TSetVar(v.String(), e)
+		fr.TSetVar(v.String(), hd)
 		fr.TEval(body)
+		list = tl
 	}
 
 	return Empty

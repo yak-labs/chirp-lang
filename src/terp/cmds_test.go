@@ -86,6 +86,24 @@ var cmdTests = `
   }
   must "1 3 6 10 15" [concat [ytriangs "1 2 3 4 5"]]
 
+  yproc naturals {} {
+      set i 0
+      while {[+ 1]} {
+          yield $i 
+          set i [+ $i 1]
+      }
+  }
+  yproc ytriangs_lt n {
+    catch {
+  	  foreach i [naturals] {
+		set x [triang $i]
+		if {[>= $x $n]} {error RETURN}
+		yield $x
+	  }
+	} what
+  }
+  must [list 0 1 3 6 10 15 21 28 36 45 55 66 78 91] [concat [ytriangs_lt 100]]
+
   proc factorial_with_while n {
   	set z 1
 	while {[> $n 0]} {

@@ -3,6 +3,7 @@ package terp
 import (
 	"bytes"
 	. "fmt"
+	"log"
 	"strconv"
 )
 
@@ -82,6 +83,7 @@ func (v FloatVal) Value() float64 {
 
 // Takes the string that represents an expression and returns the result.
 func (fr *Frame) ParseExpression(s string) (result T) {
+	log.Printf("ParseExpression <- %q", s)
 	i := 0
 	n := len(s)
 	result = Empty
@@ -99,6 +101,11 @@ Loop:
 			i = 0
 
 			result = sqResult
+
+			// BEGIN temporary fix -- TODO FIXME
+			log.Printf("ParseExpression ==> %s", Show(result))
+			return result
+			// END temporary fix -- TODO FIXME
 
 		case c == ']':
 			panic("ParseExpression: CloseSquareBracket inside Expression")
@@ -148,10 +155,12 @@ Loop:
 		}
 	}
 
-	if result == Empty {
+	log.Printf("ParseExpression ============== result= %s", Show(result))
+	if result.IsEmpty() {
 		result = MkTf(bex.Value())
 	}
 
+	log.Printf("ParseExpression -> %s", Show(result))
 	return result
 }
 

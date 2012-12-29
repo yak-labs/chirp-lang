@@ -186,6 +186,7 @@ type T interface {
 	Truth() bool   // Like Python, empty values and 0 values are false.
 	IsEmpty() bool // Would String() return ""?
 	List() []T
+	HeadTail() (hd, tl T)
 }
 
 type Tf struct { // Implements T.
@@ -202,13 +203,15 @@ type Tv struct { // Implements T.
 }
 
 type Ty struct { // Implements T.
-	y <-chan T
+	ch <-chan T
+	hd T
+	tl T
 }
 
 var Empty = MkTs("")
 
 func MkTy(ch <-chan T) Ty {
-	return Ty{y: ch}
+	return Ty{ch: ch}
 }
 
 func MkTb(a bool) Tf {
@@ -353,44 +356,55 @@ func MkT(a interface{}) T {
 
 // Ty implements T
 
-
-func (y Ty) Raw() interface{} {
+func (t Ty) Raw() interface{} {
 	panic("not implemented on generator (Ty)")
 }
-func (y Ty) String() string {
-	return Repr(y)
+func (t Ty) String() string {
+	return Repr(t)
 }
-func (y Ty) Float() float64 {
+func (t Ty) Float() float64 {
 	panic("not implemented on generator (Ty)")
 }
-func (y Ty) Int() int64 {
+func (t Ty) Int() int64 {
 	panic("not implemented on generator (Ty)")
 }
-func (y Ty) Uint() uint64 {
+func (t Ty) Uint() uint64 {
 	panic("not implemented on generator (Ty)")
 }
-func (y Ty) Bool() bool {
+func (t Ty) Bool() bool {
 	panic("not implemented on generator (Ty)")
 }
-func (y Ty) ListElement() string {
+func (t Ty) ListElement() string {
 	panic("not implemented on generator (Ty)")
 }
-func (y Ty) Truth() bool {
+func (t Ty) Truth() bool {
 	panic("not implemented on generator (Ty)")
 }
-func (y Ty) IsEmpty() bool {
+func (t Ty) IsEmpty() bool {
 	panic("not implemented on generator (Ty)")
 }
-func (y Ty) List() []T {
+func (t Ty) List() []T {
 	z := make([]T, 0, 4)
 	for {
-		t := <-y.y
+		t := <-t.ch
 		if t == nil {
 			break
 		}
 		z = append(z, t)
 	}
 	return z
+}
+func (t Ty) HeadTail() (hd, tl T) {
+	if t.ch == nil {
+		return t.hd, t.tl
+	}
+	t.hd = <-t.ch
+	if t.hd == nil {
+		t.ch = nil
+		return nil, nil
+	}
+	t.tl = Ty{ch: t.ch}
+	return t.hd, t.tl
 }
 
 // Tf implements T
@@ -427,6 +441,9 @@ func (t Tf) Bool() bool {
 }
 func (t Tf) List() []T {
 	return []T{t}
+}
+func (t Tf) HeadTail() (hd, tl T) {
+	return MkTl(t.List()).HeadTail()
 }
 
 // Ts implements T
@@ -467,6 +484,9 @@ func (t Ts) Bool() bool {
 }
 func (t Ts) List() []T {
 	return ParseList(t.s)
+}
+func (t Ts) HeadTail() (hd, tl T) {
+	return MkTl(t.List()).HeadTail()
 }
 
 // Tl implements T
@@ -523,6 +543,12 @@ func (t Tl) Bool() bool {
 }
 func (t Tl) List() []T {
 	return t.l
+}
+func (t Tl) HeadTail() (hd, tl T) {
+	if len(t.l) == 0 {
+		return nil, nil
+	}
+	return t.l[0], MkTl(t.l[1:])
 }
 
 // Tv implements T
@@ -596,6 +622,9 @@ func (t Tv) List() []T {
 	}
 /********/
 	return []T{t}
+}
+func (t Tv) HeadTail() (hd, tl T) {
+	return MkTl(t.List()).HeadTail()
 }
 
 func ToListElement(s string) string {
