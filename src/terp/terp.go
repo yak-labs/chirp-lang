@@ -225,7 +225,6 @@ type T interface {
 	Float() float64
 	Int() int64
 	Uint() uint64
-	Bool() bool  // TODO:  Use Truth() instead.
 	ListElement() string
 	Truth() bool   // Like Python, empty values and 0 values are false.
 	IsEmpty() bool // Would String() return ""?
@@ -426,9 +425,6 @@ func (t Th) Int() int64 {
 func (t Th) Uint() uint64 {
 	panic("not implemented on generator (Th)")
 }
-func (t Th) Bool() bool {
-	panic("not implemented on generator (Th)")
-}
 func (t Th) ListElement() string {
 	panic("not implemented on generator (Th)")
 }
@@ -496,9 +492,6 @@ func (t Ty) Int() int64 {
 func (t Ty) Uint() uint64 {
 	panic("not implemented on generator (Ty)")
 }
-func (t Ty) Bool() bool {
-	panic("not implemented on generator (Ty)")
-}
 func (t Ty) ListElement() string {
 	panic("not implemented on generator (Ty)")
 }
@@ -558,12 +551,6 @@ func (t Tf) Int() int64 {
 func (t Tf) Uint() uint64 {
 	return uint64(t.f)
 }
-func (t Tf) Bool() bool {
-	if t.f == 0 {
-		return false
-	}
-	return true
-}
 func (t Tf) List() []T {
 	return []T{t}
 }
@@ -583,7 +570,7 @@ func (t Ts) ListElement() string {
 	return ToListElement(t.s)
 }
 func (t Ts) Truth() bool {
-	return t.s != ""
+	return t.s != "" && t.s != "0" // TODO: Reconsider Truth.
 }
 func (t Ts) IsEmpty() bool {
 	return t.s == ""
@@ -600,12 +587,6 @@ func (t Ts) Int() int64 {
 }
 func (t Ts) Uint() uint64 {
 	return uint64(t.Float()) //TODO
-}
-func (t Ts) Bool() bool {
-	if t.s == "" || t.s == "0" {
-		return false
-	}
-	return true
 }
 func (t Ts) List() []T {
 	return ParseList(t.s)
@@ -660,12 +641,6 @@ func (t Tl) Uint() uint64 {
 	}
 	return t.l[0].Uint()
 }
-func (t Tl) Bool() bool {
-	if len(t.l) == 0 {
-		return false
-	}
-	return true
-}
 func (t Tl) List() []T {
 	return t.l
 }
@@ -709,9 +684,6 @@ func (t Tv) Int() int64 {
 	panic("cant yet")
 }
 func (t Tv) Uint() uint64 {
-	panic("cant yet")
-}
-func (t Tv) Bool() bool {
 	panic("cant yet")
 }
 func (t Tv) List() []T {
