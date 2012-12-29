@@ -36,6 +36,19 @@ type Global struct {
 	Mu sync.Mutex
 }
 
+type StatusCode int 
+const (
+	RETURN = StatusCode(iota + 2)
+	BREAK
+	CONTINUE
+)
+
+// Panic a Jump for return, break, and continue.
+type Jump struct {
+	Status StatusCode
+	Result T
+}
+
 func New() *Frame {
 	g := &Global{
 		TCmds: make(TCmdScope),

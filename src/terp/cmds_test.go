@@ -115,6 +115,11 @@ var cmdTests = `
   must 120 [factorial_with_while 5]
   must 1 [factorial_with_while 1]
   must 1 [factorial_with_while 0]
+
+  must 4 [catch continue x]
+  must 3 [catch break x]
+  must 2 [catch "return foo" x]
+  must foo $x
 `
 
 func TestFoo(a *testing.T) {

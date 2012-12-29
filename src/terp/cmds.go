@@ -45,6 +45,9 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["concat"] = tcmdConcat
 	TBuiltins["set"] = tcmdSet
 	TBuiltins["get"] = tcmdGet
+	TBuiltins["return"] = tcmdReturn
+	TBuiltins["break"] = tcmdBreak
+	TBuiltins["continue"] = tcmdContinue
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -347,6 +350,11 @@ func tcmdCatch(fr *Frame, argv []T) (status T) {
 
 	defer func() {
 		if r := recover(); r != nil {
+			if j, ok := r.(Jump); ok {
+				fr.TSetVar(varName, j.Result)
+				status = MkTi(int64(j.Status))
+				return
+			}
 			fr.TSetVar(varName, MkT(r))
 			status = MkTi(1)
 		}
@@ -357,11 +365,11 @@ func tcmdCatch(fr *Frame, argv []T) (status T) {
 	return MkTi(0)
 }
 
-func tcmdEval(fr *Frame, argv []T) (status T) {
+func tcmdEval(fr *Frame, argv []T) T {
 	return EvalOrApplyLists(fr, argv[1:])
 }
 
-func tcmdUplevel(fr *Frame, argv []T) (status T) {
+func tcmdUplevel(fr *Frame, argv []T) T {
 	specArg, rest := TArgv1v(argv)
 	spec := specArg.String()
 
@@ -410,16 +418,16 @@ func ConcatLists(lists []T) []T {
 	return z
 }
 
-func tcmdConcat(fr *Frame, argv []T) (status T) {
+func tcmdConcat(fr *Frame, argv []T) T {
 	return MkTl(ConcatLists(argv[1:]))
 }
 
-func tcmdGet(fr *Frame, argv []T) (status T) {
+func tcmdGet(fr *Frame, argv []T) T {
     name := TArgv1(argv)
     return fr.TGetVar(name.String())
 }
 
-func tcmdSet(fr *Frame, argv []T) (status T) {
+func tcmdSet(fr *Frame, argv []T) T {
 	if len(argv) == 2 {
 		// Normal Tcl allows 'set' to 'get'
 		return tcmdGet(fr, argv)
@@ -427,4 +435,23 @@ func tcmdSet(fr *Frame, argv []T) (status T) {
     name, x := TArgv2(argv)
     fr.TSetVar(name.String(), x)
     return x
+}
+
+func tcmdReturn(fr *Frame, argv []T) T {
+	var z T
+	if len(argv) == 2 {
+		z = argv[1]
+	}
+	if len(argv) > 2 {
+		z = MkTl(argv[1:])
+	}
+	panic(Jump{Status: RETURN, Result: z})
+}
+
+func tcmdBreak(fr *Frame, argv []T) T {
+	panic(Jump{Status: BREAK})
+}
+
+func tcmdContinue(fr *Frame, argv []T) T {
+	panic(Jump{Status: CONTINUE})
 }
