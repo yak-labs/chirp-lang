@@ -38,10 +38,7 @@ func (fr *Frame) initReflect() {
 func AdaptToValue(a T, t R.Type) R.Value {
 	switch t.Kind() {
 	case R.Bool:
-		if TTruth(a) {
-			return R.ValueOf(true)
-		}
-		return R.ValueOf(false)
+		return R.ValueOf(a.Truth())
 	case R.Int:
 		return R.ValueOf(int(a.Int()))
 	case R.Int8:

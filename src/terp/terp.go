@@ -230,6 +230,7 @@ type T interface {
 	IsEmpty() bool // Would String() return ""?
 	List() []T
 	HeadTail() (hd, tl T)
+	Hash() Hash
 }
 
 // Tf is a Tcl value holding a float64.
@@ -474,6 +475,9 @@ func (t Th) List() []T {
 func (t Th) HeadTail() (hd, tl T) {
 	return MkTl(t.List()).HeadTail()
 }
+func (t Th) Hash() Hash {
+	return t.h
+}
 
 // Ty implements T
 
@@ -524,6 +528,9 @@ func (t Ty) HeadTail() (hd, tl T) {
 	t.tl = Ty{ch: t.ch}
 	return t.hd, t.tl
 }
+func (t Ty) Hash() Hash {
+	panic("Ty is not a Hash")
+}
 
 // Tf implements T
 
@@ -556,6 +563,9 @@ func (t Tf) List() []T {
 }
 func (t Tf) HeadTail() (hd, tl T) {
 	return MkTl(t.List()).HeadTail()
+}
+func (t Tf) Hash() Hash {
+	panic(" is not a Hash")
 }
 
 // Ts implements T
@@ -593,6 +603,9 @@ func (t Ts) List() []T {
 }
 func (t Ts) HeadTail() (hd, tl T) {
 	return MkTl(t.List()).HeadTail()
+}
+func (t Ts) Hash() Hash {
+	panic("A string is not a Hash")
 }
 
 // Tl implements T
@@ -649,6 +662,9 @@ func (t Tl) HeadTail() (hd, tl T) {
 		return nil, nil
 	}
 	return t.l[0], MkTl(t.l[1:])
+}
+func (t Tl) Hash() Hash {
+	panic("A List is not a Hash")
 }
 
 // Tv implements T
@@ -735,4 +751,7 @@ func ToListElement(s string) string {
 		return "{" + s + "}"
 	}
 	return s
+}
+func (t Tv) Hash() Hash {
+	panic("A GoValue is not a Hash")
 }

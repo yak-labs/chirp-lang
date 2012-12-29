@@ -83,19 +83,6 @@ func MkChainingBinaryFlopTCmd(fr *Frame, starter float64, flop BinaryFlop) TComm
 	}
 }
 
-func TTruth(a T) bool {
-	switch x := a.(type) {
-	case Tf:
-		return x.f != 0
-	case Ts:
-		return len(x.s) > 0
-	case Tl:
-		return len(x.l) > 0
-	}
-	// To Do: Value(nil) Value(false) are false.
-	return true
-}
-
 func TArgv1(argv []T) T {
 	if len(argv) != 1+1 {
 		panic(Sprintf("Expected 1 arguments, but got argv=%s", Showv(argv)))
@@ -167,7 +154,7 @@ func tcmdIf(fr *Frame, argv []T) T {
 		panic(Sprintf("Wrong len(argv) for if: %#v", argv))
 	}
 
-	if TTruth(fr.TEvalExpr(cond)) {
+	if fr.TEvalExpr(cond).Truth() {
 		return fr.TEval(yes)
 	}
 
@@ -580,7 +567,7 @@ func tcmdHash(fr *Frame, argv []T) T {
 
 func tcmdHGet(fr *Frame, argv []T) T {
     hash, key := TArgv2(argv)
-	h := hash.(Th).h
+	h := hash.Hash()
 	k := key.String()
 	value := h[k]
 	if value == nil {
@@ -591,7 +578,7 @@ func tcmdHGet(fr *Frame, argv []T) T {
 
 func tcmdHSet(fr *Frame, argv []T) T {
     hash, key, value := TArgv3(argv)
-	h := hash.(Th).h
+	h := hash.Hash()
 	k := key.String()
 	h[k] = value
 	return value
@@ -599,7 +586,7 @@ func tcmdHSet(fr *Frame, argv []T) T {
 
 func tcmdHDel(fr *Frame, argv []T) T {
     hash, key := TArgv2(argv)
-	h := hash.(Th).h
+	h := hash.Hash()
 	k := key.String()
 	h[k] = nil // TODO: how to delete?
 	return Empty
@@ -607,7 +594,7 @@ func tcmdHDel(fr *Frame, argv []T) T {
 
 func tcmdHKeys(fr *Frame, argv []T) T {
     hash := TArgv1(argv)
-	h := hash.(Th).h
+	h := hash.Hash()
 	z := make([]T, 0, len(h))
 	for _, k := range SortedKeysOfHash(h) {
 		z = append(z, MkTs(k))
