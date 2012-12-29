@@ -45,6 +45,7 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["concat"] = tcmdConcat
 	TBuiltins["set"] = tcmdSet
 	TBuiltins["get"] = tcmdGet
+	TBuiltins["upvar"] = tcmdUpVar
 	TBuiltins["return"] = tcmdReturn
 	TBuiltins["break"] = tcmdBreak
 	TBuiltins["continue"] = tcmdContinue
@@ -518,6 +519,19 @@ func ConcatLists(lists []T) []T {
 
 func tcmdConcat(fr *Frame, argv []T) T {
 	return MkTl(ConcatLists(argv[1:]))
+}
+
+func tcmdUpVar(fr *Frame, argv []T) T {
+	lev, rem, loc := TArgv3(argv)
+	level := lev.Int()
+	remName := rem.String()
+	locName := loc.String()
+	remFr := fr
+	for i := 0; i < int(level); i++ {
+		remFr = remFr.Prev
+	}
+	fr.TUpVar(locName, remFr, remName)
+	return Empty
 }
 
 func tcmdGet(fr *Frame, argv []T) T {

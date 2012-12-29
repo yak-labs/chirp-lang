@@ -11,11 +11,11 @@ import (
 	"sync"
 )
 
-type TDict map[string]T
+type Hash map[string]T
 
 type TCommand func(fr *Frame, argv []T) T
 
-type TScope map[string]T
+type TScope map[string]Loc
 
 type TCmdScope map[string]TCommand
 
@@ -47,6 +47,19 @@ const (
 type Jump struct {
 	Status StatusCode
 	Result T
+}
+
+type Loc interface {
+	Get() T
+	Set(T)
+}
+
+type Slot struct {
+	Elem	T
+}
+type UpSlot struct {
+	Fr		*Frame
+	RemoteName string
 }
 
 func New() *Frame {
@@ -87,6 +100,9 @@ func IsLocal(name string) bool {
 	return !ast.IsExported(name) && name[0] != '_'
 }
 
+func (p* Slot) Get() T { return p.Elem }
+func (p* Slot) Set(t T) { p.Elem = t }
+
 func (fr *Frame) TGetVarScope(name string) TScope {
 	if len(name) == 0 {
 		panic("Empty variable name")
@@ -105,11 +121,23 @@ func (fr *Frame) TGetVarScope(name string) TScope {
 }
 
 func (fr *Frame) TGetVar(name string) T {
-	return fr.TGetVarScope(name)[name]
+	return fr.TGetVarScope(name)[name].Get()
 }
 
 func (fr *Frame) TSetVar(name string, x T) {
-	fr.TGetVarScope(name)[name] = x
+	sc := fr.TGetVarScope(name)
+	if sc[name] == nil {
+		sc[name] = new(Slot)
+	}
+	sc[name].Set(x)
+}
+
+func (p* UpSlot) Get() T { return p.Fr.TGetVar(p.RemoteName) }
+func (p* UpSlot) Set(t T) { p.Fr.TSetVar(p.RemoteName, t) }
+
+func (fr *Frame) TUpVar(name string, remFr *Frame, remName string) {
+	sc := fr.TGetVarScope(name)
+	sc[name] = &UpSlot{Fr: remFr, RemoteName: remName}
 }
 
 func (fr *Frame) FindCommand(name T) TCommand {

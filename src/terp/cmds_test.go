@@ -153,6 +153,20 @@ var cmdTests = `
 	return $i
   }
   must 6 [six]
+
+  list -- test of "upvar"
+  proc UpSet {name x} {
+  	upvar 1 $name a
+	set a $x
+  }
+  proc UpGet {name} {
+  	upvar 1 $name a
+	get a
+  }
+  set bar 42
+  must 42 [UpGet bar]
+  UpSet bar 54
+  must 54 $bar
 `
 
 func TestFoo(a *testing.T) {
