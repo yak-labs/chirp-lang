@@ -63,6 +63,9 @@ type UpSlot struct {
 	RemoteName string
 }
 
+var Empty = MkTs("")
+var InvalidValue = *new(R.Value)
+
 func New() *Frame {
 	g := &Global{
 		TCmds: make(TCmdScope),
@@ -232,6 +235,7 @@ type T interface {
 	QuickList() []T
 	HeadTail() (hd, tl T)
 	Hash() Hash
+	QuickReflectValue() R.Value
 }
 
 // Tf is a Tcl value holding a float64.
@@ -261,8 +265,6 @@ type Ty struct { // Implements T.
 type Th struct { // Imlements T.
 	h Hash
 }
-
-var Empty = MkTs("")
 
 func MkTh() Th {
 	return Th{h: make(Hash, 4)}
@@ -480,6 +482,8 @@ func (t Th) HeadTail() (hd, tl T) {
 func (t Th) Hash() Hash {
 	return t.h
 }
+func (t Th) QuickReflectValue() R.Value { return InvalidValue }
+
 
 // Ty implements T
 
@@ -534,6 +538,7 @@ func (t Ty) HeadTail() (hd, tl T) {
 func (t Ty) Hash() Hash {
 	panic("Ty is not a Hash")
 }
+func (t Ty) QuickReflectValue() R.Value { return InvalidValue }
 
 // Tf implements T
 
@@ -571,6 +576,7 @@ func (t Tf) HeadTail() (hd, tl T) {
 func (t Tf) Hash() Hash {
 	panic(" is not a Hash")
 }
+func (t Tf) QuickReflectValue() R.Value { return InvalidValue }
 
 // Ts implements T
 
@@ -612,6 +618,7 @@ func (t Ts) HeadTail() (hd, tl T) {
 func (t Ts) Hash() Hash {
 	panic("A string is not a Hash")
 }
+func (t Ts) QuickReflectValue() R.Value { return InvalidValue }
 
 // Tl implements T
 
@@ -672,6 +679,7 @@ func (t Tl) HeadTail() (hd, tl T) {
 func (t Tl) Hash() Hash {
 	panic("A List is not a Hash")
 }
+func (t Tl) QuickReflectValue() R.Value { return InvalidValue }
 
 // Tv implements T
 
@@ -688,7 +696,8 @@ func (t Tv) ListElementString() string {
 }
 func (t Tv) Truth() bool {
 	// TODO
-	panic("Restriction: cannot test Tv for Truth")
+	return !t.IsEmpty()
+	// TODO // panic("Restriction: cannot test Tv for Truth")
 }
 func (t Tv) IsEmpty() bool {
 	switch t.v.Kind() {
@@ -762,3 +771,4 @@ func ToListElementString(s string) string {
 func (t Tv) Hash() Hash {
 	panic("A GoValue is not a Hash")
 }
+func (t Tv) QuickReflectValue() R.Value { return t.v }

@@ -108,8 +108,11 @@ func AdaptToValue(a T, t R.Type) R.Value {
 func tcmdElem(fr *Frame, argv []T) T {
 	p := TArgv1(argv)
 
-	tv := p.(Tv)
-	e := tv.v.Elem()
+	rv := p.QuickReflectValue()
+	if !rv.IsValid() {
+		panic("cannot use 'elem' on non-reflect-value")
+	}
+	e := rv.Elem()
 
 	return MkT(e.Interface())
 }
