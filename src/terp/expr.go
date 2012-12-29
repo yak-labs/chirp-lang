@@ -20,11 +20,7 @@ func tcmdExpr(fr *Frame, argv []T) T {
 
 // Takes a single word that represents an expression and returns the result.
 func (fr *Frame) TEvalExpr(a T) (result T) {
-	if v, ok := a.(Ts); ok {
-		return fr.ParseExpression(v.String())
-	}
-
-	panic("TEvalExpr: Expected a Ts as its arguement.")
+	return fr.ParseExpression(a.String())
 }
 
 func isNumeric(ch uint8) bool {

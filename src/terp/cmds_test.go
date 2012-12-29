@@ -120,6 +120,39 @@ var cmdTests = `
   must 3 [catch break x]
   must 2 [catch "return foo" x]
   must foo $x
+
+  list -- Test of "return"
+  proc and list {
+	foreach cmd $list {
+		set b [eval $cmd]
+		if [== 0 $b] {
+			return 0
+		}
+	}
+	return 1
+  }
+  must 1 [and [list {< 2 4} {< 4 8} {< 8 16}]]
+  must 0 [and [list {< 2 4} {> 4 8} {< 8 16}]]
+
+  list -- Test of "break"
+  proc five {   } {
+  	foreach i [naturals] {
+		if {[== $i 5]} break
+	}
+	return $i
+  }
+  must 5 [five]
+
+  list -- Test of "continue"
+  proc six {
+  } {
+  	foreach i [naturals] {
+		if {[< $i 6]} continue
+		break
+	}
+	return $i
+  }
+  must 6 [six]
 `
 
 func TestFoo(a *testing.T) {

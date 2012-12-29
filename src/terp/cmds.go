@@ -192,7 +192,24 @@ func tcmdProc(fr *Frame, argv []T) T {
 	}
 	n := len(alist) + 1 // Add 1 for argv[0] now rather than at proc call.
 
-	tcmd := func(fr2 *Frame, argv2 []T) T {
+	tcmd := func(fr2 *Frame, argv2 []T) (result T) {
+		defer func() {
+			if r := recover(); r != nil {
+				if j, ok := r.(Jump); ok {
+					switch j.Status {
+					case RETURN:
+						result = j.Result
+						return
+					case BREAK:
+						panic("break command was not inside a loop")
+					case CONTINUE:
+						panic("continue command was not inside a loop")
+					}
+				}
+				panic(r)  // Rethrow errors and unknown Status.
+			}
+		}()
+
 		if argv2 == nil {
 			// Debug Data, if invoked with nil argv2.
 			return MkTl(argv)
@@ -225,6 +242,7 @@ func tcmdYProc(fr *Frame, argv []T) T {
 	n := len(alist) + 1 // Add 1 for argv[0] now rather than at proc call.
 
 	tcmd := func(fr2 *Frame, argv2 []T) T {
+
 		if argv2 == nil {
 			// Debug Data, if invoked with nil argv2.
 			return MkTl(argv)
@@ -242,8 +260,26 @@ func tcmdYProc(fr *Frame, argv []T) T {
 		fr3.Chan = ch
 
 		go func() {
+			defer close(ch)
+			defer func() {
+				if r := recover(); r != nil {
+					if j, ok := r.(Jump); ok {
+						switch j.Status {
+						case RETURN:
+							if ! j.Result.IsEmpty() {
+								panic("cannot return a value inside a yproc command")
+							}
+							return
+						case BREAK:
+							panic("break command was not inside a loop")
+						case CONTINUE:
+							panic("continue command was not inside a loop")
+						}
+					}
+					panic(r)  // Rethrow errors and unknown Status.
+				}
+			}()
 			fr3.TEval(body)
-			close(ch)
 		}()
 
 		return MkTy(ch)
@@ -315,6 +351,9 @@ func tcmdHttpHandler(fr *Frame, argv []T) T {
 func tcmdForEach(fr *Frame, argv []T) T {
 	v, list, body := TArgv3(argv)
 
+	toBreak := false
+	toContinue := false
+
 	for {
 		hd, tl := list.HeadTail()
 		if hd == nil {
@@ -322,7 +361,35 @@ func tcmdForEach(fr *Frame, argv []T) T {
 		}
 
 		fr.TSetVar(v.String(), hd)
-		fr.TEval(body)
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					log.Printf("foreach recovered: %#v", r)
+					if j, ok := r.(Jump); ok {
+						switch j.Status {
+						case BREAK:
+							toBreak = true
+							return
+						case CONTINUE:
+							toContinue = true
+							return
+						}
+					}
+					panic(r)  // Rethrow errors and unknown Status.
+				}
+			}()
+			log.Printf("foreach before: %q", body.String())
+			fr.TEval(body)
+			log.Printf("foreach after: %q", body.String())
+		}()
+		if toBreak {
+			log.Printf("foreach breaks ======================================")
+			break
+		}
+		if toContinue {
+			log.Printf("foreach continues =====================================")
+			continue
+		}
 		list = tl
 	}
 
@@ -332,13 +399,44 @@ func tcmdForEach(fr *Frame, argv []T) T {
 func tcmdWhile(fr *Frame, argv []T) T {
 	cond, body := TArgv2(argv)
 
+	toBreak := false
+	toContinue := false
+
 	for {
 		c := fr.TEvalExpr(cond)
 		if !c.Truth() {
 			break
 		}
 
-		fr.TEval(body)
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					log.Printf("while recovered: %#v", r)
+					if j, ok := r.(Jump); ok {
+						switch j.Status {
+						case BREAK:
+							toBreak = true
+							return
+						case CONTINUE:
+							toContinue = true
+							return
+						}
+					}
+					panic(r)  // Rethrow errors and unknown Status.
+				}
+			}()
+			log.Printf("while before: %q", body.String())
+			fr.TEval(body)
+			log.Printf("while after: %q", body.String())
+		}()
+		if toBreak {
+			log.Printf("while breaks ======================================")
+			break
+		}
+		if toContinue {
+			log.Printf("while continues =====================================")
+			continue
+		}
 	}
 
 	return Empty
@@ -438,7 +536,7 @@ func tcmdSet(fr *Frame, argv []T) T {
 }
 
 func tcmdReturn(fr *Frame, argv []T) T {
-	var z T
+	var z T = Empty
 	if len(argv) == 2 {
 		z = argv[1]
 	}
