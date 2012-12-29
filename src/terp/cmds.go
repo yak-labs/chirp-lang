@@ -483,9 +483,9 @@ func EvalOrApplyLists(fr *Frame, lists []T) T {
 	// Are they already lists?
 	areLists := true
 	for _, e := range lists {
-		_, ok := e.(Tl)
-		if !ok {
+		if ! e.IsPreservedByList() {
 			areLists = false
+			break
 		}
 	}
 

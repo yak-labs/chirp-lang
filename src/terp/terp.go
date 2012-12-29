@@ -232,7 +232,7 @@ type T interface {
 	Truth() bool   // Like Python, empty values and 0 values are false.
 	IsEmpty() bool // Would String() return ""?
 	List() []T
-	QuickList() []T
+	IsPreservedByList() bool
 	HeadTail() (hd, tl T)
 	Hash() Hash
 	QuickReflectValue() R.Value
@@ -462,7 +462,7 @@ func SortedKeysOfHash(h Hash) []string {
 	return keys
 }
 
-func (t Th) QuickList() []T {return nil}
+func (t Th) IsPreservedByList() bool { return true }
 func (t Th) List() []T {
 	keys := SortedKeysOfHash(t.h)
 	z := make([]T, 0, 2*len(keys))
@@ -511,7 +511,7 @@ func (t Ty) Truth() bool {
 func (t Ty) IsEmpty() bool {
 	panic("not implemented on generator (Ty)")
 }
-func (t Ty) QuickList() []T {return t.List()} // Quicker than String().
+func (t Ty) IsPreservedByList() bool { return true }
 func (t Ty) List() []T {
 	z := make([]T, 0, 4)
 	for {
@@ -566,7 +566,7 @@ func (t Tf) Int() int64 {
 func (t Tf) Uint() uint64 {
 	return uint64(t.f)
 }
-func (t Tf) QuickList() []T {return t.List()} // Quicker than String().
+func (t Tf) IsPreservedByList() bool { return true }
 func (t Tf) List() []T {
 	return []T{t}
 }
@@ -608,7 +608,7 @@ func (t Ts) Int() int64 {
 func (t Ts) Uint() uint64 {
 	return uint64(t.Float()) //TODO
 }
-func (t Ts) QuickList() []T {return nil}  // String() is quicker.
+func (t Ts) IsPreservedByList() bool { return false }
 func (t Ts) List() []T {
 	return ParseList(t.s)
 }
@@ -666,7 +666,7 @@ func (t Tl) Uint() uint64 {
 	}
 	return t.l[0].Uint()
 }
-func (t Tl) QuickList() []T {return t.l}
+func (t Tl) IsPreservedByList() bool { return true }
 func (t Tl) List() []T {
 	return t.l
 }
@@ -717,7 +717,7 @@ func (t Tv) Int() int64 {
 func (t Tv) Uint() uint64 {
 	panic("cant yet")
 }
-func (t Tv) QuickList() []T {return nil}  // TODO
+func (t Tv) IsPreservedByList() bool { return true }
 func (t Tv) List() []T {
 /***
 	Is this a good idea?
