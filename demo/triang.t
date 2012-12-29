@@ -37,6 +37,24 @@ yproc yrange n {
 	}
 }
 
+yproc naturals {} {
+    set i 0
+    while {[+ 1]} {
+        yield $i 
+        set i [+ $i 1]
+    }
+}     
+
+yproc ytriangs_lt n {
+  catch {
+    foreach i [naturals] {
+      set x [triang $i]
+      if {[>= $x $n]} {error RETURN}
+      yield $x
+    }
+  } what
+}
+
 foreach i [range 10] {
 	puts "The triang of $i is [triang $i]"
 	puts "The factorial of $i is [factorial $i]"
@@ -49,3 +67,5 @@ foreach i [yrange 10] {
 foreach t [ytriangs [yrange 10]] {
 	puts "The triang is $t"
 }
+
+puts "The triangs under 100 are [concat [ytriangs_lt 100]]"
