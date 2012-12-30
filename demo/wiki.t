@@ -27,7 +27,7 @@ proc home {w r} {
 }
 
 proc display {page w} {
-	set pagef "[get page].wik"
+	set pagef "$page.wik"
 	/fmt/Fprintf $w "(display( %s ))" [/io/ioutil/ReadFile $pagef]
 }
 
@@ -47,7 +47,7 @@ proc list {w r} {
 	foreach f [/io/ioutil/ReadDir .] {
 		set fname [send $f Name]
 		set m [send $ValidName FindStringSubmatch $fname]
-		if {[get m]} {
+		if {[set m]} {
 			set name [lat $m 1]
 			/fmt/Fprintf $w {<li> <a href="/view?page=%s">"%s"</a> for filename %s} $name $name $fname
 		} else {

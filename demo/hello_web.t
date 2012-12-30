@@ -1,5 +1,5 @@
 proc home {w r} {
-	/fmt/Fprintf [get w] "Hello Web!  ###########  w=%s  ###########  r=%s\n" [get w] [get r]
+	/fmt/Fprintf $w "Hello Web!  ###########  w=%s  ###########  r=%s\n" $w $r
 }
 
 /net/http/HandleFunc / [http_handler home]

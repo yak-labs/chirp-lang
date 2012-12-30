@@ -44,7 +44,6 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["uplevel"] = tcmdUplevel
 	TBuiltins["concat"] = tcmdConcat
 	TBuiltins["set"] = tcmdSet
-	TBuiltins["get"] = tcmdGet
 	TBuiltins["upvar"] = tcmdUpVar
 	TBuiltins["return"] = tcmdReturn
 	TBuiltins["break"] = tcmdBreak
@@ -526,15 +525,11 @@ func tcmdUpVar(fr *Frame, argv []T) T {
 	return Empty
 }
 
-func tcmdGet(fr *Frame, argv []T) T {
-	name := TArgv1(argv)
-	return fr.TGetVar(name.String())
-}
-
 func tcmdSet(fr *Frame, argv []T) T {
 	if len(argv) == 2 {
-		// Normal Tcl allows 'set' to 'get'
-		return tcmdGet(fr, argv)
+		// Retrieve value of variable, if 2nd arg is missing.
+		name := TArgv1(argv)
+		return fr.TGetVar(name.String())
 	}
 	name, x := TArgv2(argv)
 	fr.TSetVar(name.String(), x)

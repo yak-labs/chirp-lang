@@ -18,14 +18,14 @@ ci:
 fmt:
 	gofmt -w src/*/*.go 
 
-demo1: goterp
-	./goterp -c 'must 3 [+ 1 2]; must 1015 [+ 0 1 2 3 [ + 2 2 ] [ - 8 3 ] [+ 100 900]]'
-demo2: goterp
-	time ./goterp -c ' call /fmt/Printf "hey%gthere%gyou---" [+ 3] [+ 4] '
+demos: goterp
+	sh demo/all.sh
 web: goterp
 	./goterp demo/hello_web.t
+wiki: goterp
+	( cd demo ; ../goterp demo/wiki.t )
 
 clean:
-	rm -rf ./goterp ./demo-types-1 src/generated/reflections.go pkg/*
+	rm -rf ./goterp src/generated/reflections.go pkg/* demo/_*.err
 
 FORCE:

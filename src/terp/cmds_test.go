@@ -29,9 +29,9 @@ var cmdTests = `
   must 1 [< 0.333 [/ 1 3]]
   must 23 [if {[== 0.5 [/ 1 2]]} {+ 20 3} else {+ 40 2}]
 
-  set a 100; set b 20; must 120 [+ [get a] [get b]]
-  must 81028 [+ "8[get a]8" [get b]]
-  must 81028 [+ 8[get a]8 [get b]]
+  set a 100; set b 20; must 120 [+ [set a] [set b]]
+  must 81028 [+ "8[set a]8" [set b]]
+  must 81028 [+ 8[set a]8 [set b]]
 
   must cc [lat [list aa bb cc dd ee] 2]
   must cc [lat " aa bb cc dd ee" 2]
@@ -43,15 +43,15 @@ var cmdTests = `
   must 2 [slen [llen [list aa bb cc dd ee 1 2 3 4 5] ]]
   must 0 [slen ""]
 
-  proc double {x} {+ [get x] [get x]}
-  proc square {x} {* [get x] [get x]}
+  proc double {x} {+ [set x] [set x]}
+  proc square {x} {* [set x] [set x]}
   must 16 [double 8]
   must 16 [square 4]
   proc triang n {
-    if {[< [get n] 1]} {
+    if {[< [set n] 1]} {
       + 0
     } else {
-      + [get n] [triang [- [get n] 1]]
+      + [set n] [triang [- [set n] 1]]
     }
   }
   must 15 [triang 5]
@@ -110,7 +110,7 @@ var cmdTests = `
 		set z [* $z $n]
 		set n [- $n 1]
 	}
-	get z
+	set z
   }
   must 120 [factorial_with_while 5]
   must 1 [factorial_with_while 1]
@@ -161,7 +161,7 @@ var cmdTests = `
   }
   proc UpGet {name} {
   	upvar 1 $name a
-	get a
+	set a
   }
   set bar 42
   must 42 [UpGet bar]
