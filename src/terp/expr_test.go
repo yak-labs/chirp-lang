@@ -1,8 +1,8 @@
 package terp_test
 
 import (
-  "testing"
-  . "terp"
+	. "terp"
+	"testing"
 )
 
 var exprTests = `
@@ -14,6 +14,6 @@ var exprTests = `
 `
 
 func TestExpr(a *testing.T) {
-  fr := New()
-  fr.TEval(MkTs(exprTests))
+	fr := New()
+	fr.TEval(MkTs(exprTests))
 }

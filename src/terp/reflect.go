@@ -245,7 +245,7 @@ func derefChain(fr *Frame, argv []T) R.Value {
 		log.Printf("------DEREF BY %q", e.String())
 		av2 := av.FieldByName(e.String())
 		log.Printf("------DEREF >>> type(av)=<%s>%s", av2.Kind(), av2.Type())
-		if ! av2.IsValid() {
+		if !av2.IsValid() {
 			// Better: ShowValue(av)
 			panic(Sprintf("invalid field %s of %s", e.String(), Show(MkT(av.Interface()))))
 		}
@@ -261,7 +261,7 @@ func tcmdGetf(fr *Frame, argv []T) T {
 
 func tcmdSetf(fr *Frame, argv []T) T {
 	n := len(argv)
-	loc := derefChain(fr, argv[:n-1])  // Location to assign to.
+	loc := derefChain(fr, argv[:n-1]) // Location to assign to.
 	if !loc.CanSet() {
 		panic(Sprintf("set command deref'ed to an Unsetable Location: %q", Showv(argv)))
 	}

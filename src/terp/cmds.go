@@ -50,10 +50,10 @@ func (fr *Frame) initTBuiltins() {
 	TBuiltins["break"] = tcmdBreak
 	TBuiltins["continue"] = tcmdContinue
 	TBuiltins["hash"] = tcmdHash
-	TBuiltins["hget"] = tcmdHGet  // FIXME: temporary: Use getf
-	TBuiltins["hset"] = tcmdHSet  // FIXME: temporary: Use setf
-	TBuiltins["hdel"] = tcmdHDel  // FIXME: temporary: Use delf
-	TBuiltins["hkeys"] = tcmdHKeys  // FIXME: temporary: use keys
+	TBuiltins["hget"] = tcmdHGet   // FIXME: temporary: Use getf
+	TBuiltins["hset"] = tcmdHSet   // FIXME: temporary: Use setf
+	TBuiltins["hdel"] = tcmdHDel   // FIXME: temporary: Use delf
+	TBuiltins["hkeys"] = tcmdHKeys // FIXME: temporary: use keys
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -199,7 +199,7 @@ func tcmdProc(fr *Frame, argv []T) T {
 						panic("continue command was not inside a loop")
 					}
 				}
-				panic(r)  // Rethrow errors and unknown Status.
+				panic(r) // Rethrow errors and unknown Status.
 			}
 		}()
 
@@ -259,7 +259,7 @@ func tcmdYProc(fr *Frame, argv []T) T {
 					if j, ok := r.(Jump); ok {
 						switch j.Status {
 						case RETURN:
-							if ! j.Result.IsEmpty() {
+							if !j.Result.IsEmpty() {
 								panic("cannot return a value inside a yproc command")
 							}
 							return
@@ -269,7 +269,7 @@ func tcmdYProc(fr *Frame, argv []T) T {
 							panic("continue command was not inside a loop")
 						}
 					}
-					panic(r)  // Rethrow errors and unknown Status.
+					panic(r) // Rethrow errors and unknown Status.
 				}
 			}()
 			fr3.TEval(body)
@@ -284,7 +284,7 @@ func tcmdYProc(fr *Frame, argv []T) T {
 }
 
 func tcmdYield(fr *Frame, argv []T) T {
-	if len(argv)==2 {
+	if len(argv) == 2 {
 		// Write exactly 1 arg on the channel.
 		fr.Chan <- argv[1]
 		return argv[1]
@@ -368,7 +368,7 @@ func tcmdForEach(fr *Frame, argv []T) T {
 							return
 						}
 					}
-					panic(r)  // Rethrow errors and unknown Status.
+					panic(r) // Rethrow errors and unknown Status.
 				}
 			}()
 			log.Printf("foreach before: %q", body.String())
@@ -415,7 +415,7 @@ func tcmdWhile(fr *Frame, argv []T) T {
 							return
 						}
 					}
-					panic(r)  // Rethrow errors and unknown Status.
+					panic(r) // Rethrow errors and unknown Status.
 				}
 			}()
 			log.Printf("while before: %q", body.String())
@@ -483,7 +483,7 @@ func EvalOrApplyLists(fr *Frame, lists []T) T {
 	// Are they already lists?
 	areLists := true
 	for _, e := range lists {
-		if ! e.IsPreservedByList() {
+		if !e.IsPreservedByList() {
 			areLists = false
 			break
 		}
@@ -504,7 +504,7 @@ func EvalOrApplyLists(fr *Frame, lists []T) T {
 func ConcatLists(lists []T) []T {
 	z := make([]T, 0, 4)
 	for _, e := range lists {
-		z = append(z, e.List() ...)
+		z = append(z, e.List()...)
 	}
 	return z
 }
@@ -527,8 +527,8 @@ func tcmdUpVar(fr *Frame, argv []T) T {
 }
 
 func tcmdGet(fr *Frame, argv []T) T {
-    name := TArgv1(argv)
-    return fr.TGetVar(name.String())
+	name := TArgv1(argv)
+	return fr.TGetVar(name.String())
 }
 
 func tcmdSet(fr *Frame, argv []T) T {
@@ -536,9 +536,9 @@ func tcmdSet(fr *Frame, argv []T) T {
 		// Normal Tcl allows 'set' to 'get'
 		return tcmdGet(fr, argv)
 	}
-    name, x := TArgv2(argv)
-    fr.TSetVar(name.String(), x)
-    return x
+	name, x := TArgv2(argv)
+	fr.TSetVar(name.String(), x)
+	return x
 }
 
 func tcmdReturn(fr *Frame, argv []T) T {
@@ -566,18 +566,18 @@ func tcmdHash(fr *Frame, argv []T) T {
 }
 
 func tcmdHGet(fr *Frame, argv []T) T {
-    hash, key := TArgv2(argv)
+	hash, key := TArgv2(argv)
 	h := hash.Hash()
 	k := key.String()
 	value := h[k]
 	if value == nil {
 		panic(Sprintf("Hash does not contain key: %q", k))
 	}
-    return value
+	return value
 }
 
 func tcmdHSet(fr *Frame, argv []T) T {
-    hash, key, value := TArgv3(argv)
+	hash, key, value := TArgv3(argv)
 	h := hash.Hash()
 	k := key.String()
 	h[k] = value
@@ -585,7 +585,7 @@ func tcmdHSet(fr *Frame, argv []T) T {
 }
 
 func tcmdHDel(fr *Frame, argv []T) T {
-    hash, key := TArgv2(argv)
+	hash, key := TArgv2(argv)
 	h := hash.Hash()
 	k := key.String()
 	h[k] = nil // TODO: how to delete?
@@ -593,7 +593,7 @@ func tcmdHDel(fr *Frame, argv []T) T {
 }
 
 func tcmdHKeys(fr *Frame, argv []T) T {
-    hash := TArgv1(argv)
+	hash := TArgv1(argv)
 	h := hash.Hash()
 	z := make([]T, 0, len(h))
 	for _, k := range SortedKeysOfHash(h) {

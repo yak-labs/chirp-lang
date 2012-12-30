@@ -27,7 +27,7 @@ type Frame struct {
 	Prev *Frame
 	G    *Global
 	Mu   sync.Mutex
-	Chan	chan<- T  // for yproc & yield
+	Chan chan<- T // for yproc & yield
 }
 
 type Global struct {
@@ -37,7 +37,8 @@ type Global struct {
 	Mu sync.Mutex
 }
 
-type StatusCode int 
+type StatusCode int
+
 const (
 	RETURN = StatusCode(iota + 2)
 	BREAK
@@ -56,10 +57,10 @@ type Loc interface {
 }
 
 type Slot struct {
-	Elem	T
+	Elem T
 }
 type UpSlot struct {
-	Fr		*Frame
+	Fr         *Frame
 	RemoteName string
 }
 
@@ -104,8 +105,8 @@ func IsLocal(name string) bool {
 	return !ast.IsExported(name) && name[0] != '_'
 }
 
-func (p* Slot) Get() T { return p.Elem }
-func (p* Slot) Set(t T) { p.Elem = t }
+func (p *Slot) Get() T  { return p.Elem }
+func (p *Slot) Set(t T) { p.Elem = t }
 
 func (fr *Frame) TGetVarScope(name string) TScope {
 	if len(name) == 0 {
@@ -136,8 +137,8 @@ func (fr *Frame) TSetVar(name string, x T) {
 	sc[name].Set(x)
 }
 
-func (p* UpSlot) Get() T { return p.Fr.TGetVar(p.RemoteName) }
-func (p* UpSlot) Set(t T) { p.Fr.TSetVar(p.RemoteName, t) }
+func (p *UpSlot) Get() T  { return p.Fr.TGetVar(p.RemoteName) }
+func (p *UpSlot) Set(t T) { p.Fr.TSetVar(p.RemoteName, t) }
 
 func (fr *Frame) TUpVar(name string, remFr *Frame, remName string) {
 	sc := fr.TGetVarScope(name)
@@ -242,25 +243,30 @@ type T interface {
 type Tf struct { // Implements T.
 	f float64
 }
+
 // Ts is a Tcl value holding a string.
 type Ts struct { // Implements T.
 	s string
 }
+
 // Tl is a Tcl value holding a List.
 type Tl struct { // Implements T.
 	l []T
 }
+
 // Tv is a Tcl value holding a Go reflect.Value.
 // It is a handle to non-Tcl Go objets.
 type Tv struct { // Implements T.
 	v R.Value
 }
+
 // Ty holds a channel for reading from a generator (yproc command).
 type Ty struct { // Implements T.
 	ch <-chan T
 	hd T
 	tl T
 }
+
 // Th holds a Hash.
 type Th struct { // Imlements T.
 	h Hash
@@ -440,11 +446,12 @@ func (t Th) IsEmpty() bool {
 }
 
 type SortListByStringTSlice []T
-func (p SortListByStringTSlice) Len() int { return len(p) }
-func (p SortListByStringTSlice) Less(i, j int) bool { return p[i].String() < p[j].String() }
-func (p SortListByStringTSlice) Swap(i, j int) { p[j], p[i] = p[i], p[j] }
 
-func SortListByString(list []T) () {
+func (p SortListByStringTSlice) Len() int           { return len(p) }
+func (p SortListByStringTSlice) Less(i, j int) bool { return p[i].String() < p[j].String() }
+func (p SortListByStringTSlice) Swap(i, j int)      { p[j], p[i] = p[i], p[j] }
+
+func SortListByString(list []T) {
 	sort.Sort(SortListByStringTSlice(list))
 }
 
@@ -454,7 +461,7 @@ func SortedKeysOfHash(h Hash) []string {
 
 	for k, v := range h {
 		if v == nil {
-			continue  // Omit phantoms and deletions.
+			continue // Omit phantoms and deletions.
 		}
 		keys = append(keys, k)
 	}
@@ -470,7 +477,7 @@ func (t Th) List() []T {
 	for _, k := range keys {
 		v := t.h[k]
 		if v == nil {
-			continue  // Omit phantoms and deletions.
+			continue // Omit phantoms and deletions.
 		}
 		z = append(z, MkTs(k), v)
 	}
@@ -483,7 +490,6 @@ func (t Th) Hash() Hash {
 	return t.h
 }
 func (t Th) QuickReflectValue() R.Value { return InvalidValue }
-
 
 // Ty implements T
 
@@ -719,17 +725,17 @@ func (t Tv) Uint() uint64 {
 }
 func (t Tv) IsPreservedByList() bool { return true }
 func (t Tv) List() []T {
-/***
-	Is this a good idea?
+	/***
+		Is this a good idea?
 
-	At times, it is really convenient to have a Raw Slice be a list.
+		At times, it is really convenient to have a Raw Slice be a list.
 
-	But other times, we want to edit that Raw Slice in place.
+		But other times, we want to edit that Raw Slice in place.
 
-	Maybe this is right -- only when you explicitly ask for a List() do we explode it.
+		Maybe this is right -- only when you explicitly ask for a List() do we explode it.
 
-	Is treating Ptr and Iface like a Singleton List a good idea?
-***/
+		Is treating Ptr and Iface like a Singleton List a good idea?
+	***/
 	switch t.v.Kind() {
 
 	// Treat Pointer and Interface as a singleton list.
@@ -749,7 +755,7 @@ func (t Tv) List() []T {
 		}
 		return z
 	}
-/********/
+	/********/
 	return []T{t}
 }
 func (t Tv) HeadTail() (hd, tl T) {
