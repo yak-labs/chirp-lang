@@ -212,7 +212,7 @@ Loop:
 	if len(varName) < 1 {
 		panic(Sprintf("Empty Variable Name after $ here: %q", s))
 	}
-	return fr.TGetVar(varName), s[i:]
+	return fr.GetVar(varName), s[i:]
 }
 
 // Might return nonempty <rest> if it finds ']'

@@ -21,8 +21,8 @@ type Scope map[string]Loc
 type CmdScope map[string]Command
 
 type Frame struct {
-	TVars  Scope
-	TSlots Scope
+	Vars  Scope
+	Slots Scope
 
 	Prev *Frame
 	G    *Global
@@ -31,7 +31,7 @@ type Frame struct {
 }
 
 type Global struct {
-	TCmds CmdScope
+	Cmds CmdScope
 	Fr    Frame // global scope
 
 	Mu sync.Mutex
@@ -69,9 +69,9 @@ var InvalidValue = *new(R.Value)
 
 func New() *Frame {
 	g := &Global{
-		TCmds: make(CmdScope),
+		Cmds: make(CmdScope),
 		Fr: Frame{
-			TVars: make(Scope),
+			Vars: make(Scope),
 		},
 	}
 
@@ -84,8 +84,8 @@ func New() *Frame {
 
 func (fr *Frame) NewFrame() *Frame {
 	return &Frame{
-		TVars:  make(Scope),
-		TSlots: nil,
+		Vars:  make(Scope),
+		Slots: nil,
 		Prev:   fr,
 		G:      fr.G,
 	}
@@ -108,40 +108,40 @@ func IsLocal(name string) bool {
 func (p *Slot) Get() T  { return p.Elem }
 func (p *Slot) Set(t T) { p.Elem = t }
 
-func (fr *Frame) TGetVarScope(name string) Scope {
+func (fr *Frame) GetVarScope(name string) Scope {
 	if len(name) == 0 {
 		panic("Empty variable name")
 	}
 	if name[0] == '_' {
-		if fr.TSlots == nil {
+		if fr.Slots == nil {
 			panic("No slots in this frame: " + name)
 		}
-		return fr.TSlots
+		return fr.Slots
 	}
 
 	if IsGlobal(name) {
-		return fr.G.Fr.TVars
+		return fr.G.Fr.Vars
 	}
-	return fr.TVars
+	return fr.Vars
 }
 
-func (fr *Frame) TGetVar(name string) T {
-	return fr.TGetVarScope(name)[name].Get()
+func (fr *Frame) GetVar(name string) T {
+	return fr.GetVarScope(name)[name].Get()
 }
 
-func (fr *Frame) TSetVar(name string, x T) {
-	sc := fr.TGetVarScope(name)
+func (fr *Frame) SetVar(name string, x T) {
+	sc := fr.GetVarScope(name)
 	if sc[name] == nil {
 		sc[name] = new(Slot)
 	}
 	sc[name].Set(x)
 }
 
-func (p *UpSlot) Get() T  { return p.Fr.TGetVar(p.RemoteName) }
-func (p *UpSlot) Set(t T) { p.Fr.TSetVar(p.RemoteName, t) }
+func (p *UpSlot) Get() T  { return p.Fr.GetVar(p.RemoteName) }
+func (p *UpSlot) Set(t T) { p.Fr.SetVar(p.RemoteName, t) }
 
 func (fr *Frame) TUpVar(name string, remFr *Frame, remName string) {
-	sc := fr.TGetVarScope(name)
+	sc := fr.GetVarScope(name)
 	sc[name] = &UpSlot{Fr: remFr, RemoteName: remName}
 }
 
@@ -152,7 +152,7 @@ func (fr *Frame) FindCommand(name T) Command {
 		panic(Sprintf("Restriction: Command must be a string: %#v", name))
 	}
 
-	fn, ok := fr.G.TCmds[cmdName.s]
+	fn, ok := fr.G.Cmds[cmdName.s]
 	if !ok {
 		fn, ok = TBuiltins[cmdName.s]
 	}

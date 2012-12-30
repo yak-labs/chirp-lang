@@ -211,12 +211,12 @@ func tcmdProc(fr *Frame, argv []T) T {
 		}
 		fr3 := fr2.NewFrame()
 		for i, arg := range astrs {
-			fr3.TSetVar(arg, argv2[i+1])
+			fr3.SetVar(arg, argv2[i+1])
 		}
 		return fr3.TEval(body)
 	}
 
-	fr.G.TCmds[name.String()] = tcmd
+	fr.G.Cmds[name.String()] = tcmd
 	return Empty
 }
 
@@ -244,7 +244,7 @@ func tcmdYProc(fr *Frame, argv []T) T {
 		}
 		fr3 := fr2.NewFrame()
 		for i, arg := range astrs {
-			fr3.TSetVar(arg, argv2[i+1])
+			fr3.SetVar(arg, argv2[i+1])
 		}
 
 		// Begin difference from Proc.
@@ -278,7 +278,7 @@ func tcmdYProc(fr *Frame, argv []T) T {
 		// End difference from Proc.
 	}
 
-	fr.G.TCmds[name.String()] = tcmd
+	fr.G.Cmds[name.String()] = tcmd
 	return Empty
 }
 
@@ -352,7 +352,7 @@ func tcmdForEach(fr *Frame, argv []T) T {
 			break
 		}
 
-		fr.TSetVar(v.String(), hd)
+		fr.SetVar(v.String(), hd)
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -441,17 +441,17 @@ func tcmdCatch(fr *Frame, argv []T) (status T) {
 	defer func() {
 		if r := recover(); r != nil {
 			if j, ok := r.(Jump); ok {
-				fr.TSetVar(varName, j.Result)
+				fr.SetVar(varName, j.Result)
 				status = MkTi(int64(j.Status))
 				return
 			}
-			fr.TSetVar(varName, MkT(r))
+			fr.SetVar(varName, MkT(r))
 			status = MkTi(1)
 		}
 	}()
 
 	z := fr.TEval(body)
-	fr.TSetVar(varName, z)
+	fr.SetVar(varName, z)
 	return MkTi(0)
 }
 
@@ -529,10 +529,10 @@ func tcmdSet(fr *Frame, argv []T) T {
 	if len(argv) == 2 {
 		// Retrieve value of variable, if 2nd arg is missing.
 		name := TArgv1(argv)
-		return fr.TGetVar(name.String())
+		return fr.GetVar(name.String())
 	}
 	name, x := TArgv2(argv)
-	fr.TSetVar(name.String(), x)
+	fr.SetVar(name.String(), x)
 	return x
 }
 
