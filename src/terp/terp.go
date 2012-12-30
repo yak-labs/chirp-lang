@@ -14,15 +14,15 @@ import (
 
 type Hash map[string]T // TODO: Mutex
 
-type TCommand func(fr *Frame, argv []T) T
+type Command func(fr *Frame, argv []T) T
 
-type TScope map[string]Loc
+type Scope map[string]Loc
 
-type TCmdScope map[string]TCommand
+type CmdScope map[string]Command
 
 type Frame struct {
-	TVars  TScope
-	TSlots TScope
+	TVars  Scope
+	TSlots Scope
 
 	Prev *Frame
 	G    *Global
@@ -31,7 +31,7 @@ type Frame struct {
 }
 
 type Global struct {
-	TCmds TCmdScope
+	TCmds CmdScope
 	Fr    Frame // global scope
 
 	Mu sync.Mutex
@@ -69,9 +69,9 @@ var InvalidValue = *new(R.Value)
 
 func New() *Frame {
 	g := &Global{
-		TCmds: make(TCmdScope),
+		TCmds: make(CmdScope),
 		Fr: Frame{
-			TVars: make(TScope),
+			TVars: make(Scope),
 		},
 	}
 
@@ -84,7 +84,7 @@ func New() *Frame {
 
 func (fr *Frame) NewFrame() *Frame {
 	return &Frame{
-		TVars:  make(TScope),
+		TVars:  make(Scope),
 		TSlots: nil,
 		Prev:   fr,
 		G:      fr.G,
@@ -108,7 +108,7 @@ func IsLocal(name string) bool {
 func (p *Slot) Get() T  { return p.Elem }
 func (p *Slot) Set(t T) { p.Elem = t }
 
-func (fr *Frame) TGetVarScope(name string) TScope {
+func (fr *Frame) TGetVarScope(name string) Scope {
 	if len(name) == 0 {
 		panic("Empty variable name")
 	}
@@ -145,7 +145,7 @@ func (fr *Frame) TUpVar(name string, remFr *Frame, remName string) {
 	sc[name] = &UpSlot{Fr: remFr, RemoteName: remName}
 }
 
-func (fr *Frame) FindCommand(name T) TCommand {
+func (fr *Frame) FindCommand(name T) Command {
 	// Some day we will not require Ts; for now, it helps debug.
 	cmdName, ok := name.(Ts)
 	if !ok {

@@ -9,7 +9,7 @@ import (
 
 var _ = log.Printf
 
-var TBuiltins map[string]TCommand = make(map[string]TCommand, 0)
+var TBuiltins map[string]Command = make(map[string]Command, 0)
 
 func (fr *Frame) initTBuiltins() {
 	TBuiltins["+"] = MkChainingBinaryFlopTCmd(fr, 0.0, func(a, b float64) float64 { return a + b })
@@ -58,21 +58,21 @@ func (fr *Frame) initTBuiltins() {
 type BinaryFlop func(a, b float64) float64
 type BinaryFlopBool func(a, b float64) bool
 
-func MkBinaryFlopTCmd(fr *Frame, flop BinaryFlop) TCommand {
+func MkBinaryFlopTCmd(fr *Frame, flop BinaryFlop) Command {
 	return func(fr *Frame, argv []T) T {
 		a, b := TArgv2(argv)
 		return MkTf(flop(a.Float(), b.Float()))
 	}
 }
 
-func MkBinaryFlopBoolTCmd(fr *Frame, flop BinaryFlopBool) TCommand {
+func MkBinaryFlopBoolTCmd(fr *Frame, flop BinaryFlopBool) Command {
 	return func(fr *Frame, argv []T) T {
 		a, b := TArgv2(argv)
 		return MkTb(flop(a.Float(), b.Float()))
 	}
 }
 
-func MkChainingBinaryFlopTCmd(fr *Frame, starter float64, flop BinaryFlop) TCommand {
+func MkChainingBinaryFlopTCmd(fr *Frame, starter float64, flop BinaryFlop) Command {
 	return func(fr *Frame, argv []T) T {
 		z := starter // Be sure not to modify starter!  It is captured.
 		for _, a := range argv[1:] {
