@@ -20,6 +20,16 @@ proc factorial n {
 	}
 }
 
+list -- Factorial function using /math/big numbers.
+proc big_factorial n {
+  if {[< $n 1]} {
+    return [/math/big/NewInt 1]
+  }
+  set z [/math/big/NewInt 0]
+  send $z Mul [/math/big/NewInt $n] [big_factorial [- $n 1]]
+  set z
+}
+
 proc range n {
 	if {[< $n 1]} {
 		list
@@ -60,8 +70,9 @@ foreach i [range 10] {
 	puts "The factorial of $i is [factorial $i]"
 }
 
-foreach i [yrange 10] {
-	puts "The triang of $i is [triang $i]"
+foreach i [yrange 11] {
+	set n [* 10 $i]
+	puts "The big_factorial of $n is [send [big_factorial $n] String]"
 }
 
 foreach t [ytriangs [yrange 10]] {
