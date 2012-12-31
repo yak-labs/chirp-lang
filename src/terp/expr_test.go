@@ -15,5 +15,5 @@ var exprTests = `
 
 func TestExpr(a *testing.T) {
 	fr := New()
-	fr.Eval(MkTs(exprTests))
+	fr.Eval(MkString(exprTests))
 }

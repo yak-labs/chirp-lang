@@ -31,7 +31,7 @@ func TestT2(t *testing.T) {
 /*
 func TestT3(t *testing.T) {
 	fr := New()
-	a := fr.Eval(MkTs("list abc[list def]ghi"))
+	a := fr.Eval(MkString("list abc[list def]ghi"))
 	MustA("xabcdefghi", a.String())
 }
 */

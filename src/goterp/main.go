@@ -14,9 +14,9 @@ var cFlag = flag.String("c", "", "Immediate command to execute.")
 func saveArgvStarting(fr *terp.Frame, i int) {
 	argv := []terp.T{}
 	for _, a := range os.Args[i:] {
-		argv = append(argv, terp.MkTs(a))
+		argv = append(argv, terp.MkString(a))
 	}
-	fr.SetVar("argv", terp.MkTl(argv))
+	fr.SetVar("argv", terp.MkList(argv))
 }
 
 func main() {
@@ -26,7 +26,7 @@ func main() {
 	if cFlag != nil && *cFlag != "" {
 		saveArgvStarting(fr, 1)
 		Printf("T<<< %#v\n", *cFlag)
-		z := fr.Eval(terp.MkTs(*cFlag))
+		z := fr.Eval(terp.MkString(*cFlag))
 		Printf("T>>> %#v\n", z)
 		return
 	}
@@ -41,7 +41,7 @@ func main() {
 		}
 		saveArgvStarting(fr, 2)
 		Printf("T<<< fname = %#v\n", fname)
-		z := fr.Eval(terp.MkTs(string(contents)))
+		z := fr.Eval(terp.MkString(string(contents)))
 		Printf("T>>> %#v\n", z)
 		return
 	}

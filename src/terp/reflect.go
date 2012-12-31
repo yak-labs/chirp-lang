@@ -228,7 +228,7 @@ func commonCall(fr *Frame, funcName string, fn R.Value, args []T) T {
 	case 1:
 		return zz[0] // If single result, return it simply.
 	}
-	return MkTl(zz) // If multiple results, return a list of them.
+	return MkList(zz) // If multiple results, return a list of them.
 }
 
 func derefChain(fr *Frame, argv []T) R.Value {

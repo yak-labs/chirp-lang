@@ -183,5 +183,5 @@ var cmdTests = `
 
 func TestFoo(a *testing.T) {
 	fr := New()
-	fr.Eval(MkTs(cmdTests))
+	fr.Eval(MkString(cmdTests))
 }

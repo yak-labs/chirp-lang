@@ -61,14 +61,14 @@ type BinaryFlopBool func(a, b float64) bool
 func MkBinaryFlopCmd(fr *Frame, flop BinaryFlop) Command {
 	return func(fr *Frame, argv []T) T {
 		a, b := Arg2(argv)
-		return MkTf(flop(a.Float(), b.Float()))
+		return MkFloat(flop(a.Float(), b.Float()))
 	}
 }
 
 func MkBinaryFlopBoolCmd(fr *Frame, flop BinaryFlopBool) Command {
 	return func(fr *Frame, argv []T) T {
 		a, b := Arg2(argv)
-		return MkTb(flop(a.Float(), b.Float()))
+		return MkBool(flop(a.Float(), b.Float()))
 	}
 }
 
@@ -78,7 +78,7 @@ func MkChainingBinaryFlopCmd(fr *Frame, starter float64, flop BinaryFlop) Comman
 		for _, a := range argv[1:] {
 			z = flop(z, a.Float())
 		}
-		return MkTf(z)
+		return MkFloat(z)
 	}
 }
 
@@ -204,7 +204,7 @@ func cmdProc(fr *Frame, argv []T) T {
 
 		if argv2 == nil {
 			// Debug Data, if invoked with nil argv2.
-			return MkTl(argv)
+			return MkList(argv)
 		}
 		if len(argv2) != n {
 			panic(Sprintf("Proc %q expects args %#v but got %#v", name, aa, argv2))
@@ -237,7 +237,7 @@ func cmdYProc(fr *Frame, argv []T) T {
 
 		if argv2 == nil {
 			// Debug Data, if invoked with nil argv2.
-			return MkTl(argv)
+			return MkList(argv)
 		}
 		if len(argv2) != n {
 			panic(Sprintf("yproc %q expects args %#v but got %#v", name, aa, argv2))
@@ -274,7 +274,7 @@ func cmdYProc(fr *Frame, argv []T) T {
 			fr3.Eval(body)
 		}()
 
-		return MkTy(ch)
+		return MkGenerator(ch)
 		// End difference from Proc.
 	}
 
@@ -290,7 +290,7 @@ func cmdYield(fr *Frame, argv []T) T {
 	}
 
 	// Write more than 1 arg in a list.
-	z := MkTl(argv[1:])
+	z := MkList(argv[1:])
 	fr.Chan <- z
 	return z
 }
@@ -301,16 +301,16 @@ func cmdLs(fr *Frame, argv []T) T {
 
 func cmdSLen(fr *Frame, argv []T) T {
 	a := Arg1(argv)
-	return MkTi(int64(len(a.String())))
+	return MkInt(int64(len(a.String())))
 }
 
 func cmdLLen(fr *Frame, argv []T) T {
 	a := Arg1(argv)
-	return MkTi(int64(len(a.List())))
+	return MkInt(int64(len(a.List())))
 }
 
 func cmdList(fr *Frame, argv []T) T {
-	return MkTl(argv[1:])
+	return MkList(argv[1:])
 }
 
 func cmdLAt(fr *Frame, argv []T) T {
@@ -326,7 +326,7 @@ func cmdLAt(fr *Frame, argv []T) T {
 func cmdSAt(fr *Frame, argv []T) T {
 	s, j := Arg2(argv)
 	i := j.Int()
-	return MkTs(s.String()[i : i+1])
+	return MkString(s.String()[i : i+1])
 }
 
 func cmdHttpHandler(fr *Frame, argv []T) T {
@@ -442,17 +442,17 @@ func cmdCatch(fr *Frame, argv []T) (status T) {
 		if r := recover(); r != nil {
 			if j, ok := r.(Jump); ok {
 				fr.SetVar(varName, j.Result)
-				status = MkTi(int64(j.Status))
+				status = MkInt(int64(j.Status))
 				return
 			}
 			fr.SetVar(varName, MkT(r))
-			status = MkTi(1)
+			status = MkInt(1)
 		}
 	}()
 
 	z := fr.Eval(body)
 	fr.SetVar(varName, z)
-	return MkTi(0)
+	return MkInt(0)
 }
 
 func cmdEval(fr *Frame, argv []T) T {
@@ -497,7 +497,7 @@ func EvalOrApplyLists(fr *Frame, lists []T) T {
 		buf.WriteString(e.String())
 		buf.WriteRune(' ')
 	}
-	return fr.Eval(MkTs(buf.String()))
+	return fr.Eval(MkString(buf.String()))
 }
 
 func ConcatLists(lists []T) []T {
@@ -509,7 +509,7 @@ func ConcatLists(lists []T) []T {
 }
 
 func cmdConcat(fr *Frame, argv []T) T {
-	return MkTl(ConcatLists(argv[1:]))
+	return MkList(ConcatLists(argv[1:]))
 }
 
 func cmdUpVar(fr *Frame, argv []T) T {
@@ -542,7 +542,7 @@ func cmdReturn(fr *Frame, argv []T) T {
 		z = argv[1]
 	}
 	if len(argv) > 2 {
-		z = MkTl(argv[1:])
+		z = MkList(argv[1:])
 	}
 	// Jump with status RETURN.
 	panic(Jump{Status: RETURN, Result: z})
@@ -557,7 +557,7 @@ func cmdContinue(fr *Frame, argv []T) T {
 }
 
 func cmdHash(fr *Frame, argv []T) T {
-	return MkTh()
+	return MkHash()
 }
 
 func cmdHGet(fr *Frame, argv []T) T {
@@ -592,7 +592,7 @@ func cmdHKeys(fr *Frame, argv []T) T {
 	h := hash.Hash()
 	z := make([]T, 0, len(h))
 	for _, k := range SortedKeysOfHash(h) {
-		z = append(z, MkTs(k))
+		z = append(z, MkString(k))
 	}
-	return MkTl(z)
+	return MkList(z)
 }

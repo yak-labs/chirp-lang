@@ -62,5 +62,5 @@ var reflectTests = `
 `
 
 func TestReflect(a *testing.T) {
-	New().Eval(MkTs(reflectTests))
+	New().Eval(MkString(reflectTests))
 }

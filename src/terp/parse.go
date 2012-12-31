@@ -15,7 +15,7 @@ func WhiteOrSemi(ch uint8) bool {
 }
 
 func (fr *Frame) Eval(a T) (result T) {
-	result = MkTs("") // In case of empty eval.
+	result = MkString("") // In case of empty eval.
 	log.Printf("< Eval < (%T) ## %#v ## %q\n", a, a, a.String())
 
 	if a.IsPreservedByList() {
@@ -71,7 +71,7 @@ Loop:
 	}
 	i++
 
-	result = MkTs(buf.String())
+	result = MkString(buf.String())
 	rest = s[i:]
 	return
 }
@@ -140,7 +140,7 @@ Loop:
 		}
 	}
 	//- log.Printf("> ParseQuote > %#v > %q\n", result, rest)
-	return MkTs(buf.String()), s[i:]
+	return MkString(buf.String()), s[i:]
 }
 
 // Parse a bareword, returning result and new position
@@ -184,10 +184,10 @@ Loop:
 			i++
 		}
 	}
-	// result = MkTs(buf.String())
+	// result = MkString(buf.String())
 	// rest = s[i:]
 	//- log.Printf("> ParseWord > %#v > %q\n", result, rest)
-	return MkTs(buf.String()), s[i:]
+	return MkString(buf.String()), s[i:]
 }
 
 // Parse a variable name after a '$', returning result and new position
@@ -344,7 +344,7 @@ func ParseList(s string) []T {
 				i++
 			}
 		}
-		z = append(z, MkTs(buf.String()))
+		z = append(z, MkString(buf.String()))
 	}
 	return z
 }

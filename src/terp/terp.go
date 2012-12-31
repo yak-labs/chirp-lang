@@ -64,7 +64,7 @@ type UpSlot struct {
 	RemoteName string
 }
 
-var Empty = MkTs("")
+var Empty = MkString("")
 var InvalidValue = *new(R.Value)
 
 func New() *Frame {
@@ -176,7 +176,7 @@ func (fr *Frame) Apply(argv []T) T {
 	}
 
 	if len(cmdName.s) > 1 && cmdName.s[0] == '/' {
-		call := []T{MkTs("call"), head}
+		call := []T{MkString("call"), head}
 		call = append(call, argv[1:]...) // Append all but first of argv.
 		return fr.Apply(call)           // Recurse.
 	}
@@ -198,7 +198,7 @@ func Must(a, b T) {
 
 // MustST takes a string and a T
 func MustST(a string, b T) {
-	Must(MkTs(a), b)
+	Must(MkString(a), b)
 }
 
 // MustA takes Any 2 values, and compares their Repr()s.
@@ -273,35 +273,35 @@ type Th struct { // Imlements T.
 	h Hash
 }
 
-func MkTh() Th {
+func MkHash() Th {
 	return Th{h: make(Hash, 4)}
 }
-func MkTy(ch <-chan T) Ty {
+func MkGenerator(ch <-chan T) Ty {
 	return Ty{ch: ch}
 }
-func MkTb(a bool) Tf {
+func MkBool(a bool) Tf {
 	if a {
-		return MkTi(1)
+		return MkInt(1)
 	}
-	return MkTi(0)
+	return MkInt(0)
 }
-func MkTf(a float64) Tf {
+func MkFloat(a float64) Tf {
 	return Tf{f: a}
 }
-func MkTi(a int64) Tf {
+func MkInt(a int64) Tf {
 	return Tf{f: float64(a)}
 }
 func MkTu(a uint64) Tf {
 	return Tf{f: float64(a)}
 }
-func MkTs(a string) Ts {
+func MkString(a string) Ts {
 	if len(a) > 6 && a[:6] == "Value:" {
 		panic(666)
 	}
 	return Ts{s: a}
 }
-func MkTl(a []T) Tl {
-	log.Printf("MkTl: from <%T> <%s>", a, a)
+func MkList(a []T) Tl {
+	log.Printf("MkList: from <%T> <%s>", a, a)
 	return Tl{l: a}
 }
 func MkTv(a R.Value) T {
@@ -332,18 +332,18 @@ func MkT(a interface{}) T {
 	switch v.Kind() {
 
 	case R.Bool:
-		return MkTb(v.Bool())
+		return MkBool(v.Bool())
 
 	case R.Int:
-		return MkTi(v.Int())
+		return MkInt(v.Int())
 	case R.Int8:
-		return MkTi(v.Int())
+		return MkInt(v.Int())
 	case R.Int16:
-		return MkTi(v.Int())
+		return MkInt(v.Int())
 	case R.Int32:
-		return MkTi(v.Int())
+		return MkInt(v.Int())
 	case R.Int64:
-		return MkTi(v.Int())
+		return MkInt(v.Int())
 
 	case R.Uint:
 		return MkTu(v.Uint())
@@ -359,9 +359,9 @@ func MkT(a interface{}) T {
 		return MkTu(v.Uint())
 
 	case R.Float32:
-		return MkTf(v.Float())
+		return MkFloat(v.Float())
 	case R.Float64:
-		return MkTf(v.Float())
+		return MkFloat(v.Float())
 
 	case R.Complex64:
 	case R.Complex128:
@@ -401,15 +401,15 @@ func MkT(a interface{}) T {
 		var pointerToT *T
 		switch v.Type().Elem() {
 		case R.TypeOf(pointerToT).Elem(): // i.e. case T
-			return MkTl(v.Interface().([]T))
+			return MkList(v.Interface().([]T))
 		}
 		switch v.Type().Elem().Kind() {
 		case R.Uint8:
-			return MkTs(string(v.Interface().([]byte)))
+			return MkString(string(v.Interface().([]byte)))
 		}
 
 	case R.String:
-		return MkTs(v.Interface().(string))
+		return MkString(v.Interface().(string))
 	case R.Struct:
 	case R.UnsafePointer:
 	}
@@ -480,12 +480,12 @@ func (t Th) List() []T {
 		if v == nil {
 			continue // Omit phantoms and deletions.
 		}
-		z = append(z, MkTs(k), v)
+		z = append(z, MkString(k), v)
 	}
 	return z
 }
 func (t Th) HeadTail() (hd, tl T) {
-	return MkTl(t.List()).HeadTail()
+	return MkList(t.List()).HeadTail()
 }
 func (t Th) Hash() Hash {
 	return t.h
@@ -578,7 +578,7 @@ func (t Tf) List() []T {
 	return []T{t}
 }
 func (t Tf) HeadTail() (hd, tl T) {
-	return MkTl(t.List()).HeadTail()
+	return MkList(t.List()).HeadTail()
 }
 func (t Tf) Hash() Hash {
 	panic(" is not a Hash")
@@ -620,7 +620,7 @@ func (t Ts) List() []T {
 	return ParseList(t.s)
 }
 func (t Ts) HeadTail() (hd, tl T) {
-	return MkTl(t.List()).HeadTail()
+	return MkList(t.List()).HeadTail()
 }
 func (t Ts) Hash() Hash {
 	panic("A string is not a Hash")
@@ -681,7 +681,7 @@ func (t Tl) HeadTail() (hd, tl T) {
 	if len(t.l) == 0 {
 		return nil, nil
 	}
-	return t.l[0], MkTl(t.l[1:])
+	return t.l[0], MkList(t.l[1:])
 }
 func (t Tl) Hash() Hash {
 	panic("A List is not a Hash")
@@ -760,7 +760,7 @@ func (t Tv) List() []T {
 	return []T{t}
 }
 func (t Tv) HeadTail() (hd, tl T) {
-	return MkTl(t.List()).HeadTail()
+	return MkList(t.List()).HeadTail()
 }
 
 func ToListElementString(s string) string {

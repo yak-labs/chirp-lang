@@ -153,7 +153,7 @@ Loop:
 
 	log.Printf("ParseExpression ============== result= %s", Show(result))
 	if result.IsEmpty() {
-		result = MkTf(bex.Value())
+		result = MkFloat(bex.Value())
 	}
 
 	log.Printf("ParseExpression -> %s", Show(result))
