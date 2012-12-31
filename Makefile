@@ -1,5 +1,6 @@
 all: ci goterp test
 
+big: clean all demos
 
 goterp: src/generated/reflections.go src/*/*.go
 	GOPATH=$$(pwd) time go build -x goterp 

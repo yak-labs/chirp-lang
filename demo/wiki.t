@@ -57,7 +57,7 @@ proc list {w r} {
 	/fmt/Fprintf $w "</ul>"
 }
 
-set ValidName [/regexp/MustCompile {^([A-Z][a-z]+[A-Z][A-Za-z0-9_]*)[.]wik$}]
+set ValidName [/regexp/MustCompile {^([A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*)[.]wik$}]
 
 /net/http/HandleFunc / [http_handler home]
 /net/http/HandleFunc /view [http_handler view]
