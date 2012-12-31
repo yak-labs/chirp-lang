@@ -11,68 +11,68 @@ var _ = log.Printf
 
 var Builtins map[string]Command = make(map[string]Command, 0)
 
-func (fr *Frame) initTBuiltins() {
-	Builtins["+"] = MkChainingBinaryFlopTCmd(fr, 0.0, func(a, b float64) float64 { return a + b })
-	Builtins["*"] = MkChainingBinaryFlopTCmd(fr, 1.0, func(a, b float64) float64 { return a * b })
-	Builtins["-"] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return a - b })
-	Builtins["/"] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return a / b })
+func (fr *Frame) initBuiltins() {
+	Builtins["+"] = MkChainingBinaryFlopCmd(fr, 0.0, func(a, b float64) float64 { return a + b })
+	Builtins["*"] = MkChainingBinaryFlopCmd(fr, 1.0, func(a, b float64) float64 { return a * b })
+	Builtins["-"] = MkBinaryFlopCmd(fr, func(a, b float64) float64 { return a - b })
+	Builtins["/"] = MkBinaryFlopCmd(fr, func(a, b float64) float64 { return a / b })
 
-	Builtins["=="] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a == b) })
-	Builtins["!="] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a != b) })
-	Builtins["<"] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a < b) })
-	Builtins["<="] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a <= b) })
-	Builtins[">"] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a > b) })
-	Builtins[">="] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a >= b) })
-	Builtins["must"] = tcmdMust
+	Builtins["=="] = MkBinaryFlopBoolCmd(fr, func(a, b float64) bool { return (a == b) })
+	Builtins["!="] = MkBinaryFlopBoolCmd(fr, func(a, b float64) bool { return (a != b) })
+	Builtins["<"] = MkBinaryFlopBoolCmd(fr, func(a, b float64) bool { return (a < b) })
+	Builtins["<="] = MkBinaryFlopBoolCmd(fr, func(a, b float64) bool { return (a <= b) })
+	Builtins[">"] = MkBinaryFlopBoolCmd(fr, func(a, b float64) bool { return (a > b) })
+	Builtins[">="] = MkBinaryFlopBoolCmd(fr, func(a, b float64) bool { return (a >= b) })
+	Builtins["must"] = cmdMust
 
-	Builtins["if"] = tcmdIf
-	Builtins["puts"] = tcmdPuts
-	Builtins["proc"] = tcmdProc
-	Builtins["yproc"] = tcmdYProc
-	Builtins["yield"] = tcmdYield
-	Builtins["ls"] = tcmdLs
-	Builtins["slen"] = tcmdSLen
-	Builtins["llen"] = tcmdLLen
-	Builtins["list"] = tcmdList
-	Builtins["sat"] = tcmdSAt // a.k.a. string index
-	Builtins["lat"] = tcmdLAt // a.k.a. lindex
-	Builtins["http_handler"] = tcmdHttpHandler
-	Builtins["foreach"] = tcmdForEach
-	Builtins["while"] = tcmdWhile
-	Builtins["catch"] = tcmdCatch
-	Builtins["eval"] = tcmdEval
-	Builtins["uplevel"] = tcmdUplevel
-	Builtins["concat"] = tcmdConcat
-	Builtins["set"] = tcmdSet
-	Builtins["upvar"] = tcmdUpVar
-	Builtins["return"] = tcmdReturn
-	Builtins["break"] = tcmdBreak
-	Builtins["continue"] = tcmdContinue
-	Builtins["hash"] = tcmdHash
-	Builtins["hget"] = tcmdHGet   // FIXME: temporary: Use getf
-	Builtins["hset"] = tcmdHSet   // FIXME: temporary: Use setf
-	Builtins["hdel"] = tcmdHDel   // FIXME: temporary: Use delf
-	Builtins["hkeys"] = tcmdHKeys // FIXME: temporary: use keys
+	Builtins["if"] = cmdIf
+	Builtins["puts"] = cmdPuts
+	Builtins["proc"] = cmdProc
+	Builtins["yproc"] = cmdYProc
+	Builtins["yield"] = cmdYield
+	Builtins["ls"] = cmdLs
+	Builtins["slen"] = cmdSLen
+	Builtins["llen"] = cmdLLen
+	Builtins["list"] = cmdList
+	Builtins["sat"] = cmdSAt // a.k.a. string index
+	Builtins["lat"] = cmdLAt // a.k.a. lindex
+	Builtins["http_handler"] = cmdHttpHandler
+	Builtins["foreach"] = cmdForEach
+	Builtins["while"] = cmdWhile
+	Builtins["catch"] = cmdCatch
+	Builtins["eval"] = cmdEval
+	Builtins["uplevel"] = cmdUplevel
+	Builtins["concat"] = cmdConcat
+	Builtins["set"] = cmdSet
+	Builtins["upvar"] = cmdUpVar
+	Builtins["return"] = cmdReturn
+	Builtins["break"] = cmdBreak
+	Builtins["continue"] = cmdContinue
+	Builtins["hash"] = cmdHash
+	Builtins["hget"] = cmdHGet   // FIXME: temporary: Use getf
+	Builtins["hset"] = cmdHSet   // FIXME: temporary: Use setf
+	Builtins["hdel"] = cmdHDel   // FIXME: temporary: Use delf
+	Builtins["hkeys"] = cmdHKeys // FIXME: temporary: use keys
 }
 
 type BinaryFlop func(a, b float64) float64
 type BinaryFlopBool func(a, b float64) bool
 
-func MkBinaryFlopTCmd(fr *Frame, flop BinaryFlop) Command {
+func MkBinaryFlopCmd(fr *Frame, flop BinaryFlop) Command {
 	return func(fr *Frame, argv []T) T {
-		a, b := TArgv2(argv)
+		a, b := Arg2(argv)
 		return MkTf(flop(a.Float(), b.Float()))
 	}
 }
 
-func MkBinaryFlopBoolTCmd(fr *Frame, flop BinaryFlopBool) Command {
+func MkBinaryFlopBoolCmd(fr *Frame, flop BinaryFlopBool) Command {
 	return func(fr *Frame, argv []T) T {
-		a, b := TArgv2(argv)
+		a, b := Arg2(argv)
 		return MkTb(flop(a.Float(), b.Float()))
 	}
 }
 
-func MkChainingBinaryFlopTCmd(fr *Frame, starter float64, flop BinaryFlop) Command {
+func MkChainingBinaryFlopCmd(fr *Frame, starter float64, flop BinaryFlop) Command {
 	return func(fr *Frame, argv []T) T {
 		z := starter // Be sure not to modify starter!  It is captured.
 		for _, a := range argv[1:] {
@@ -89,43 +89,43 @@ func Arg1(argv []T) T {
 	return argv[1]
 }
 
-func TArgv1v(argv []T) (T, []T) {
+func Arg1v(argv []T) (T, []T) {
 	if len(argv) < 1+1 {
 		panic(Sprintf("Expected at least 1 argument, but got argv=%s", Showv(argv)))
 	}
 	return argv[1], argv[2:]
 }
 
-func TArgv2(argv []T) (T, T) {
+func Arg2(argv []T) (T, T) {
 	if len(argv) != 2+1 {
 		panic(Sprintf("Expected 2 arguments, but got argv=%s", Showv(argv)))
 	}
 	return argv[1], argv[2]
 }
 
-func TArgv2v(argv []T) (T, T, []T) {
+func Arg2v(argv []T) (T, T, []T) {
 	if len(argv) < 2+1 {
 		panic(Sprintf("Expected at least 2 arguments, but got argv=%s", Showv(argv)))
 	}
 	return argv[1], argv[2], argv[3:]
 }
 
-func TArgv3(argv []T) (T, T, T) {
+func Arg3(argv []T) (T, T, T) {
 	if len(argv) != 3+1 {
 		panic(Sprintf("Expected 3 arguments, but got argv=%s", Showv(argv)))
 	}
 	return argv[1], argv[2], argv[3]
 }
 
-func TArgv3v(argv []T) (T, T, T, []T) {
+func Arg3v(argv []T) (T, T, T, []T) {
 	if len(argv) < 3+1 {
 		panic(Sprintf("Expected at least 3 arguments, but got argv=%s", Showv(argv)))
 	}
 	return argv[1], argv[2], argv[3], argv[4:]
 }
 
-func tcmdMust(fr *Frame, argv []T) T {
-	xx, yy := TArgv2(argv)
+func cmdMust(fr *Frame, argv []T) T {
+	xx, yy := Arg2(argv)
 	x := xx.String()
 	y := yy.String()
 
@@ -135,7 +135,7 @@ func tcmdMust(fr *Frame, argv []T) T {
 	return Empty
 }
 
-func tcmdIf(fr *Frame, argv []T) T {
+func cmdIf(fr *Frame, argv []T) T {
 	if len(argv) < 3 {
 		panic(Sprintf("Too few arguments for if: %#v", argv))
 	}
@@ -153,7 +153,7 @@ func tcmdIf(fr *Frame, argv []T) T {
 		panic(Sprintf("Wrong len(argv) for if: %#v", argv))
 	}
 
-	if fr.TEvalExpr(cond).Truth() {
+	if fr.EvalExpr(cond).Truth() {
 		return fr.Eval(yes)
 	}
 
@@ -164,15 +164,15 @@ func tcmdIf(fr *Frame, argv []T) T {
 	return Empty
 }
 
-func tcmdPuts(fr *Frame, argv []T) T {
+func cmdPuts(fr *Frame, argv []T) T {
 	// TODO:  accept a Writer as first arg.
 	out := Arg1(argv)
 	Println(out)
 	return Empty
 }
 
-func tcmdProc(fr *Frame, argv []T) T {
-	name, aa, body := TArgv3(argv)
+func cmdProc(fr *Frame, argv []T) T {
+	name, aa, body := Arg3(argv)
 	alist := aa.List()
 	astrs := make([]string, len(alist))
 	for i, arg := range alist {
@@ -184,7 +184,7 @@ func tcmdProc(fr *Frame, argv []T) T {
 	}
 	n := len(alist) + 1 // Add 1 for argv[0] now rather than at proc call.
 
-	tcmd := func(fr2 *Frame, argv2 []T) (result T) {
+	cmd := func(fr2 *Frame, argv2 []T) (result T) {
 		defer func() {
 			if r := recover(); r != nil {
 				if j, ok := r.(Jump); ok {
@@ -216,12 +216,12 @@ func tcmdProc(fr *Frame, argv []T) T {
 		return fr3.Eval(body)
 	}
 
-	fr.G.Cmds[name.String()] = tcmd
+	fr.G.Cmds[name.String()] = cmd
 	return Empty
 }
 
-func tcmdYProc(fr *Frame, argv []T) T {
-	name, aa, body := TArgv3(argv)
+func cmdYProc(fr *Frame, argv []T) T {
+	name, aa, body := Arg3(argv)
 	alist := aa.List()
 	astrs := make([]string, len(alist))
 	for i, arg := range alist {
@@ -233,7 +233,7 @@ func tcmdYProc(fr *Frame, argv []T) T {
 	}
 	n := len(alist) + 1 // Add 1 for argv[0] now rather than at proc call.
 
-	tcmd := func(fr2 *Frame, argv2 []T) T {
+	cmd := func(fr2 *Frame, argv2 []T) T {
 
 		if argv2 == nil {
 			// Debug Data, if invoked with nil argv2.
@@ -278,11 +278,11 @@ func tcmdYProc(fr *Frame, argv []T) T {
 		// End difference from Proc.
 	}
 
-	fr.G.Cmds[name.String()] = tcmd
+	fr.G.Cmds[name.String()] = cmd
 	return Empty
 }
 
-func tcmdYield(fr *Frame, argv []T) T {
+func cmdYield(fr *Frame, argv []T) T {
 	if len(argv) == 2 {
 		// Write exactly 1 arg on the channel.
 		fr.Chan <- argv[1]
@@ -295,26 +295,26 @@ func tcmdYield(fr *Frame, argv []T) T {
 	return z
 }
 
-func tcmdLs(fr *Frame, argv []T) T {
+func cmdLs(fr *Frame, argv []T) T {
 	panic("not usefully implemented yet")
 }
 
-func tcmdSLen(fr *Frame, argv []T) T {
+func cmdSLen(fr *Frame, argv []T) T {
 	a := Arg1(argv)
 	return MkTi(int64(len(a.String())))
 }
 
-func tcmdLLen(fr *Frame, argv []T) T {
+func cmdLLen(fr *Frame, argv []T) T {
 	a := Arg1(argv)
 	return MkTi(int64(len(a.List())))
 }
 
-func tcmdList(fr *Frame, argv []T) T {
+func cmdList(fr *Frame, argv []T) T {
 	return MkTl(argv[1:])
 }
 
-func tcmdLAt(fr *Frame, argv []T) T {
-	tlist, ti := TArgv2(argv)
+func cmdLAt(fr *Frame, argv []T) T {
+	tlist, ti := Arg2(argv)
 	list := tlist.List()
 	i := ti.Int()
 	if i < 0 || i > int64(len(list)) {
@@ -323,13 +323,13 @@ func tcmdLAt(fr *Frame, argv []T) T {
 	return list[i]
 }
 
-func tcmdSAt(fr *Frame, argv []T) T {
-	s, j := TArgv2(argv)
+func cmdSAt(fr *Frame, argv []T) T {
+	s, j := Arg2(argv)
 	i := j.Int()
 	return MkTs(s.String()[i : i+1])
 }
 
-func tcmdHttpHandler(fr *Frame, argv []T) T {
+func cmdHttpHandler(fr *Frame, argv []T) T {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		v := make([]T, len(argv)-1)
 		copy(v, argv[1:])
@@ -340,8 +340,8 @@ func tcmdHttpHandler(fr *Frame, argv []T) T {
 	return MkT(fn)
 }
 
-func tcmdForEach(fr *Frame, argv []T) T {
-	v, list, body := TArgv3(argv)
+func cmdForEach(fr *Frame, argv []T) T {
+	v, list, body := Arg3(argv)
 
 	toBreak := false
 	toContinue := false
@@ -388,14 +388,14 @@ func tcmdForEach(fr *Frame, argv []T) T {
 	return Empty
 }
 
-func tcmdWhile(fr *Frame, argv []T) T {
-	cond, body := TArgv2(argv)
+func cmdWhile(fr *Frame, argv []T) T {
+	cond, body := Arg2(argv)
 
 	toBreak := false
 	toContinue := false
 
 	for {
-		c := fr.TEvalExpr(cond)
+		c := fr.EvalExpr(cond)
 		if !c.Truth() {
 			break
 		}
@@ -434,8 +434,8 @@ func tcmdWhile(fr *Frame, argv []T) T {
 	return Empty
 }
 
-func tcmdCatch(fr *Frame, argv []T) (status T) {
-	body, varT := TArgv2(argv)
+func cmdCatch(fr *Frame, argv []T) (status T) {
+	body, varT := Arg2(argv)
 	varName := varT.String()
 
 	defer func() {
@@ -455,12 +455,12 @@ func tcmdCatch(fr *Frame, argv []T) (status T) {
 	return MkTi(0)
 }
 
-func tcmdEval(fr *Frame, argv []T) T {
+func cmdEval(fr *Frame, argv []T) T {
 	return EvalOrApplyLists(fr, argv[1:])
 }
 
-func tcmdUplevel(fr *Frame, argv []T) T {
-	specArg, rest := TArgv1v(argv)
+func cmdUplevel(fr *Frame, argv []T) T {
+	specArg, rest := Arg1v(argv)
 	spec := specArg.String()
 
 	// Special case for #0 meaning global.
@@ -508,12 +508,12 @@ func ConcatLists(lists []T) []T {
 	return z
 }
 
-func tcmdConcat(fr *Frame, argv []T) T {
+func cmdConcat(fr *Frame, argv []T) T {
 	return MkTl(ConcatLists(argv[1:]))
 }
 
-func tcmdUpVar(fr *Frame, argv []T) T {
-	lev, rem, loc := TArgv3(argv)
+func cmdUpVar(fr *Frame, argv []T) T {
+	lev, rem, loc := Arg3(argv)
 	level := lev.Int()
 	remName := rem.String()
 	locName := loc.String()
@@ -525,18 +525,18 @@ func tcmdUpVar(fr *Frame, argv []T) T {
 	return Empty
 }
 
-func tcmdSet(fr *Frame, argv []T) T {
+func cmdSet(fr *Frame, argv []T) T {
 	if len(argv) == 2 {
 		// Retrieve value of variable, if 2nd arg is missing.
 		name := Arg1(argv)
 		return fr.GetVar(name.String())
 	}
-	name, x := TArgv2(argv)
+	name, x := Arg2(argv)
 	fr.SetVar(name.String(), x)
 	return x
 }
 
-func tcmdReturn(fr *Frame, argv []T) T {
+func cmdReturn(fr *Frame, argv []T) T {
 	var z T = Empty
 	if len(argv) == 2 {
 		z = argv[1]
@@ -548,20 +548,20 @@ func tcmdReturn(fr *Frame, argv []T) T {
 	panic(Jump{Status: RETURN, Result: z})
 }
 
-func tcmdBreak(fr *Frame, argv []T) T {
+func cmdBreak(fr *Frame, argv []T) T {
 	panic(Jump{Status: BREAK}) // Jump with status BREAK.
 }
 
-func tcmdContinue(fr *Frame, argv []T) T {
+func cmdContinue(fr *Frame, argv []T) T {
 	panic(Jump{Status: CONTINUE}) // Jump with status CONTINUE.
 }
 
-func tcmdHash(fr *Frame, argv []T) T {
+func cmdHash(fr *Frame, argv []T) T {
 	return MkTh()
 }
 
-func tcmdHGet(fr *Frame, argv []T) T {
-	hash, key := TArgv2(argv)
+func cmdHGet(fr *Frame, argv []T) T {
+	hash, key := Arg2(argv)
 	h := hash.Hash()
 	k := key.String()
 	value := h[k]
@@ -571,23 +571,23 @@ func tcmdHGet(fr *Frame, argv []T) T {
 	return value
 }
 
-func tcmdHSet(fr *Frame, argv []T) T {
-	hash, key, value := TArgv3(argv)
+func cmdHSet(fr *Frame, argv []T) T {
+	hash, key, value := Arg3(argv)
 	h := hash.Hash()
 	k := key.String()
 	h[k] = value
 	return value
 }
 
-func tcmdHDel(fr *Frame, argv []T) T {
-	hash, key := TArgv2(argv)
+func cmdHDel(fr *Frame, argv []T) T {
+	hash, key := Arg2(argv)
 	h := hash.Hash()
 	k := key.String()
 	h[k] = nil // TODO: how to delete?
 	return Empty
 }
 
-func tcmdHKeys(fr *Frame, argv []T) T {
+func cmdHKeys(fr *Frame, argv []T) T {
 	hash := Arg1(argv)
 	h := hash.Hash()
 	z := make([]T, 0, len(h))

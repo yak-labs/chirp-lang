@@ -120,7 +120,7 @@ func tcmdElem(fr *Frame, argv []T) T {
 }
 
 func tcmdIndex(fr *Frame, argv []T) T {
-	slice, i := TArgv2(argv)
+	slice, i := Arg2(argv)
 
 	rv := slice.QuickReflectValue()
 	if !rv.IsValid() {
@@ -140,7 +140,7 @@ func tcmdCall(fr *Frame, argv []T) T {
 }
 
 func tcmdSend(fr *Frame, argv []T) T {
-	r, meth, args := TArgv2v(argv)
+	r, meth, args := Arg2v(argv)
 	log.Printf("----send----receiver = %s", Show(r))
 	methName := meth.String()
 	log.Printf("----send----method = %q", methName)
@@ -232,7 +232,7 @@ func commonCall(fr *Frame, funcName string, fn R.Value, args []T) T {
 }
 
 func derefChain(fr *Frame, argv []T) R.Value {
-	start, rest := TArgv1v(argv)
+	start, rest := Arg1v(argv)
 	av := R.ValueOf(start.Raw())
 
 	// For additional names, use Fields (or other navigation) to deref.

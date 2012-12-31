@@ -76,7 +76,7 @@ func New() *Frame {
 	}
 
 	g.Fr.G = g
-	g.Fr.initTBuiltins()
+	g.Fr.initBuiltins()
 	g.Fr.initReflect()
 	g.Fr.initExpr()
 	return &g.Fr

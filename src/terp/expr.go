@@ -15,11 +15,11 @@ func tcmdExpr(fr *Frame, argv []T) T {
 	// Just support 1 arg expressions for now.  We'll concat later.
 	ex := Arg1(argv)
 
-	return fr.TEvalExpr(ex)
+	return fr.EvalExpr(ex)
 }
 
 // Takes a single word that represents an expression and returns the result.
-func (fr *Frame) TEvalExpr(a T) (result T) {
+func (fr *Frame) EvalExpr(a T) (result T) {
 	return fr.ParseExpression(a.String())
 }
 
