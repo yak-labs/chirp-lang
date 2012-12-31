@@ -146,8 +146,8 @@ func (fr *Frame) UpVar(name string, remFr *Frame, remName string) {
 }
 
 func (fr *Frame) FindCommand(name T) Command {
-	// Some day we will not require Ts; for now, it helps debug.
-	cmdName, ok := name.(Ts)
+	// Some day we will not require terpString; for now, it helps debug.
+	cmdName, ok := name.(terpString)
 	if !ok {
 		panic(Sprintf("Restriction: Command must be a string: %#v", name))
 	}
@@ -169,8 +169,8 @@ func (fr *Frame) Apply(argv []T) T {
 		log.Printf("< ...... < [%d] (%T) ## %#v ## %q", ai, av, av, av.String())
 	}
 
-	// Some day we will not require Ts; for now, it helps debug.
-	cmdName, ok := head.(Ts)
+	// Some day we will not require terpString; for now, it helps debug.
+	cmdName, ok := head.(terpString)
 	if !ok {
 		panic(Sprintf("Command must be a string: %s", Show(head)))
 	}
@@ -240,72 +240,72 @@ type T interface {
 	QuickReflectValue() R.Value
 }
 
-// Tf is a Tcl value holding a float64.
-type Tf struct { // Implements T.
+// terpFloat is a Tcl value holding a float64.
+type terpFloat struct { // Implements T.
 	f float64
 }
 
-// Ts is a Tcl value holding a string.
-type Ts struct { // Implements T.
+// terpString is a Tcl value holding a string.
+type terpString struct { // Implements T.
 	s string
 }
 
-// Tl is a Tcl value holding a List.
-type Tl struct { // Implements T.
+// terpList is a Tcl value holding a List.
+type terpList struct { // Implements T.
 	l []T
 }
 
-// Tv is a Tcl value holding a Go reflect.Value.
+// terpValue is a Tcl value holding a Go reflect.Value.
 // It is a handle to non-Tcl Go objets.
-type Tv struct { // Implements T.
+type terpValue struct { // Implements T.
 	v R.Value
 }
 
-// Ty holds a channel for reading from a generator (yproc command).
-type Ty struct { // Implements T.
+// terpGenerator holds a channel for reading from a generator (yproc command).
+type terpGenerator struct { // Implements T.
 	ch <-chan T
 	hd T
 	tl T
 }
 
-// Th holds a Hash.
-type Th struct { // Imlements T.
+// terpHash holds a Hash.
+type terpHash struct { // Imlements T.
 	h Hash
 }
 
-func MkHash() Th {
-	return Th{h: make(Hash, 4)}
+func MkHash() terpHash {
+	return terpHash{h: make(Hash, 4)}
 }
-func MkGenerator(ch <-chan T) Ty {
-	return Ty{ch: ch}
+func MkGenerator(ch <-chan T) terpGenerator {
+	return terpGenerator{ch: ch}
 }
-func MkBool(a bool) Tf {
+func MkBool(a bool) terpFloat {
 	if a {
 		return MkInt(1)
 	}
 	return MkInt(0)
 }
-func MkFloat(a float64) Tf {
-	return Tf{f: a}
+func MkFloat(a float64) terpFloat {
+	return terpFloat{f: a}
 }
-func MkInt(a int64) Tf {
-	return Tf{f: float64(a)}
+func MkInt(a int64) terpFloat {
+	return terpFloat{f: float64(a)}
 }
-func MkTu(a uint64) Tf {
-	return Tf{f: float64(a)}
+func MkUint(a uint64) terpFloat {
+	return terpFloat{f: float64(a)}
 }
-func MkString(a string) Ts {
+func MkString(a string) terpString {
 	if len(a) > 6 && a[:6] == "Value:" {
 		panic(666)
 	}
-	return Ts{s: a}
+	return terpString{s: a}
 }
-func MkList(a []T) Tl {
+func MkList(a []T) terpList {
 	log.Printf("MkList: from <%T> <%s>", a, a)
-	return Tl{l: a}
+	return terpList{l: a}
 }
-func MkTv(a R.Value) T {
-	return Tv{v: a}
+func MkValue(a R.Value) terpValue {
+	return terpValue{v: a}
 }
 func MkT(a interface{}) T {
 	log.Printf("MkT <-- (%T)   %v", a, a)
@@ -346,17 +346,17 @@ func MkT(a interface{}) T {
 		return MkInt(v.Int())
 
 	case R.Uint:
-		return MkTu(v.Uint())
+		return MkUint(v.Uint())
 	case R.Uint8:
-		return MkTu(v.Uint())
+		return MkUint(v.Uint())
 	case R.Uint16:
-		return MkTu(v.Uint())
+		return MkUint(v.Uint())
 	case R.Uint32:
-		return MkTu(v.Uint())
+		return MkUint(v.Uint())
 	case R.Uint64:
-		return MkTu(v.Uint())
+		return MkUint(v.Uint())
 	case R.Uintptr:
-		return MkTu(v.Uint())
+		return MkUint(v.Uint())
 
 	case R.Float32:
 		return MkFloat(v.Float())
@@ -395,7 +395,7 @@ func MkT(a interface{}) T {
 		/*
 			// This will convert slices to lists.
 			// Is this a good idea?
-			return Tv{v: v}.Tl()
+			return terpValue{v: v}.terpList()
 		*/
 
 		var pointerToT *T
@@ -414,35 +414,35 @@ func MkT(a interface{}) T {
 	case R.UnsafePointer:
 	}
 
-	// Everything else becomes a Tv
-	log.Printf("MkT --> defaulting to Tv")
-	return MkTv(v)
+	// Everything else becomes a terpValue
+	log.Printf("MkT --> defaulting to terpValue")
+	return MkValue(v)
 }
 
-// Th implements T
+// terpHash implements T
 
-func (t Th) Raw() interface{} {
-	panic("not implemented on generator (Th)")
+func (t terpHash) Raw() interface{} {
+	panic("not implemented on generator (terpHash)")
 }
-func (t Th) String() string {
+func (t terpHash) String() string {
 	return Repr(t)
 }
-func (t Th) Float() float64 {
-	panic("not implemented on generator (Th)")
+func (t terpHash) Float() float64 {
+	panic("not implemented on generator (terpHash)")
 }
-func (t Th) Int() int64 {
-	panic("not implemented on generator (Th)")
+func (t terpHash) Int() int64 {
+	panic("not implemented on generator (terpHash)")
 }
-func (t Th) Uint() uint64 {
-	panic("not implemented on generator (Th)")
+func (t terpHash) Uint() uint64 {
+	panic("not implemented on generator (terpHash)")
 }
-func (t Th) ListElementString() string {
-	panic("not implemented on generator (Th)")
+func (t terpHash) ListElementString() string {
+	panic("not implemented on generator (terpHash)")
 }
-func (t Th) Truth() bool {
+func (t terpHash) Truth() bool {
 	return len(t.h) > 0
 }
-func (t Th) IsEmpty() bool {
+func (t terpHash) IsEmpty() bool {
 	return len(t.h) == 0
 }
 
@@ -470,8 +470,8 @@ func SortedKeysOfHash(h Hash) []string {
 	return keys
 }
 
-func (t Th) IsPreservedByList() bool { return true }
-func (t Th) List() []T {
+func (t terpHash) IsPreservedByList() bool { return true }
+func (t terpHash) List() []T {
 	keys := SortedKeysOfHash(t.h)
 	z := make([]T, 0, 2*len(keys))
 	// TODO: mutex
@@ -484,42 +484,42 @@ func (t Th) List() []T {
 	}
 	return z
 }
-func (t Th) HeadTail() (hd, tl T) {
+func (t terpHash) HeadTail() (hd, tl T) {
 	return MkList(t.List()).HeadTail()
 }
-func (t Th) Hash() Hash {
+func (t terpHash) Hash() Hash {
 	return t.h
 }
-func (t Th) QuickReflectValue() R.Value { return InvalidValue }
+func (t terpHash) QuickReflectValue() R.Value { return InvalidValue }
 
-// Ty implements T
+// terpGenerator implements T
 
-func (t Ty) Raw() interface{} {
-	panic("not implemented on generator (Ty)")
+func (t terpGenerator) Raw() interface{} {
+	panic("not implemented on generator (terpGenerator)")
 }
-func (t Ty) String() string {
+func (t terpGenerator) String() string {
 	return Repr(t)
 }
-func (t Ty) Float() float64 {
-	panic("not implemented on generator (Ty)")
+func (t terpGenerator) Float() float64 {
+	panic("not implemented on generator (terpGenerator)")
 }
-func (t Ty) Int() int64 {
-	panic("not implemented on generator (Ty)")
+func (t terpGenerator) Int() int64 {
+	panic("not implemented on generator (terpGenerator)")
 }
-func (t Ty) Uint() uint64 {
-	panic("not implemented on generator (Ty)")
+func (t terpGenerator) Uint() uint64 {
+	panic("not implemented on generator (terpGenerator)")
 }
-func (t Ty) ListElementString() string {
-	panic("not implemented on generator (Ty)")
+func (t terpGenerator) ListElementString() string {
+	panic("not implemented on generator (terpGenerator)")
 }
-func (t Ty) Truth() bool {
-	panic("not implemented on generator (Ty)")
+func (t terpGenerator) Truth() bool {
+	panic("not implemented on generator (terpGenerator)")
 }
-func (t Ty) IsEmpty() bool {
-	panic("not implemented on generator (Ty)")
+func (t terpGenerator) IsEmpty() bool {
+	panic("not implemented on generator (terpGenerator)")
 }
-func (t Ty) IsPreservedByList() bool { return true }
-func (t Ty) List() []T {
+func (t terpGenerator) IsPreservedByList() bool { return true }
+func (t terpGenerator) List() []T {
 	z := make([]T, 0, 4)
 	for {
 		t := <-t.ch
@@ -530,7 +530,7 @@ func (t Ty) List() []T {
 	}
 	return z
 }
-func (t Ty) HeadTail() (hd, tl T) {
+func (t terpGenerator) HeadTail() (hd, tl T) {
 	if t.ch == nil {
 		return t.hd, t.tl
 	}
@@ -539,104 +539,104 @@ func (t Ty) HeadTail() (hd, tl T) {
 		t.ch = nil
 		return nil, nil
 	}
-	t.tl = Ty{ch: t.ch}
+	t.tl = terpGenerator{ch: t.ch}
 	return t.hd, t.tl
 }
-func (t Ty) Hash() Hash {
-	panic("Ty is not a Hash")
+func (t terpGenerator) Hash() Hash {
+	panic("terpGenerator is not a Hash")
 }
-func (t Ty) QuickReflectValue() R.Value { return InvalidValue }
+func (t terpGenerator) QuickReflectValue() R.Value { return InvalidValue }
 
-// Tf implements T
+// terpFloat implements T
 
-func (t Tf) Raw() interface{} {
+func (t terpFloat) Raw() interface{} {
 	return t.f
 }
-func (t Tf) String() string {
+func (t terpFloat) String() string {
 	return Sprintf("%g", t.f)
 }
-func (t Tf) ListElementString() string {
+func (t terpFloat) ListElementString() string {
 	return t.String()
 }
-func (t Tf) Truth() bool {
+func (t terpFloat) Truth() bool {
 	return t.f != 0
 }
-func (t Tf) IsEmpty() bool {
+func (t terpFloat) IsEmpty() bool {
 	return false
 }
-func (t Tf) Float() float64 {
+func (t terpFloat) Float() float64 {
 	return t.f
 }
-func (t Tf) Int() int64 {
+func (t terpFloat) Int() int64 {
 	return int64(t.f)
 }
-func (t Tf) Uint() uint64 {
+func (t terpFloat) Uint() uint64 {
 	return uint64(t.f)
 }
-func (t Tf) IsPreservedByList() bool { return true }
-func (t Tf) List() []T {
+func (t terpFloat) IsPreservedByList() bool { return true }
+func (t terpFloat) List() []T {
 	return []T{t}
 }
-func (t Tf) HeadTail() (hd, tl T) {
+func (t terpFloat) HeadTail() (hd, tl T) {
 	return MkList(t.List()).HeadTail()
 }
-func (t Tf) Hash() Hash {
+func (t terpFloat) Hash() Hash {
 	panic(" is not a Hash")
 }
-func (t Tf) QuickReflectValue() R.Value { return InvalidValue }
+func (t terpFloat) QuickReflectValue() R.Value { return InvalidValue }
 
-// Ts implements T
+// terpString implements T
 
-func (t Ts) Raw() interface{} {
+func (t terpString) Raw() interface{} {
 	return t.s
 }
-func (t Ts) String() string {
+func (t terpString) String() string {
 	return t.s
 }
-func (t Ts) ListElementString() string {
+func (t terpString) ListElementString() string {
 	return ToListElementString(t.s)
 }
-func (t Ts) Truth() bool {
+func (t terpString) Truth() bool {
 	return t.s != "" && t.s != "0" // TODO: Reconsider Truth.
 }
-func (t Ts) IsEmpty() bool {
+func (t terpString) IsEmpty() bool {
 	return t.s == ""
 }
-func (t Ts) Float() float64 {
+func (t terpString) Float() float64 {
 	z, err := strconv.ParseFloat(t.s, 64)
 	if err != nil {
 		panic(err)
 	}
 	return z
 }
-func (t Ts) Int() int64 {
+func (t terpString) Int() int64 {
 	return int64(t.Float()) //TODO
 }
-func (t Ts) Uint() uint64 {
+func (t terpString) Uint() uint64 {
 	return uint64(t.Float()) //TODO
 }
-func (t Ts) IsPreservedByList() bool { return false }
-func (t Ts) List() []T {
+func (t terpString) IsPreservedByList() bool { return false }
+func (t terpString) List() []T {
 	return ParseList(t.s)
 }
-func (t Ts) HeadTail() (hd, tl T) {
+func (t terpString) HeadTail() (hd, tl T) {
 	return MkList(t.List()).HeadTail()
 }
-func (t Ts) Hash() Hash {
+func (t terpString) Hash() Hash {
 	panic("A string is not a Hash")
 }
-func (t Ts) QuickReflectValue() R.Value { return InvalidValue }
+func (t terpString) QuickReflectValue() R.Value { return InvalidValue }
 
-// Tl implements T
+// terpList implements T
 
-func (t Tl) Raw() interface{} {
+func (t terpList) Raw() interface{} {
 	z := make([]interface{}, len(t.l))
 	for i, e := range t.l {
 		z[i] = e.Raw() // Recurse.
 	}
 	return z
 }
-func (t Tl) String() string {
+func (t terpList) String() string {
 	z := ""
 	for k, v := range t.l {
 		if k > 0 {
@@ -646,86 +646,86 @@ func (t Tl) String() string {
 	}
 	return z
 }
-func (t Tl) ListElementString() string {
+func (t terpList) ListElementString() string {
 	return ToListElementString(t.String())
 }
-func (t Tl) Truth() bool {
+func (t terpList) Truth() bool {
 	return len(t.l) != 0
 }
-func (t Tl) IsEmpty() bool {
+func (t terpList) IsEmpty() bool {
 	return len(t.l) == 0
 }
-func (t Tl) Float() float64 {
+func (t terpList) Float() float64 {
 	if len(t.l) != 1 {
 		panic("cant")
 	}
 	return t.l[0].Float()
 }
-func (t Tl) Int() int64 {
+func (t terpList) Int() int64 {
 	if len(t.l) != 1 {
 		panic("cant")
 	}
 	return t.l[0].Int()
 }
-func (t Tl) Uint() uint64 {
+func (t terpList) Uint() uint64 {
 	if len(t.l) != 1 {
 		panic("cant")
 	}
 	return t.l[0].Uint()
 }
-func (t Tl) IsPreservedByList() bool { return true }
-func (t Tl) List() []T {
+func (t terpList) IsPreservedByList() bool { return true }
+func (t terpList) List() []T {
 	return t.l
 }
-func (t Tl) HeadTail() (hd, tl T) {
+func (t terpList) HeadTail() (hd, tl T) {
 	if len(t.l) == 0 {
 		return nil, nil
 	}
 	return t.l[0], MkList(t.l[1:])
 }
-func (t Tl) Hash() Hash {
+func (t terpList) Hash() Hash {
 	panic("A List is not a Hash")
 }
-func (t Tl) QuickReflectValue() R.Value { return InvalidValue }
+func (t terpList) QuickReflectValue() R.Value { return InvalidValue }
 
-// Tv implements T
+// terpValue implements T
 
-func (t Tv) Raw() interface{} {
+func (t terpValue) Raw() interface{} {
 	return t.v.Interface()
 }
-func (t Tv) String() string {
+func (t terpValue) String() string {
 	s := Sprintf("Value:%s:%s", t.v.Kind(), t.v.Type())
-	log.Printf("Warning: converting to Tv to String: %q", s)
+	log.Printf("Warning: converting to terpValue to String: %q", s)
 	return s
 }
-func (t Tv) ListElementString() string {
+func (t terpValue) ListElementString() string {
 	return ToListElementString(t.String())
 }
-func (t Tv) Truth() bool {
+func (t terpValue) Truth() bool {
 	// TODO
 	return !t.IsEmpty()
-	// TODO // panic("Restriction: cannot test Tv for Truth")
+	// TODO // panic("Restriction: cannot test terpValue for Truth")
 }
-func (t Tv) IsEmpty() bool {
+func (t terpValue) IsEmpty() bool {
 	switch t.v.Kind() {
 	// IsNil() can only be called on this 6 Kinds:
 	case R.Func, R.Interface, R.Ptr, R.Slice, R.Map, R.Chan:
 		return t.v.IsNil()
 	}
-	// Strings, numbers, and bools should not be in Tv so we don't look for emptiness or zeroness in them.
+	// Strings, numbers, and bools should not be in terpValue so we don't look for emptiness or zeroness in them.
 	return false
 }
-func (t Tv) Float() float64 {
+func (t terpValue) Float() float64 {
 	panic("cant yet")
 }
-func (t Tv) Int() int64 {
+func (t terpValue) Int() int64 {
 	panic("cant yet")
 }
-func (t Tv) Uint() uint64 {
+func (t terpValue) Uint() uint64 {
 	panic("cant yet")
 }
-func (t Tv) IsPreservedByList() bool { return true }
-func (t Tv) List() []T {
+func (t terpValue) IsPreservedByList() bool { return true }
+func (t terpValue) List() []T {
 	/***
 		Is this a good idea?
 
@@ -747,7 +747,7 @@ func (t Tv) List() []T {
 	// Slices and Arrays are naturally lists (unless they're bytes)
 	case R.Slice, R.Array:
 		if t.v.Type().Elem().Kind() == R.Uint8 {
-			panic(Sprintf("Slice of Uint8 should not be in Tv: %q", string(t.v.Interface().([]byte))))
+			panic(Sprintf("Slice of Uint8 should not be in terpValue: %q", string(t.v.Interface().([]byte))))
 		}
 		n := t.v.Len()
 		z := make([]T, n)
@@ -759,7 +759,7 @@ func (t Tv) List() []T {
 	/********/
 	return []T{t}
 }
-func (t Tv) HeadTail() (hd, tl T) {
+func (t terpValue) HeadTail() (hd, tl T) {
 	return MkList(t.List()).HeadTail()
 }
 
@@ -775,7 +775,7 @@ func ToListElementString(s string) string {
 	}
 	return s
 }
-func (t Tv) Hash() Hash {
+func (t terpValue) Hash() Hash {
 	panic("A GoValue is not a Hash")
 }
-func (t Tv) QuickReflectValue() R.Value { return t.v }
+func (t terpValue) QuickReflectValue() R.Value { return t.v }
