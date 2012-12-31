@@ -8,12 +8,12 @@ import (
 )
 
 func (fr *Frame) initExpr() {
-	TBuiltins["expr"] = tcmdExpr
+	Builtins["expr"] = tcmdExpr
 }
 
 func tcmdExpr(fr *Frame, argv []T) T {
 	// Just support 1 arg expressions for now.  We'll concat later.
-	ex := TArgv1(argv)
+	ex := Arg1(argv)
 
 	return fr.TEvalExpr(ex)
 }

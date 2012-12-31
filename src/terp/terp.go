@@ -140,7 +140,7 @@ func (fr *Frame) SetVar(name string, x T) {
 func (p *UpSlot) Get() T  { return p.Fr.GetVar(p.RemoteName) }
 func (p *UpSlot) Set(t T) { p.Fr.SetVar(p.RemoteName, t) }
 
-func (fr *Frame) TUpVar(name string, remFr *Frame, remName string) {
+func (fr *Frame) UpVar(name string, remFr *Frame, remName string) {
 	sc := fr.GetVarScope(name)
 	sc[name] = &UpSlot{Fr: remFr, RemoteName: remName}
 }
@@ -154,7 +154,7 @@ func (fr *Frame) FindCommand(name T) Command {
 
 	fn, ok := fr.G.Cmds[cmdName.s]
 	if !ok {
-		fn, ok = TBuiltins[cmdName.s]
+		fn, ok = Builtins[cmdName.s]
 	}
 	if !ok {
 		panic(Sprintf("FindCommand: command not found: %q", cmdName.s))
@@ -162,9 +162,9 @@ func (fr *Frame) FindCommand(name T) Command {
 	return fn
 }
 
-func (fr *Frame) TApply(argv []T) T {
+func (fr *Frame) Apply(argv []T) T {
 	head := argv[0]
-	log.Printf("< TApply < %q", head)
+	log.Printf("< Apply < %q", head)
 	for ai, av := range argv[1:] {
 		log.Printf("< ...... < [%d] (%T) ## %#v ## %q", ai, av, av, av.String())
 	}
@@ -178,30 +178,31 @@ func (fr *Frame) TApply(argv []T) T {
 	if len(cmdName.s) > 1 && cmdName.s[0] == '/' {
 		call := []T{MkTs("call"), head}
 		call = append(call, argv[1:]...) // Append all but first of argv.
-		return fr.TApply(call)           // Recurse.
+		return fr.Apply(call)           // Recurse.
 	}
 
 	fn := fr.FindCommand(head)
 	z := fn(fr, argv)
-	log.Printf("> TApply > (%T) ## %#v ## %q", z, z, z.String())
+	log.Printf("> Apply > (%T) ## %#v ## %q", z, z, z.String())
 	return z
 }
 
 func Repr(a interface{}) string { return Sprintf("REPR<<%#v>>", a) }
 
-func TMust(a, b T) {
+// Must takes 2 T values, and compares their Show()s.
+func Must(a, b T) {
 	if a.String() != b.String() {
 		panic(Show(a) + " .vs. " + Show(b))
 	}
 }
 
-// MustT takes a string and a T
-func MustT(a string, b T) {
-	TMust(MkTs(a), b)
+// MustST takes a string and a T
+func MustST(a string, b T) {
+	Must(MkTs(a), b)
 }
 
-func Must(a, b interface{}) {
-	// Otherwise use Repr equality
+// MustA takes Any 2 values, and compares their Repr()s.
+func MustA(a, b interface{}) {
 	if Repr(a) != Repr(b) {
 		panic(Repr(a) + " .vs. " + Repr(b))
 	}

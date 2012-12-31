@@ -26,7 +26,7 @@ func main() {
 	if cFlag != nil && *cFlag != "" {
 		saveArgvStarting(fr, 1)
 		Printf("T<<< %#v\n", *cFlag)
-		z := fr.TEval(terp.MkTs(*cFlag))
+		z := fr.Eval(terp.MkTs(*cFlag))
 		Printf("T>>> %#v\n", z)
 		return
 	}
@@ -41,7 +41,7 @@ func main() {
 		}
 		saveArgvStarting(fr, 2)
 		Printf("T<<< fname = %#v\n", fname)
-		z := fr.TEval(terp.MkTs(string(contents)))
+		z := fr.Eval(terp.MkTs(string(contents)))
 		Printf("T>>> %#v\n", z)
 		return
 	}

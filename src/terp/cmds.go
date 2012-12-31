@@ -9,50 +9,50 @@ import (
 
 var _ = log.Printf
 
-var TBuiltins map[string]Command = make(map[string]Command, 0)
+var Builtins map[string]Command = make(map[string]Command, 0)
 
 func (fr *Frame) initTBuiltins() {
-	TBuiltins["+"] = MkChainingBinaryFlopTCmd(fr, 0.0, func(a, b float64) float64 { return a + b })
-	TBuiltins["*"] = MkChainingBinaryFlopTCmd(fr, 1.0, func(a, b float64) float64 { return a * b })
-	TBuiltins["-"] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return a - b })
-	TBuiltins["/"] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return a / b })
+	Builtins["+"] = MkChainingBinaryFlopTCmd(fr, 0.0, func(a, b float64) float64 { return a + b })
+	Builtins["*"] = MkChainingBinaryFlopTCmd(fr, 1.0, func(a, b float64) float64 { return a * b })
+	Builtins["-"] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return a - b })
+	Builtins["/"] = MkBinaryFlopTCmd(fr, func(a, b float64) float64 { return a / b })
 
-	TBuiltins["=="] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a == b) })
-	TBuiltins["!="] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a != b) })
-	TBuiltins["<"] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a < b) })
-	TBuiltins["<="] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a <= b) })
-	TBuiltins[">"] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a > b) })
-	TBuiltins[">="] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a >= b) })
-	TBuiltins["must"] = tcmdMust
+	Builtins["=="] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a == b) })
+	Builtins["!="] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a != b) })
+	Builtins["<"] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a < b) })
+	Builtins["<="] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a <= b) })
+	Builtins[">"] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a > b) })
+	Builtins[">="] = MkBinaryFlopBoolTCmd(fr, func(a, b float64) bool { return (a >= b) })
+	Builtins["must"] = tcmdMust
 
-	TBuiltins["if"] = tcmdIf
-	TBuiltins["puts"] = tcmdPuts
-	TBuiltins["proc"] = tcmdProc
-	TBuiltins["yproc"] = tcmdYProc
-	TBuiltins["yield"] = tcmdYield
-	TBuiltins["ls"] = tcmdLs
-	TBuiltins["slen"] = tcmdSLen
-	TBuiltins["llen"] = tcmdLLen
-	TBuiltins["list"] = tcmdList
-	TBuiltins["sat"] = tcmdSAt // a.k.a. string index
-	TBuiltins["lat"] = tcmdLAt // a.k.a. lindex
-	TBuiltins["http_handler"] = tcmdHttpHandler
-	TBuiltins["foreach"] = tcmdForEach
-	TBuiltins["while"] = tcmdWhile
-	TBuiltins["catch"] = tcmdCatch
-	TBuiltins["eval"] = tcmdEval
-	TBuiltins["uplevel"] = tcmdUplevel
-	TBuiltins["concat"] = tcmdConcat
-	TBuiltins["set"] = tcmdSet
-	TBuiltins["upvar"] = tcmdUpVar
-	TBuiltins["return"] = tcmdReturn
-	TBuiltins["break"] = tcmdBreak
-	TBuiltins["continue"] = tcmdContinue
-	TBuiltins["hash"] = tcmdHash
-	TBuiltins["hget"] = tcmdHGet   // FIXME: temporary: Use getf
-	TBuiltins["hset"] = tcmdHSet   // FIXME: temporary: Use setf
-	TBuiltins["hdel"] = tcmdHDel   // FIXME: temporary: Use delf
-	TBuiltins["hkeys"] = tcmdHKeys // FIXME: temporary: use keys
+	Builtins["if"] = tcmdIf
+	Builtins["puts"] = tcmdPuts
+	Builtins["proc"] = tcmdProc
+	Builtins["yproc"] = tcmdYProc
+	Builtins["yield"] = tcmdYield
+	Builtins["ls"] = tcmdLs
+	Builtins["slen"] = tcmdSLen
+	Builtins["llen"] = tcmdLLen
+	Builtins["list"] = tcmdList
+	Builtins["sat"] = tcmdSAt // a.k.a. string index
+	Builtins["lat"] = tcmdLAt // a.k.a. lindex
+	Builtins["http_handler"] = tcmdHttpHandler
+	Builtins["foreach"] = tcmdForEach
+	Builtins["while"] = tcmdWhile
+	Builtins["catch"] = tcmdCatch
+	Builtins["eval"] = tcmdEval
+	Builtins["uplevel"] = tcmdUplevel
+	Builtins["concat"] = tcmdConcat
+	Builtins["set"] = tcmdSet
+	Builtins["upvar"] = tcmdUpVar
+	Builtins["return"] = tcmdReturn
+	Builtins["break"] = tcmdBreak
+	Builtins["continue"] = tcmdContinue
+	Builtins["hash"] = tcmdHash
+	Builtins["hget"] = tcmdHGet   // FIXME: temporary: Use getf
+	Builtins["hset"] = tcmdHSet   // FIXME: temporary: Use setf
+	Builtins["hdel"] = tcmdHDel   // FIXME: temporary: Use delf
+	Builtins["hkeys"] = tcmdHKeys // FIXME: temporary: use keys
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -82,7 +82,7 @@ func MkChainingBinaryFlopTCmd(fr *Frame, starter float64, flop BinaryFlop) Comma
 	}
 }
 
-func TArgv1(argv []T) T {
+func Arg1(argv []T) T {
 	if len(argv) != 1+1 {
 		panic(Sprintf("Expected 1 arguments, but got argv=%s", Showv(argv)))
 	}
@@ -154,11 +154,11 @@ func tcmdIf(fr *Frame, argv []T) T {
 	}
 
 	if fr.TEvalExpr(cond).Truth() {
-		return fr.TEval(yes)
+		return fr.Eval(yes)
 	}
 
 	if no != nil {
-		return fr.TEval(no)
+		return fr.Eval(no)
 	}
 
 	return Empty
@@ -166,7 +166,7 @@ func tcmdIf(fr *Frame, argv []T) T {
 
 func tcmdPuts(fr *Frame, argv []T) T {
 	// TODO:  accept a Writer as first arg.
-	out := TArgv1(argv)
+	out := Arg1(argv)
 	Println(out)
 	return Empty
 }
@@ -213,7 +213,7 @@ func tcmdProc(fr *Frame, argv []T) T {
 		for i, arg := range astrs {
 			fr3.SetVar(arg, argv2[i+1])
 		}
-		return fr3.TEval(body)
+		return fr3.Eval(body)
 	}
 
 	fr.G.Cmds[name.String()] = tcmd
@@ -271,7 +271,7 @@ func tcmdYProc(fr *Frame, argv []T) T {
 					panic(r) // Rethrow errors and unknown Status.
 				}
 			}()
-			fr3.TEval(body)
+			fr3.Eval(body)
 		}()
 
 		return MkTy(ch)
@@ -300,12 +300,12 @@ func tcmdLs(fr *Frame, argv []T) T {
 }
 
 func tcmdSLen(fr *Frame, argv []T) T {
-	a := TArgv1(argv)
+	a := Arg1(argv)
 	return MkTi(int64(len(a.String())))
 }
 
 func tcmdLLen(fr *Frame, argv []T) T {
-	a := TArgv1(argv)
+	a := Arg1(argv)
 	return MkTi(int64(len(a.List())))
 }
 
@@ -335,7 +335,7 @@ func tcmdHttpHandler(fr *Frame, argv []T) T {
 		copy(v, argv[1:])
 		v = append(v, MkT(w))
 		v = append(v, MkT(r))
-		_ = fr.TApply(v)
+		_ = fr.Apply(v)
 	}
 	return MkT(fn)
 }
@@ -371,7 +371,7 @@ func tcmdForEach(fr *Frame, argv []T) T {
 				}
 			}()
 			log.Printf("foreach before: %q", body.String())
-			fr.TEval(body)
+			fr.Eval(body)
 			log.Printf("foreach after: %q", body.String())
 		}()
 		if toBreak {
@@ -418,7 +418,7 @@ func tcmdWhile(fr *Frame, argv []T) T {
 				}
 			}()
 			log.Printf("while before: %q", body.String())
-			fr.TEval(body)
+			fr.Eval(body)
 			log.Printf("while after: %q", body.String())
 		}()
 		if toBreak {
@@ -450,7 +450,7 @@ func tcmdCatch(fr *Frame, argv []T) (status T) {
 		}
 	}()
 
-	z := fr.TEval(body)
+	z := fr.Eval(body)
 	fr.SetVar(varName, z)
 	return MkTi(0)
 }
@@ -489,7 +489,7 @@ func EvalOrApplyLists(fr *Frame, lists []T) T {
 	}
 
 	if areLists {
-		return fr.TApply(ConcatLists(lists))
+		return fr.Apply(ConcatLists(lists))
 	}
 
 	buf := bytes.NewBuffer(nil)
@@ -497,7 +497,7 @@ func EvalOrApplyLists(fr *Frame, lists []T) T {
 		buf.WriteString(e.String())
 		buf.WriteRune(' ')
 	}
-	return fr.TEval(MkTs(buf.String()))
+	return fr.Eval(MkTs(buf.String()))
 }
 
 func ConcatLists(lists []T) []T {
@@ -521,14 +521,14 @@ func tcmdUpVar(fr *Frame, argv []T) T {
 	for i := 0; i < int(level); i++ {
 		remFr = remFr.Prev
 	}
-	fr.TUpVar(locName, remFr, remName)
+	fr.UpVar(locName, remFr, remName)
 	return Empty
 }
 
 func tcmdSet(fr *Frame, argv []T) T {
 	if len(argv) == 2 {
 		// Retrieve value of variable, if 2nd arg is missing.
-		name := TArgv1(argv)
+		name := Arg1(argv)
 		return fr.GetVar(name.String())
 	}
 	name, x := TArgv2(argv)
@@ -588,7 +588,7 @@ func tcmdHDel(fr *Frame, argv []T) T {
 }
 
 func tcmdHKeys(fr *Frame, argv []T) T {
-	hash := TArgv1(argv)
+	hash := Arg1(argv)
 	h := hash.Hash()
 	z := make([]T, 0, len(h))
 	for _, k := range SortedKeysOfHash(h) {

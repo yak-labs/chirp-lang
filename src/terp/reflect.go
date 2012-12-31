@@ -21,18 +21,20 @@ func findExternalGoFunctionAsValue(name string) R.Value {
 		panic("External command not found in G.Funcs" + Repr(name))
 	}
 	z := R.ValueOf(f)
-	Must(R.Func, z.Kind())
+	if z.Kind() != R.Func {
+		panic("Element of G.Funcs should have been kind Func: " + Repr(name))
+	}
 	return z
 }
 
 func (fr *Frame) initReflect() {
-	TBuiltins["call"] = tcmdCall
-	TBuiltins["send"] = tcmdSend
-	TBuiltins["getf"] = tcmdGetf
-	TBuiltins["setf"] = tcmdSetf
+	Builtins["call"] = tcmdCall
+	Builtins["send"] = tcmdSend
+	Builtins["getf"] = tcmdGetf
+	Builtins["setf"] = tcmdSetf
 
-	TBuiltins["elem"] = tcmdElem
-	TBuiltins["index"] = tcmdIndex
+	Builtins["elem"] = tcmdElem
+	Builtins["index"] = tcmdIndex
 }
 
 func AdaptToValue(a T, t R.Type) R.Value {
@@ -106,7 +108,7 @@ func AdaptToValue(a T, t R.Type) R.Value {
 }
 
 func tcmdElem(fr *Frame, argv []T) T {
-	p := TArgv1(argv)
+	p := Arg1(argv)
 
 	rv := p.QuickReflectValue()
 	if !rv.IsValid() {

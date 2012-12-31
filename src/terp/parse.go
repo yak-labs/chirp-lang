@@ -14,12 +14,12 @@ func WhiteOrSemi(ch uint8) bool {
 	return ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n' || ch == ';'
 }
 
-func (fr *Frame) TEval(a T) (result T) {
+func (fr *Frame) Eval(a T) (result T) {
 	result = MkTs("") // In case of empty eval.
-	log.Printf("< TEval < (%T) ## %#v ## %q\n", a, a, a.String())
+	log.Printf("< Eval < (%T) ## %#v ## %q\n", a, a, a.String())
 
 	if a.IsPreservedByList() {
-		return fr.TApply(a.List())
+		return fr.Apply(a.List())
 	}
 
 	rest := a.String()
@@ -30,12 +30,12 @@ Loop:
 		if len(words) == 0 {
 			break Loop
 		}
-		result = fr.TApply(words)
+		result = fr.Apply(words)
 	}
 	if len(rest) > 0 {
-		panic(Sprintf("TEval: Did not eval entire string: rest=<%q>", rest))
+		panic(Sprintf("Eval: Did not eval entire string: rest=<%q>", rest))
 	}
-	log.Printf("> TEval > (%T) ## %#v ## %q\n", result, result, result.String())
+	log.Printf("> Eval > (%T) ## %#v ## %q\n", result, result, result.String())
 	return
 }
 
@@ -93,7 +93,7 @@ Loop:
 		if len(words) == 0 {
 			break Loop
 		}
-		result = fr.TApply(words)
+		result = fr.Apply(words)
 	}
 
 	if len(rest) == 0 || rest[0] != ']' {
@@ -193,7 +193,9 @@ Loop:
 // Parse a variable name after a '$', returning result and new position
 func (fr *Frame) ParseDollar(s string) (T, string) {
 	//- log.Printf("< ParseDollar < %#v\n", s)
-	Must(uint('$'), s[0])
+	if '$' != s[0] {
+		panic("Expected $ at beginning of ParseDollar")
+	}
 	i := 1
 	n := len(s)
 	buf := bytes.NewBuffer(nil)
