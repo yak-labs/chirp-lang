@@ -29,6 +29,8 @@ func (fr *Frame) initBuiltins() {
 	Builtins["puts"] = cmdPuts
 	Builtins["proc"] = cmdProc
 	Builtins["yproc"] = cmdYProc
+	Builtins["mixin"] = cmdMixin
+	Builtins["super"] = cmdSuper
 	Builtins["yield"] = cmdYield
 	Builtins["ls"] = cmdLs
 	Builtins["slen"] = cmdSLen
@@ -172,82 +174,75 @@ func cmdPuts(fr *Frame, argv []T) T {
 }
 
 func cmdProc(fr *Frame, argv []T) T {
-	name, aa, body := Arg3(argv)
-	alist := aa.List()
-	astrs := make([]string, len(alist))
-	for i, arg := range alist {
-		astr := arg.String()
-		if !IsLocal(astr) {
-			panic(Sprintf("Cannot use nonlocal name %q for argument in proc", arg))
-		}
-		astrs[i] = astr
-	}
-	n := len(alist) + 1 // Add 1 for argv[0] now rather than at proc call.
-
-	cmd := func(fr2 *Frame, argv2 []T) (result T) {
-		defer func() {
-			if r := recover(); r != nil {
-				if j, ok := r.(Jump); ok {
-					switch j.Status {
-					case RETURN:
-						result = j.Result
-						return
-					case BREAK:
-						panic("break command was not inside a loop")
-					case CONTINUE:
-						panic("continue command was not inside a loop")
-					}
-				}
-				panic(r) // Rethrow errors and unknown Status.
-			}
-		}()
-
-		if argv2 == nil {
-			// Debug Data, if invoked with nil argv2.
-			return MkList(argv)
-		}
-		if len(argv2) != n {
-			panic(Sprintf("Proc %q expects args %#v but got %#v", name, aa, argv2))
-		}
-		fr3 := fr2.NewFrame()
-		for i, arg := range astrs {
-			fr3.SetVar(arg, argv2[i+1])
-		}
-		return fr3.Eval(body)
-	}
-
-	fr.G.Cmds[name.String()] = cmd
-	return Empty
+	return procOrYProc(fr, argv, false)
 }
 
 func cmdYProc(fr *Frame, argv []T) T {
+	return procOrYProc(fr, argv, true)
+}
+
+func procOrYProc(fr *Frame, argv []T, generating bool) T {
 	name, aa, body := Arg3(argv)
+	nameStr := name.String()
 	alist := aa.List()
 	astrs := make([]string, len(alist))
 	for i, arg := range alist {
 		astr := arg.String()
 		if !IsLocal(astr) {
-			panic(Sprintf("Cannot use nonlocal name %q for argument in yproc", arg))
+			panic(Sprintf("Cannot use nonlocal name %q for argument in %s", astr, argv[0]))
 		}
 		astrs[i] = astr
 	}
 	n := len(alist) + 1 // Add 1 for argv[0] now rather than at proc call.
 
-	cmd := func(fr2 *Frame, argv2 []T) T {
+	// Capture this variable, so it can be used when the cmd is called.
+	captureMixinNumberDefining := fr.G.MixinNumberDefining
+
+	cmd := func(fr2 *Frame, argv2 []T) (result T) {
+		// If generating, not enough happens in this func (as opposed to
+		// in the goroutine) to encounter errors.  So this defer/recover is only
+		// for the normal, nongenerating case.
+		if !generating {
+			defer func() {
+				if r := recover(); r != nil {
+					if j, ok := r.(Jump); ok {
+						switch j.Status {
+						case RETURN:
+							result = j.Result
+							return
+						case BREAK:
+							r =("break command was not inside a loop")
+						case CONTINUE:
+							r =("continue command was not inside a loop")
+						}
+					}
+					if rs, ok := r.(string); ok {
+						r = rs + "\n\tin proc " + argv[0].String()
+					}
+					panic(r) // Rethrow errors and unknown Status.
+				}
+			}()
+		}
 
 		if argv2 == nil {
 			// Debug Data, if invoked with nil argv2.
 			return MkList(argv)
 		}
 		if len(argv2) != n {
-			panic(Sprintf("yproc %q expects args %#v but got %#v", name, aa, argv2))
+			panic(Sprintf("%s %q expects args %#v but got %#v", argv[0], nameStr, aa, argv2))
 		}
 		fr3 := fr2.NewFrame()
+		fr3.MixinLevel = captureMixinNumberDefining
 		for i, arg := range astrs {
 			fr3.SetVar(arg, argv2[i+1])
 		}
 
-		// Begin difference from Proc.
+		// Case "proc":
+		if !generating {
+			return fr3.Eval(body)
+		}
+
+		// Case "yproc":
 		ch := make(chan T, 0)
 		fr3.Chan = ch
 
@@ -268,6 +263,9 @@ func cmdYProc(fr *Frame, argv []T) T {
 							panic("continue command was not inside a loop")
 						}
 					}
+					if rs, ok := r.(string); ok {
+						r = rs + "\n\tin yproc " + argv[0].String()
+					}
 					panic(r) // Rethrow errors and unknown Status.
 				}
 			}()
@@ -275,11 +273,58 @@ func cmdYProc(fr *Frame, argv []T) T {
 		}()
 
 		return MkGenerator(ch)
-		// End difference from Proc.
 	}
 
-	fr.G.Cmds[name.String()] = cmd
+	existingNode := fr.G.Cmds[nameStr]
+	node := &CmdNode{
+		Fn: cmd,
+		MixinLevel: fr.G.MixinNumberDefining,
+		MixinName: fr.G.MixinNameDefining,
+		Next: existingNode,
+	}
+	log.Printf("%s: NEW NODE %s: make %#v", argv[0], nameStr, node)
+	fr.G.Cmds[nameStr] = node
+
+	// Debug Dump
+	node = fr.G.Cmds[nameStr]
+	for node != nil {
+		log.Printf("%s: NODE DUMP %s: %#v", argv[0], nameStr, node)
+		node = node.Next
+	}
+
 	return Empty
+}
+
+func cmdMixin(fr *Frame, argv []T) T {
+	name, body := Arg2(argv)
+	if fr.G.MixinNumberDefining > 0 {
+		panic("already defining a mixin: " + fr.G.MixinNameDefining)
+	}
+	num := fr.G.MintMixinSerial()
+
+	fr.G.MixinNumberDefining = num
+	defer func() {
+		fr.G.MixinNumberDefining = 0
+	}()
+	fr.G.MixinNameDefining = name.String()
+	defer func() {
+		fr.G.MixinNameDefining = ""
+	}()
+
+	return fr.Eval(body)
+}
+
+func cmdSuper(fr *Frame, argv []T) T {
+	name, _ := Arg1v(argv)
+    log.Printf("< Super < %s", Showv(argv))
+	log.Printf("= Super = From mixin level %d", fr.MixinLevel)
+	if fr.MixinLevel < 1 {
+		panic("cannot super from non-mixin")
+	}
+	fn := fr.FindCommand(name, true)  // true: Call Super.
+	z := fn(fr, argv[1:])
+    log.Printf("> Super > %s", Show(z))
+	return z
 }
 
 func cmdYield(fr *Frame, argv []T) T {

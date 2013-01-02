@@ -179,6 +179,27 @@ var cmdTests = `
   must "color pigs" [hkeys $h]
   hdel $h color
   must "pigs" [hkeys $h]
+
+  proc F s {
+  	return "$s 0"
+  }
+  mixin One {
+	  proc F s {
+		return "$s 1 [super F $s]"
+	  }
+  }
+  mixin Two {
+	  proc F s {
+		return "$s 2 [super F $s]"
+	  }
+  }
+  mixin Three {
+	  proc F s {
+		return "$s 3 [super F $s]"
+	  }
+  }
+  must "foo 3 foo 2 foo 1 foo 0" [F "foo"]
+ 	
 `
 
 func TestFoo(a *testing.T) {

@@ -18,8 +18,22 @@ type Command func(fr *Frame, argv []T) T
 
 type Scope map[string]Loc
 
-type CmdScope map[string]Command
+type CmdScope map[string]*CmdNode
 
+// CmdNode makes a singly-linked-list of commands
+// at different mixin levels, highest level first.
+// A non-mixin command has level 0 and only one CmdNode.
+type CmdNode struct {
+	Fn	Command
+	MixinLevel	int
+	MixinName	string
+	Next	*CmdNode
+}
+
+// Frame is a local variable frame.
+// There is one for the global variables in the Global struct,
+// and a new one is created for each proc or yproc invocation
+// (but not for every Command; non-proc commands do not make Frames).
 type Frame struct {
 	Vars  Scope
 	Slots Scope
@@ -28,37 +42,51 @@ type Frame struct {
 	G    *Global
 	Mu   sync.Mutex
 	Chan chan<- T // for yproc & yield
+	MixinLevel int
 }
 
+// Global holds the global state of an interpreter,
+// mainly the Commands and global variables.
+// It also knows if a Mixin is being defined.
+// Mixins should be defined by main thread,
+// after all overridable procs are defined,
+// but before other goroutines start.
 type Global struct {
 	Cmds CmdScope
 	Fr    Frame // global scope
 
+	MixinSerial		int  // Increment before defining Mixin.
+	MixinNumberDefining	int  // Set nonzero while defining Mixin.
+	MixinNameDefining	string  // Set nonzero while defining Mixin.
+
 	Mu sync.Mutex
 }
 
+// StatusCode are the same integers as Tcl/C uses for return, break, and continue.
 type StatusCode int
-
 const (
 	RETURN = StatusCode(iota + 2)
 	BREAK
 	CONTINUE
 )
 
-// Panic a Jump for return, break, and continue.
+// Jump structs are panicked for return, break, and continue.
 type Jump struct {
 	Status StatusCode
 	Result T
 }
 
+// Loc is protocol for a variable location.
 type Loc interface {
 	Get() T
 	Set(T)
 }
 
+// Slot stores a variable value.
 type Slot struct {
 	Elem T
 }
+// UpSlot forwards a variable to another variable.
 type UpSlot struct {
 	Fr         *Frame
 	RemoteName string
@@ -67,6 +95,7 @@ type UpSlot struct {
 var Empty = MkString("")
 var InvalidValue = *new(R.Value)
 
+// Create a new interpreter, and return the global frame pointer.
 func New() *Frame {
 	g := &Global{
 		Cmds: make(CmdScope),
@@ -91,6 +120,7 @@ func (fr *Frame) NewFrame() *Frame {
 	}
 }
 
+// Initial capital letter for a variable means Global.
 func IsGlobal(name string) bool {
 	if len(name) == 0 {
 		panic("Empty variable name")
@@ -98,6 +128,7 @@ func IsGlobal(name string) bool {
 	return ast.IsExported(name) // Same criteria, First is Uppercase.
 }
 
+// Initial capital letter for a variable means local.
 func IsLocal(name string) bool {
 	if len(name) == 0 {
 		panic("Empty variable name")
@@ -145,15 +176,35 @@ func (fr *Frame) UpVar(name string, remFr *Frame, remName string) {
 	sc[name] = &UpSlot{Fr: remFr, RemoteName: remName}
 }
 
-func (fr *Frame) FindCommand(name T) Command {
+func (fr *Frame) FindCommand(name T, callSuper bool) Command {
 	// Some day we will not require terpString; for now, it helps debug.
 	cmdName, ok := name.(terpString)
 	if !ok {
 		panic(Sprintf("Restriction: Command must be a string: %#v", name))
 	}
 
-	fn, ok := fr.G.Cmds[cmdName.s]
-	if !ok {
+	var fn Command
+	cmdNode, ok := fr.G.Cmds[cmdName.s]
+	if ok {
+		if callSuper {
+			maxMixinLevel := fr.MixinLevel - 1
+			if maxMixinLevel < 0 {
+				panic("cannot callSuper from non-mixin")
+			}
+	        log.Printf("FindCommand: callSuper: maxMixinLevel=%d try=%#v", maxMixinLevel, cmdNode)
+			for cmdNode != nil && cmdNode.MixinLevel > maxMixinLevel {
+	        	log.Printf("FindCommand: callSuper: maxMixinLevel=%d try=%#v", maxMixinLevel, cmdNode)
+				cmdNode = cmdNode.Next
+			}
+	        log.Printf("FindCommand: callSuper: OK")
+		}
+		if cmdNode == nil {
+			ok = false
+		} else {
+	        log.Printf("FindCommand: Choosing mixin level %d from %#v", cmdNode.MixinLevel, cmdNode)
+			fn = cmdNode.Fn
+		}
+	} else {
 		fn, ok = Builtins[cmdName.s]
 	}
 	if !ok {
@@ -162,6 +213,7 @@ func (fr *Frame) FindCommand(name T) Command {
 	return fn
 }
 
+// Apply a command with its arguments.
 func (fr *Frame) Apply(argv []T) T {
 	head := argv[0]
 	log.Printf("< Apply < %q", head)
@@ -181,9 +233,9 @@ func (fr *Frame) Apply(argv []T) T {
 		return fr.Apply(call)           // Recurse.
 	}
 
-	fn := fr.FindCommand(head)
+	fn := fr.FindCommand(head, false) // false: Don't call super.
 	z := fn(fr, argv)
-	log.Printf("> Apply > (%T) ## %#v ## %q", z, z, z.String())
+	log.Printf("> Apply > %s", Show(z))
 	return z
 }
 
@@ -779,3 +831,11 @@ func (t terpValue) Hash() Hash {
 	panic("A GoValue is not a Hash")
 }
 func (t terpValue) QuickReflectValue() R.Value { return t.v }
+
+func (g *Global) MintMixinSerial() int {
+     g.Mu.Lock()
+     defer g.Mu.Unlock()
+
+	 g.MixinSerial++
+	 return g.MixinSerial
+}
