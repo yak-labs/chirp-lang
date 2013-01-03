@@ -58,6 +58,7 @@ func (fr *Frame) initBuiltins() {
 	Builtins["interp-new"] = cmdInterpNew
 	Builtins["interp-alias"] = cmdInterpAlias
 	Builtins["interp-eval"] = cmdInterpEval
+	Builtins["interp-eval-in-clone"] = cmdInterpEvalClone
 	Builtins["string-range"] = cmdStringRange
 }
 
@@ -766,6 +767,19 @@ func cmdInterpEval(fr *Frame, argv []T) T {
 	}
 
 	return sub.Fr.Eval(script)
+}
+
+func cmdInterpEvalClone(fr *Frame, argv []T) T {
+	name, script := Arg2(argv)
+	nameStr := name.String()
+
+	var sub *Global
+	var ok bool
+	if sub, ok = fr.G.SubTerps[nameStr]; !ok {
+		panic("Subterp does not exist.")
+	}
+
+	return sub.Clone().Fr.Eval(script)
 }
 
 func cmdStringRange(fr *Frame, argv []T) T {

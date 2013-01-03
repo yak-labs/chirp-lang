@@ -205,6 +205,10 @@ var cmdTests = `
   interp-alias S1 demo2 "demo1 1 2 3"
   must [list 1 2 3 x y] [interp-eval S1 {demo2 x y}]
 
+  must 5 [interp-eval S1 {set x 5}]
+  must 9 [interp-eval-in-clone S1 {set x 9; set x}]
+  must 5 [interp-eval-in-clone S1 {set x}]
+
   proc helloArgs { x args } {
   	return [llen $args]
   }

@@ -63,6 +63,29 @@ type Global struct {
 	Mu sync.Mutex
 }
 
+// Clone produces a copy of the receiving interpreter.
+func (g *Global) Clone() *Global {
+	z := &Global{
+		Cmds: make(CmdScope),
+		Fr: Frame{
+			Vars: make(Scope),
+		},
+		SubTerps: make(map[string]*Global),
+	}
+
+	z.Fr.G = z
+
+	for k, v := range g.Cmds {
+		z.Cmds[k] = v
+	}
+	
+	for k, loc := range g.Fr.Vars {
+		z.Fr.SetVar(k, loc.Get())
+	}
+
+	return z
+}
+
 // StatusCode are the same integers as Tcl/C uses for return, break, and continue.
 type StatusCode int
 const (
