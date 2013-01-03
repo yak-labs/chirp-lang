@@ -197,8 +197,16 @@ func procOrYProc(fr *Frame, argv []T, generating bool) T {
 
 	// Capture this variable, so it can be used when the cmd is called.
 	captureMixinNumberDefining := fr.G.MixinNumberDefining
+	captureMixinNameDefining := fr.G.MixinNameDefining
+	var longMixinName string
+	if captureMixinNumberDefining > 0 {
+		longMixinName = nameStr + "~" + captureMixinNameDefining
+	}
 
 	cmd := func(fr2 *Frame, argv2 []T) (result T) {
+		if captureMixinNumberDefining > 0 {
+			argv2[0] = MkString(longMixinName)
+		}
 		// If generating, not enough happens in this func (as opposed to
 		// in the goroutine) to encounter errors.  So this defer/recover is only
 		// for the normal, nongenerating case.
@@ -290,6 +298,17 @@ func procOrYProc(fr *Frame, argv []T, generating bool) T {
 	for node != nil {
 		log.Printf("%s: NODE DUMP %s: %#v", argv[0], nameStr, node)
 		node = node.Next
+	}
+
+	if captureMixinNumberDefining > 0 {
+		// TODO: Check that long name is unique.
+		newNode := &CmdNode{
+			Fn: cmd,
+			MixinLevel: captureMixinNumberDefining,
+			MixinName: captureMixinNameDefining,
+			Next: nil,
+		}
+		fr.G.Cmds[longMixinName] = newNode
 	}
 
 	return Empty

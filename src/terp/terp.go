@@ -54,6 +54,7 @@ type Frame struct {
 type Global struct {
 	Cmds CmdScope
 	Fr    Frame // global scope
+	SubTerps	map[string]*Global	
 
 	MixinSerial		int  // Increment before defining Mixin.
 	MixinNumberDefining	int  // Set nonzero while defining Mixin.
