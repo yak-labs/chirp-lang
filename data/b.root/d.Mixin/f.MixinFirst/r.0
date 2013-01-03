@@ -1,5 +1,26 @@
 rem -- I am the first Mixin
 
+proc Puts {str} {
+	/fmt/Fprintf $W %s $str
+}
+
+proc ModeHtml {} {
+	send [send $W Header] Set "Content-Type" "text/html"
+}
+
 proc Route { path query } {
-	/fmt/Fprintf $W %s "I am the first Mixin!"
+	ModeHtml
+
+	set rx [/regexp/MustCompile {^/([A-Z][a-z]+)/([A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*)([.]([a-z]+))?$}]
+	set m [send $rx FindStringSubmatch $path]
+	if {[set m]} {
+		set Volume [lat $m 1]
+		set Page [lat $m 2]
+		set Verb [lat $m 4]
+		Puts "Vol: $Volume<br>"
+		Puts "Page: $Page<br>"
+		Puts "Verb: $Verb<br>"
+	} else {
+		Puts "Did not understand the path!"
+	}
 }

@@ -3,24 +3,35 @@ proc rem {args} {
 	return ""
 }
 
+set InternalFileName_rx [/regexp/MustCompile {^[a-z][.]([-A-Za-z0-9_.]+)$}]
+
 yproc ListDirs { bundle } {
 	foreach f [/io/ioutil/ReadDir "./data/b.$bundle"] {
 		set fname [send $f Name]
-		yield [string-range $fname 2 ""]
+		set m [send $InternalFileName_rx FindStringSubmatch $fname]
+		if {[set m]} {
+			yield [lat $m 1]
+		}
 	}
 }
 
 yproc ListFiles { bundle dir } {
 	foreach f [/io/ioutil/ReadDir "./data/b.$bundle/d.$dir"] {
 		set fname [send $f Name]
-		yield [string-range $fname 2 ""]
+		set m [send $InternalFileName_rx FindStringSubmatch $fname]
+		if {[set m]} {
+			yield [lat $m 1]
+		}
 	}
 }
 
 yproc ListRevs { bundle dir file } {
 	foreach f [/io/ioutil/ReadDir "./data/b.$bundle/d.$dir/f.$file"] {
 		set fname [send $f Name]
-		yield [string-range $fname 2 ""]
+		set m [send $InternalFileName_rx FindStringSubmatch $fname]
+		if {[set m]} {
+			yield [lat $m 1]
+		}
 	}
 }
 
@@ -43,7 +54,6 @@ proc Route { path query } {
 
 proc ZygoteHandler {w r} {
 	set dirs [ListDirs root]
-	/fmt/Fprintf $w %s [concat $dirs]
 	interp-eval-in-clone zygote [
 		list set W $w
 	] [
