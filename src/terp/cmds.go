@@ -55,6 +55,9 @@ func (fr *Frame) initBuiltins() {
 	Builtins["hset"] = cmdHSet   // FIXME: temporary: Use setf
 	Builtins["hdel"] = cmdHDel   // FIXME: temporary: Use delf
 	Builtins["hkeys"] = cmdHKeys // FIXME: temporary: use keys
+	Builtins["interp-new"] = cmdInterpNew
+	Builtins["interp-alias"] = cmdInterpAlias
+	Builtins["interp-eval"] = cmdInterpEval
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -659,4 +662,80 @@ func cmdHKeys(fr *Frame, argv []T) T {
 		z = append(z, MkString(k))
 	}
 	return MkList(z)
+}
+
+func cmdInterpNew(fr *Frame, argv []T) T {
+	name := Arg1(argv)
+	nameStr := name.String()
+
+	if _, ok := fr.G.SubTerps[nameStr]; ok {
+		panic("Subterp already exists.")
+	}
+
+	// TODO - restrict our subinterp to only safe go functions.
+	fr.G.SubTerps[nameStr] = New().G
+
+	return Empty
+}
+
+func cmdInterpAlias(fr *Frame, argv []T) T {
+	name, newcmdname, prefix := Arg3(argv)
+	nameStr := name.String()
+	newcmdnameStr := newcmdname.String()
+
+	var sub *Global
+	var ok bool
+	if sub, ok = fr.G.SubTerps[nameStr]; !ok {
+		panic("Subterp does not exist.")
+	}
+
+	cmd := func(fr2 *Frame, argv2 []T) (result T) {
+		defer func() {
+			if r := recover(); r != nil {
+				if j, ok := r.(Jump); ok {
+					switch j.Status {
+					case RETURN:
+						r ="return reached in an interp-alias"
+					case BREAK:
+						r ="break command was not inside a loop"
+					case CONTINUE:
+						r ="continue command was not inside a loop"
+					}
+				}
+				if rs, ok := r.(string); ok {
+					r = rs + "\n\tin interp-alias " + argv[0].String()
+				}
+				panic(r) // Rethrow errors and unknown Status.
+			}
+		}()
+
+		if argv2 == nil {
+			// Debug Data, if invoked with nil argv2.
+			return MkList(argv)
+		}
+
+		z := make([]T, 0, 4)
+		z = append(z, prefix.List()...)
+		z = append(z, argv2[1:]...)
+
+		return fr.Apply(z)
+	}
+
+	if _, ok := sub.Cmds[newcmdnameStr]; ok {
+		panic("The command already exists within that subinterp.")
+	}
+
+	node := &CmdNode{
+		Fn: cmd,
+	}
+	log.Printf("%s: NEW Interp-Alias NODE %s: make %#v", argv[0], newcmdnameStr, node)
+	sub.Cmds[newcmdnameStr] = node
+
+	return Empty
+}
+
+
+func cmdInterpEval(fr *Frame, argv []T) T {
+
+	return Empty
 }
