@@ -182,7 +182,13 @@ func (fr *Frame) GetVarScope(name string) Scope {
 }
 
 func (fr *Frame) GetVar(name string) T {
-	return fr.GetVarScope(name)[name].Get()
+	sc := fr.GetVarScope(name)
+	var loc Loc
+	var ok bool
+	if loc, ok = sc[name]; !ok {
+		panic(Sprintf("Variable %q does not exist; scope contains %v", name, sc))
+	}
+	return loc.Get()
 }
 
 func (fr *Frame) SetVar(name string, x T) {

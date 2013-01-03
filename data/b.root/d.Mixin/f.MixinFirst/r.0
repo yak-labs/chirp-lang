@@ -1,5 +1,5 @@
 rem -- I am the first Mixin
 
-proc Route { w r path query } {
-	/fmt/Fprintf $w %s "I am the first Mixin!"
+proc Route { path query } {
+	/fmt/Fprintf $W %s "I am the first Mixin!"
 }

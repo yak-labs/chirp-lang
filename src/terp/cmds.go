@@ -757,7 +757,7 @@ func cmdInterpAlias(fr *Frame, argv []T) T {
 
 
 func cmdInterpEval(fr *Frame, argv []T) T {
-	name, script := Arg2(argv)
+	name, scripts := Arg1v(argv)
 	nameStr := name.String()
 
 	var sub *Global
@@ -766,11 +766,16 @@ func cmdInterpEval(fr *Frame, argv []T) T {
 		panic("Subterp does not exist.")
 	}
 
-	return sub.Fr.Eval(script)
+	var z T = Empty
+	for _, script := range scripts {
+		z = sub.Fr.Eval(script)
+	}
+
+	return z
 }
 
 func cmdInterpEvalClone(fr *Frame, argv []T) T {
-	name, script := Arg2(argv)
+	name, scripts := Arg1v(argv)
 	nameStr := name.String()
 
 	var sub *Global
@@ -779,7 +784,13 @@ func cmdInterpEvalClone(fr *Frame, argv []T) T {
 		panic("Subterp does not exist.")
 	}
 
-	return sub.Clone().Fr.Eval(script)
+	cloned := sub.Clone()
+	var z T = Empty
+	for _, script := range scripts {
+		z = cloned.Fr.Eval(script)
+	}
+
+	return z
 }
 
 func cmdStringRange(fr *Frame, argv []T) T {
