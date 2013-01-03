@@ -196,7 +196,7 @@ func procOrYProc(fr *Frame, argv []T, generating bool) T {
 		}
 		astrs[i] = astr
 	}
-	n := len(alist) + 1 // Add 1 for argv[0] now rather than at proc call.
+	n := len(alist)
 
 	// Capture this variable, so it can be used when the cmd is called.
 	captureMixinNumberDefining := fr.G.MixinNumberDefining
@@ -239,13 +239,32 @@ func procOrYProc(fr *Frame, argv []T, generating bool) T {
 			// Debug Data, if invoked with nil argv2.
 			return MkList(argv)
 		}
-		if len(argv2) != n {
-			panic(Sprintf("%s %q expects args %#v but got %#v", argv[0], nameStr, aa, argv2))
+
+		var varargs bool = false
+		if len(astrs) > 0 && astrs[len(astrs)-1] == "args" {
+			varargs = true
+			if len(argv2) < n {
+				panic(Sprintf("%s %q expects arguments %#v but got %#v", argv[0], nameStr, aa, argv2))
+			}
+		} else {
+			if len(argv2) != n + 1 {
+				panic(Sprintf("%s %q expects arguments %#v but got %#v", argv[0], nameStr, aa, argv2))
+			}
 		}
+
 		fr3 := fr2.NewFrame()
 		fr3.MixinLevel = captureMixinNumberDefining
-		for i, arg := range astrs {
-			fr3.SetVar(arg, argv2[i+1])
+
+		if varargs {
+			for i, arg := range astrs[:len(astrs)-1] {
+				fr3.SetVar(arg, argv2[i+1])
+			}
+
+			fr3.SetVar("args", MkList(argv2[len(astrs):]))
+		} else {
+			for i, arg := range astrs {
+				fr3.SetVar(arg, argv2[i+1])
+			}
 		}
 
 		// Case "proc":

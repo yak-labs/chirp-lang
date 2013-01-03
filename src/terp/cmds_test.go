@@ -204,6 +204,20 @@ var cmdTests = `
   interp-new S1
   interp-alias S1 demo2 "demo1 1 2 3"
   must [list 1 2 3 x y] [interp-eval S1 {demo2 x y}]
+
+  proc helloArgs { x args } {
+  	return [llen $args]
+  }
+
+  must 3 [helloArgs a b c d]
+  must 4 [helloArgs a b c d e]
+  must 0 [helloArgs a]
+ 
+  proc helloArgs2 { x args } {
+  	return [list $x $args]
+  }
+  must "a {b c d e}" [helloArgs2 a b c d e]
+
 `
 
 func TestFoo(a *testing.T) {
