@@ -703,7 +703,7 @@ func cmdInterpAlias(fr *Frame, argv []T) T {
 					}
 				}
 				if rs, ok := r.(string); ok {
-					r = rs + "\n\tin interp-alias " + argv[0].String()
+					r = rs + "\n\tin alias " + argv2[0].String()
 				}
 				panic(r) // Rethrow errors and unknown Status.
 			}
@@ -736,6 +736,14 @@ func cmdInterpAlias(fr *Frame, argv []T) T {
 
 
 func cmdInterpEval(fr *Frame, argv []T) T {
+	name, script := Arg2(argv)
+	nameStr := name.String()
 
-	return Empty
+	var sub *Global
+	var ok bool
+	if sub, ok = fr.G.SubTerps[nameStr]; !ok {
+		panic("Subterp does not exist.")
+	}
+
+	return sub.Fr.Eval(script)
 }

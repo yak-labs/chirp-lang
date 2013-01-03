@@ -103,6 +103,7 @@ func New() *Frame {
 		Fr: Frame{
 			Vars: make(Scope),
 		},
+		SubTerps: make(map[string]*Global),
 	}
 
 	g.Fr.G = g

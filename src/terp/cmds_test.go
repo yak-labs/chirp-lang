@@ -199,7 +199,11 @@ var cmdTests = `
 	  }
   }
   must "foo 3 foo 2 foo 1 foo 0" [F "foo"]
- 	
+
+  proc demo1 { a b c d e } { list $a $b $c $d $e }
+  interp-new S1
+  interp-alias S1 demo2 "demo1 1 2 3"
+  must [list 1 2 3 x y] [interp-eval S1 {demo2 x y}]
 `
 
 func TestFoo(a *testing.T) {
