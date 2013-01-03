@@ -58,6 +58,7 @@ func (fr *Frame) initBuiltins() {
 	Builtins["interp-new"] = cmdInterpNew
 	Builtins["interp-alias"] = cmdInterpAlias
 	Builtins["interp-eval"] = cmdInterpEval
+	Builtins["string-range"] = cmdStringRange
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -765,4 +766,20 @@ func cmdInterpEval(fr *Frame, argv []T) T {
 	}
 
 	return sub.Fr.Eval(script)
+}
+
+func cmdStringRange(fr *Frame, argv []T) T {
+	str, first, last := Arg3(argv)
+
+	strS := str.String()
+	firstI := int(first.Int())
+	
+	var lastI int
+	if (!last.IsEmpty()) {
+		lastI = int(last.Int())
+	} else {
+		lastI = len(strS)
+	}
+
+	return MkString(strS[firstI:lastI])
 }
