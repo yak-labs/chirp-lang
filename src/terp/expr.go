@@ -8,10 +8,10 @@ import (
 )
 
 func (fr *Frame) initExpr() {
-	Builtins["expr"] = tcmdExpr
+	Builtins["expr"] = cmdExpr
 }
 
-func tcmdExpr(fr *Frame, argv []T) T {
+func cmdExpr(fr *Frame, argv []T) T {
 	// Just support 1 arg expressions for now.  We'll concat later.
 	ex := Arg1(argv)
 
@@ -33,134 +33,234 @@ func isOperator(ch uint8) bool {
 		ch == '&' || ch == '|' || ch == '^' || ch == '?' || ch == ':'
 }
 
-// Floating point binary operation
-type FloatBinOp func(a, b float64) float64
-
-// Binary expression tree node.
-type BinExpr interface {
-	Value() float64
-}
-
-// Holds a binary floating point operation.
-type FloatOpExpr struct {
-	left  BinExpr
-	right BinExpr
-	op    FloatBinOp
-}
-
-// Initializes a new instance of a binary expression.
-func NewFloatOpExpr(op FloatBinOp) *FloatOpExpr {
-	return &FloatOpExpr{left: nil, right: nil, op: op}
-}
-
-// Resolves the value of a binary expression.
-func (flop FloatOpExpr) Value() float64 {
-	if flop.left == nil || flop.right == nil || flop.op == nil {
-		panic("FloatOpExpr.Value(): Incomplete binary expression.")
-	}
-
-	return flop.op(flop.left.Value(), flop.right.Value())
-}
-
-// Holds a floating point value in the binary expression tree.
-type FloatVal struct {
-	val float64
-}
-
-// Initializes a new instance of a float value.
-func NewFloatVal(num float64) *FloatVal {
-	return &FloatVal{val: num}
-}
-
-// Returns the value held in the node.
-func (v FloatVal) Value() float64 {
-	return v.val
-}
-
 // Takes the string that represents an expression and returns the result.
 func (fr *Frame) ParseExpression(s string) (result T) {
 	log.Printf("ParseExpression <- %q", s)
+
+	t, _ := fr.ParseExprRel(s)
+
+	return t
+}
+
+func (fr *Frame) ParseExprRel(s string) (T, string) {
+	log.Printf("ParseExprRel <- %q", s)
 	i := 0
 	n := len(s)
-	result = Empty
-	var bex BinExpr = nil
+	var op [2]uint8
+	var z T = Empty
+	var lookForOp bool = false
 
 Loop:
 	for i < n {
 		c := s[i]
 
-		switch {
-		case c == '[':
-			sqResult, rest := fr.ParseSquare(s[i:])
-			s = rest
-			n = len(s)
-			i = 0
-
-			result = sqResult
-
-			// BEGIN temporary fix -- TODO FIXME
-			log.Printf("ParseExpression ==> %s", Show(result))
-			return result
-			// END temporary fix -- TODO FIXME
-
-		case c == ']':
-			panic("ParseExpression: CloseSquareBracket inside Expression")
-
-		case isNumeric(c) || c == '.' && isNumeric(s[i+1]):
-			num, rest := fr.ParseNumber(s[i:])
-			s = rest
-			n = len(s)
-			i = 0
-
-			if bex == nil {
-				bex = NewFloatVal(num)
-				continue Loop
-			}
-
-			switch t := bex.(type) {
-			case *FloatOpExpr:
-				switch {
-				case t.left != nil && t.right != nil:
-					panic("ParseExpression: No place to put operand.")
-				case t.left == nil:
-					t.left = NewFloatVal(num)
-				case t.right == nil:
-					t.right = NewFloatVal(num)
+		if lookForOp == true {
+			switch {
+			case c == '!', c == '=', c == '<',  c == '>':
+				i++
+				peek := s[i]
+				if peek == '=' {
+					op = [2]uint8{c, peek}
+					i++
+				} else {
+					op = [2]uint8{c, 0}
 				}
-
+				lookForOp = false
+			case White(c):
+				i++
 			default:
-				panic("ParseExpression: Unexpected expression node type.")
+				break Loop
 			}
-
-		case isOperator(c):
-			op, rest := fr.ParseOperator(s[i:])
+		} else {
+			t, rest := fr.ParseExprTerm(s[i:])
 			s = rest
 			n = len(s)
 			i = 0
+			lookForOp = true
 
-			if bex == nil {
-				panic("ParseExpression: Operator missing an operand.")
+			if t == Empty {
+				break Loop
 			}
 
-			newNode := NewFloatOpExpr(op)
-			newNode.left = bex
-			bex = newNode
+			if z == Empty {
+				z = t
+			} else {
+				switch op {
+				case [2]uint8{'!', '='}:
+					z = MkBool(z.Float() != t.Float())
 
-		default:
-			i++
+				case [2]uint8{'=', '='}:
+					z = MkBool(z.Float() == t.Float())
+
+				case [2]uint8{'<', 0}:
+					z = MkBool(z.Float() < t.Float())
+
+				case [2]uint8{'<', '='}:
+					z = MkBool(z.Float() <= t.Float())
+
+				case [2]uint8{'>', 0}:
+					z = MkBool(z.Float() > t.Float())
+
+				case [2]uint8{'>', '='}:
+					z = MkBool(z.Float() >= t.Float())
+				}
+			}
 		}
 	}
 
-	log.Printf("ParseExpression ============== result= %s", Show(result))
-	if result.IsEmpty() {
-		result = MkFloat(bex.Value())
-	}
-
-	log.Printf("ParseExpression -> %s", Show(result))
-	return result
+	return z, s[i:]
 }
 
-func (fr *Frame) ParseNumber(s string) (float64, string) {
+func (fr *Frame) ParseExprTerm(s string) (T, string) {
+	log.Printf("ParseExprTerm <- %q", s)
+	i := 0
+	n := len(s)
+	var op uint8 = 0
+	var z T = Empty
+	var lookForOp bool = false
+
+Loop:
+	for i < n {
+		c := s[i]
+
+		if lookForOp == true {
+			switch {
+			case c == '+', c == '-', c == '|',  c == '^':
+				i++
+				op = c
+				lookForOp = false
+			case White(c):
+				i++
+			default:
+				break Loop
+			}
+		} else {
+			t, rest := fr.ParseExprFactor(s[i:])
+			s = rest
+			n = len(s)
+			i = 0
+			lookForOp = true
+
+			if t == Empty {
+				break Loop
+			}
+
+			if z == Empty {
+				z = t
+			} else {
+				switch op {
+				case '+':
+					z = MkFloat(z.Float() + t.Float())
+
+				case '-':
+					z = MkFloat(z.Float() - t.Float())
+
+				case '|':
+					z = z // TODO
+
+				case '^':
+					z = z // TODO
+				}
+			}
+		}
+	}
+
+	return z, s[i:]
+}
+
+func (fr *Frame) ParseExprFactor(s string) (T, string) {
+	log.Printf("ParseExprFactor <- %q", s)
+	i := 0
+	n := len(s)
+	var op uint8 = 0
+	var z T = Empty
+	var lookForOp bool = false
+
+Loop:
+	for i < n {
+		c := s[i]
+
+		if lookForOp == true {
+			switch {
+			case c == '*', c == '/', c == '%',  c == '&':
+				i++
+				op = c
+				lookForOp = false
+			case White(c):
+				i++
+			default:
+				break Loop
+			}
+		} else {
+			t, rest := fr.ParseExprPrim(s[i:])
+			s = rest
+			n = len(s)
+			i = 0
+			lookForOp = true
+
+			if t == Empty {
+				break Loop
+			}
+
+			if z == Empty {
+				z = t
+			} else {
+				switch op {
+				case '*':
+					z = MkFloat(z.Float() * t.Float())
+
+				case '/':
+					z = MkFloat(z.Float() / t.Float())
+
+				case '%':
+					z = z // TODO
+
+				case '&':
+					z = z // TODO
+				}
+			}
+		}
+	}
+
+	return z, s[i:]
+}
+
+func (fr *Frame) ParseExprPrim(s string) (T, string) {
+	log.Printf("ParseExprPrim <- %q", s)
+	i := 0
+	n := len(s)
+
+	for i < n {
+		c := s[i]
+
+		switch {
+		case c == '[':
+			return fr.ParseSquare(s[i:])
+
+		case c == '{':
+			return fr.ParseCurly(s[i:])
+
+		case c == '$':
+			return fr.ParseDollar(s[i:])
+
+		case c == '"':
+			return fr.ParseQuote(s[i:])
+
+		case isNumeric(c) || c == '.' && isNumeric(s[i+1]):
+			return fr.ParseNumber(s[i:])
+
+		case isOperator(c):
+			return Empty, s[i:]
+		}
+
+		i++
+	}
+
+	panic("ParseExprPrim: No primitive found.")
+}
+
+func (fr *Frame) ParseNumber(s string) (T, string) {
+	log.Printf("ParseNumber <- %q", s)
 	i := 0
 	n := len(s)
 	decimal := false // only allow one decimal per number
@@ -191,46 +291,8 @@ Loop:
 	vstr := buf.String()
 
 	if v, ok := strconv.ParseFloat(vstr, 64); ok == nil {
-		return v, s[i:]
+		return MkFloat(v), s[i:]
 	}
 
 	panic(Sprintf("ParseNumber: Could not parse float from: %s", vstr))
-}
-
-func (fr *Frame) ParseOperator(s string) (FloatBinOp, string) {
-	i := 0
-	n := len(s)
-	buf := bytes.NewBuffer(nil)
-
-	for i < n {
-		c := s[i]
-
-		switch {
-		case isOperator(c):
-			buf.WriteByte(c)
-			i++
-
-		// A number or whitespace signifies the end of the operator.
-		case isNumeric(c) || White(c):
-			opstr := buf.String()
-
-			switch opstr {
-			case "+":
-				return func(a, b float64) float64 { return a + b }, s[i:]
-			case "-":
-				return func(a, b float64) float64 { return a - b }, s[i:]
-			case "*":
-				return func(a, b float64) float64 { return a * b }, s[i:]
-			case "/":
-				return func(a, b float64) float64 { return a / b }, s[i:]
-			}
-
-			panic(Sprintf("ParseOperator: Operator \"%s\" is not recognized.", opstr))
-
-		default:
-			panic(Sprintf("ParseOperator: Unexpected character, '%c', found while parsing operator.", c))
-		}
-	}
-
-	panic("ParseOperator: No operator found.")
 }
