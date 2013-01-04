@@ -89,3 +89,7 @@ proc Verb/edit {} {
 	Puts "<input type=submit value=Submit>"
 	Puts "</form>"
 }
+
+proc Verb/db {} {
+	/fmt/Fprintf $W %v [DB]
+}

@@ -52,6 +52,8 @@ proc Route { path query } {
 	/fmt/Fprintf $W {path: %s | query: %s} $path $query
 }
 
+set DB [scan-bundles ./data]
+
 proc ZygoteHandler {w r} {
 	set dirs [ListDirs root]
 	interp-eval-in-clone zygote [
@@ -71,6 +73,7 @@ interp-alias zygote ListFiles ListFiles
 interp-alias zygote ListRevs ListRevs
 interp-alias zygote ReadFile ReadFile
 interp-alias zygote WriteFile WriteFile
+interp-alias zygote DB "set DB"
 
 rem -- Load our mixins into our sub-interpreter
 set mixins [ListFiles root Mixin]

@@ -60,6 +60,7 @@ func (fr *Frame) initBuiltins() {
 	Builtins["interp-eval"] = cmdInterpEval
 	Builtins["interp-eval-in-clone"] = cmdInterpEvalClone
 	Builtins["string-range"] = cmdStringRange
+	Builtins["scan-bundles"] = cmdScanBundles
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -808,3 +809,10 @@ func cmdStringRange(fr *Frame, argv []T) T {
 
 	return MkString(strS[firstI:lastI])
 }
+
+func cmdScanBundles(fr *Frame, argv []T) T {
+	dataDir := Arg1(argv)
+
+	return MkT(ScanBundles(dataDir.String()))
+}
+
