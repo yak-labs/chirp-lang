@@ -36,7 +36,6 @@ type CmdNode struct {
 // (but not for every Command; non-proc commands do not make Frames).
 type Frame struct {
 	Vars  Scope
-	Slots Scope
 
 	Prev *Frame
 	G    *Global
@@ -140,7 +139,6 @@ func New() *Frame {
 func (fr *Frame) NewFrame() *Frame {
 	return &Frame{
 		Vars:  make(Scope),
-		Slots: nil,
 		Prev:   fr,
 		G:      fr.G,
 	}
@@ -168,12 +166,6 @@ func (p *Slot) Set(t T) { p.Elem = t }
 func (fr *Frame) GetVarScope(name string) Scope {
 	if len(name) == 0 {
 		panic("Empty variable name")
-	}
-	if name[0] == '_' {
-		if fr.Slots == nil {
-			panic("No slots in this frame: " + name)
-		}
-		return fr.Slots
 	}
 
 	if IsGlobal(name) {
@@ -297,7 +289,7 @@ func Show(a T) string {
 }
 
 func Showv(a []T) string {
-	buf := bytes.NewBufferString(Sprintf("Slice of T with %d slots:", len(a)))
+	buf := bytes.NewBufferString(Sprintf("Slice of T with %d elements:", len(a)))
 	for i, e := range a {
 		buf.WriteString(Sprintf("\n    ... [%d] = %s", i, Show(e)))
 	}
