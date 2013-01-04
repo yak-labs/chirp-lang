@@ -66,6 +66,11 @@ proc ZygoteHandler {w r} {
 interp-new zygote
 interp-alias zygote rem rem
 interp-alias zygote Route Route
+interp-alias zygote ListDirs ListDirs
+interp-alias zygote ListFiles ListFiles
+interp-alias zygote ListRevs ListRevs
+interp-alias zygote ReadFile ReadFile
+interp-alias zygote WriteFile WriteFile
 
 rem -- Load our mixins into our sub-interpreter
 set mixins [ListFiles root Mixin]

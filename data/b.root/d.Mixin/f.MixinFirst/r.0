@@ -8,19 +8,84 @@ proc ModeHtml {} {
 	send [send $W Header] Set "Content-Type" "text/html"
 }
 
+set WikiFile_rx [/regexp/MustCompile {^([A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*)[.]wik$}]
+
 proc Route { path query } {
+	send $R ParseForm
+
+	set Query [send [getf $R URL] Query]
+	set Form [getf $R Form]
+
+	set content [send $R FormValue text]
+	set content2 [send [send [getf $R URL] Query] Get text]
+
 	ModeHtml
 
-	set rx [/regexp/MustCompile {^/([A-Z][a-z]+)/([A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*)([.]([a-z]+))?$}]
-	set m [send $rx FindStringSubmatch $path]
-	if {[set m]} {
-		set Volume [lat $m 1]
-		set Page [lat $m 2]
-		set Verb [lat $m 4]
-		Puts "Vol: $Volume<br>"
-		Puts "Page: $Page<br>"
-		Puts "Verb: $Verb<br>"
-	} else {
-		Puts "Did not understand the path!"
+	/fmt/Fprintf $W %v $Form
+	/fmt/Fprintf $W %s " == Form <br>"
+
+	/fmt/Fprintf $W %v $Query
+	/fmt/Fprintf $W %s " == Query <br>"
+
+	if {[catch {
+
+		set rx [/regexp/MustCompile {^/([A-Z][a-z]+)/([A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*)([.]([a-z]+))?$}]
+		set m [send $rx FindStringSubmatch $path]
+		if {[set m]} {
+			set Volume [lat $m 1]
+			set Page [lat $m 2]
+			set Verb [lat $m 4]
+			Puts "Vol: $Volume<br>"
+			Puts "Page: $Page<br>"
+			Puts "Verb: $Verb<br>"
+
+			Verb/$Verb
+		} else {
+			Puts "Did not understand the path!"
+		}
+
+	} what]} {
+		Puts "*** Caught an error: $what"
 	}
+}
+
+proc Verb/view {} {
+	set c [ReadFile root $Volume $Page.wik]
+
+	Puts $c
+}
+
+proc Verb/list {} {
+	Puts "<ul>"
+	set files [ListFiles root $Volume]
+	foreach f $files {
+		set m [send $WikiFile_rx FindStringSubmatch $f]
+		if {[set m]} {
+			set page [lat $m 1]
+			Puts "<li><a href=$page.view>$page</a></li>"
+		}
+	}
+	Puts "</ul>"
+}
+
+proc Verb/edit {} {
+	Puts "Method: [getf $R Method] <br>"
+	if 0 {
+		Puts "Content len: [slen $content] <br>"
+		Puts "Content value: $content <br>"
+		Puts "Content2 len: [slen $content2] <br>"
+		Puts "Content2 value: $content2 <br>"
+
+	rem if {[set content]} {
+		WriteFile root $Volume $Page.wik $content
+	}
+	}
+
+	set c [ReadFile root $Volume $Page.wik]
+
+	Puts "<form method=POST action=/$Volume/$Page.edit>"
+	Puts "<textarea name=text>$c</textarea>"
+	Puts "<br>"
+	Puts "<input type=submit value=Submit>"
+	Puts "</form>"
 }
