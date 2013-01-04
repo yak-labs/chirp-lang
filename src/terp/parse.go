@@ -134,6 +134,9 @@ Loop:
 		case '"':
 			i++
 			break Loop
+		case '\\':
+			c, i = consumeBackslashEscaped(s, i)
+			buf.WriteByte(c)
 		default:
 			buf.WriteByte(c)
 			i++
@@ -180,9 +183,8 @@ Loop:
 		case '"':
 			panic("ParseWord: DoubleQuote inside word")
 		case '\\':
-			c = consumeThreeOctalDigits(s, i)
+			c, i = consumeBackslashEscaped(s, i)
 			buf.WriteByte(c)
-			i += 4
 		default:
 			buf.WriteByte(c)
 			i++
@@ -293,11 +295,28 @@ Loop:
 	return
 }
 
-func consumeThreeOctalDigits(s string, i int) byte {
+func consumeBackslashEscaped(s string, i int) (byte, int) {
+	switch s[i+1] {
+		case 'n':
+			return '\n', i+2
+		case 'r':
+			return '\r', i+2
+		case 't':
+			return '\t', i+2
+	}
+	if s[i+1] < '0' || s[i+1] > '7' {
+		panic(Sprintf("First character after backslash is not octal %q.", s[i:i+2]))
+	}
+	if s[i+2] < '0' || s[i+2] > '7' {
+		panic(Sprintf("Second character after backslash is not octal %q.", s[i:i+3]))
+	}
+	if s[i+3] < '0' || s[i+3] > '7' {
+		panic(Sprintf("Third character after backslash is not octal %q.", s[i:i+4]))
+	}
 	a := s[i+1] - '0'
 	b := s[i+2] - '0'
 	c := s[i+3] - '0'
-	return byte(a*64 + b*8 + c)
+	return byte(a*64 + b*8 + c), i+4
 }
 
 func ParseList(s string) []T {
@@ -335,8 +354,8 @@ func ParseList(s string) []T {
 				case '}':
 					b--
 				case '\\':
-					c = consumeThreeOctalDigits(s, i)
-					i += 3
+					c, i = consumeBackslashEscaped(s, i)
+					i -= 1
 				}
 				if b == 0 {
 					break
@@ -355,8 +374,8 @@ func ParseList(s string) []T {
 					break
 				}
 				if c == '\\' {
-					c = consumeThreeOctalDigits(s, i)
-					i += 3
+					c, i = consumeBackslashEscaped(s, i)
+					i -= 1
 				}
 				buf.WriteByte(c)
 				i++
