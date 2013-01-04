@@ -157,7 +157,7 @@ func IsLocal(name string) bool {
 	if len(name) == 0 {
 		panic("Empty variable name")
 	}
-	return !ast.IsExported(name) && name[0] != '_'
+	return !ast.IsExported(name)
 }
 
 func (p *Slot) Get() T  { return p.Elem }
@@ -839,6 +839,36 @@ func (t terpValue) HeadTail() (hd, tl T) {
 	return MkList(t.List()).HeadTail()
 }
 
+func NeedsOctalEscape(b byte) bool {
+	switch b {
+		case '{' : return true
+		case '}' : return true
+		case '\\' : return true
+	}
+	if b < ' ' {return true}
+	return false
+}
+
+func OctalEscape (s string) string {
+	needsEscaping := false
+	for _, b := range []byte (s) {
+		if NeedsOctalEscape(b) {
+			needsEscaping = true
+			break
+		}
+	}
+	if !needsEscaping {return s}
+	buf := bytes.NewBuffer(nil)
+	for _, b := range []byte (s) {
+		if NeedsOctalEscape(b) {
+			buf.WriteString(Sprintf("\\%03o",b))
+		} else {
+			buf.WriteByte(b)
+		}
+	}
+	return(buf.String())
+}
+
 func ToListElementString(s string) string {
 	// TODO: Not perfect, but we are not doing \ yet.
 	// TODO: Broken for mismatched {}.
@@ -847,7 +877,7 @@ func ToListElementString(s string) string {
 	}
 
 	if strings.ContainsAny(s, " \t\n\r{}\\") {
-		return "{" + s + "}"
+		return "{" + OctalEscape(s) + "}"
 	}
 	return s
 }

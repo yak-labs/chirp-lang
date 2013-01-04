@@ -179,6 +179,10 @@ Loop:
 			break Loop
 		case '"':
 			panic("ParseWord: DoubleQuote inside word")
+		case '\\':
+			c = consumeThreeOctalDigits(s, i)
+			buf.WriteByte(c)
+			i += 4
 		default:
 			buf.WriteByte(c)
 			i++
@@ -289,6 +293,13 @@ Loop:
 	return
 }
 
+func consumeThreeOctalDigits(s string, i int) byte {
+	a := s[i+1] - '0'
+	b := s[i+2] - '0'
+	c := s[i+3] - '0'
+	return byte(a*64 + b*8 + c)
+}
+
 func ParseList(s string) []T {
 	n := len(s)
 	i := 0
@@ -323,6 +334,9 @@ func ParseList(s string) []T {
 					b++
 				case '}':
 					b--
+				case '\\':
+					c = consumeThreeOctalDigits(s, i)
+					i += 3
 				}
 				if b == 0 {
 					break
@@ -339,6 +353,10 @@ func ParseList(s string) []T {
 				c = s[i]
 				if White(s[i]) {
 					break
+				}
+				if c == '\\' {
+					c = consumeThreeOctalDigits(s, i)
+					i += 3
 				}
 				buf.WriteByte(c)
 				i++
