@@ -17,6 +17,11 @@ type Record struct {
 	Values	[]T
 }
 
+func (fr *Frame) initDbCmds() {
+	Builtins["db-select-like"] = cmdDbSelectLike
+	Builtins["db-scan"] = cmdDbScan
+}
+
 var ColumnSplit_rx = regexp.MustCompile("^([A-Za-z0-9_]+)([:](.*))$")
 
 var InternalFileName_rx = regexp.MustCompile("^[a-z][.]([-A-Za-z0-9_.]+)$")
@@ -112,3 +117,74 @@ func ScanPages(volumeDir string, bundle, volume string, z []Record) []Record {
 	return z
 }
 
+func SelectLike(db []Record, bundle, field, volume, page, suffix, value string) []Record {
+	var z []Record = make([]Record, 0, 4)
+
+	for _, r := range db {
+		if !MatchTailStar(bundle, r.Bundle) {
+			continue
+		}
+		if !MatchTailStar(field, r.Field) {
+			continue
+		}
+		if !MatchTailStar(volume, r.Volume) {
+			continue
+		}
+		if !MatchTailStar(page, r.Page) {
+			continue
+		}
+		if !MatchTailStar(suffix, r.Suffix) {
+			continue
+		}
+
+		for _, v := range r.Values {
+			if MatchTailStar(value, v.String()) {
+				z = append(z, r)
+				break
+			}
+		}
+	}
+
+	return z
+}
+
+func MatchTailStar(pattern, str string) bool {
+	println("pattern ", pattern)
+	println("str ", str)
+	if len(pattern) >= 1 && pattern[len(pattern)-1] == '*' {
+		println("=1= ", str)
+		if len(str) >= len(pattern)-1 {
+		println("=2= ", str)
+			return pattern[:len(pattern)-1] == str[:len(pattern)-1]
+		}
+	}
+
+	println("=3= ", str)
+	return pattern == str
+}
+
+func cmdDbScan(fr *Frame, argv []T) T {
+	dataDir := Arg1(argv)
+	
+	return MkT(ScanBundles(dataDir.String()))
+}
+
+func cmdDbSelectLike(fr *Frame, argv []T) T {
+	database, bundle, field, volume, page, suffix, value := Arg7(argv)
+
+	//var db []Record = make([]Record, 0, 4)
+	//for _, r := range database.List() {
+	//	db = append(db, r.Raw().(Record))
+	//}
+
+	db := database.Raw().([]Record)
+	
+	return MkT(SelectLike(
+		db,
+		bundle.String(),
+		field.String(),
+		volume.String(),
+		page.String(),
+		suffix.String(),
+		value.String()))
+}

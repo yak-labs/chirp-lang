@@ -60,7 +60,6 @@ func (fr *Frame) initBuiltins() {
 	Builtins["interp-eval"] = cmdInterpEval
 	Builtins["interp-eval-in-clone"] = cmdInterpEvalClone
 	Builtins["string-range"] = cmdStringRange
-	Builtins["scan-bundles"] = cmdScanBundles
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -130,6 +129,13 @@ func Arg3v(argv []T) (T, T, T, []T) {
 		panic(Sprintf("Expected at least 3 arguments, but got argv=%s", Showv(argv)))
 	}
 	return argv[1], argv[2], argv[3], argv[4:]
+}
+
+func Arg7(argv []T) (T, T, T, T, T, T, T) {
+	if len(argv) != 7+1 {
+		panic(Sprintf("Expected 7 arguments, but got argv=%s", Showv(argv)))
+	}
+	return argv[1], argv[2], argv[3], argv[4], argv[5], argv[6], argv[7]
 }
 
 func cmdMust(fr *Frame, argv []T) T {
@@ -808,11 +814,5 @@ func cmdStringRange(fr *Frame, argv []T) T {
 	}
 
 	return MkString(strS[firstI:lastI])
-}
-
-func cmdScanBundles(fr *Frame, argv []T) T {
-	dataDir := Arg1(argv)
-
-	return MkT(ScanBundles(dataDir.String()))
 }
 

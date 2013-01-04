@@ -52,7 +52,7 @@ proc Route { path query } {
 	/fmt/Fprintf $W {path: %s | query: %s} $path $query
 }
 
-set DB [scan-bundles ./data]
+set DB [db-scan ./data]
 
 proc ZygoteHandler {w r} {
 	set dirs [ListDirs root]

@@ -133,6 +133,7 @@ func New() *Frame {
 	g.Fr.initBuiltins()
 	g.Fr.initReflect()
 	g.Fr.initExpr()
+	g.Fr.initDbCmds()
 	return &g.Fr
 }
 
