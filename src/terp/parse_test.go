@@ -28,10 +28,28 @@ func TestT2(t *testing.T) {
 	MustST("three", a[2])
 }
 
-/*
 func TestT3(t *testing.T) {
 	fr := New()
-	a := fr.Eval(MkString("list abc[list def]ghi"))
+	a := fr.Eval(MkString("list xabc[list def]ghi"))
 	MustA("xabcdefghi", a.String())
 }
-*/
+
+func TestParseEscaping(t *testing.T) {
+	fr := New()
+	s := `proc p {} {
+		return "0\132\tNumber\n"
+	} ; p`
+	x := fr.Eval(MkString(s))
+	if x.String() != "0\132\tNumber\n" {
+		t.Errorf("Broken x was %q.", x.String())
+	}
+}
+
+func TestSlashEscaping(t *testing.T) {
+	s := "0\132\tNumber\n"
+	x := MkString(s).ListElementString()
+	if x != `{0Z\011Number\012}` {
+		t.Errorf("Broken x was %q.", x)
+	}
+}
+

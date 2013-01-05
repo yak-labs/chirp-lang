@@ -35,6 +35,8 @@ func DoScope(pack string, sc *ast.Scope) {
 	for k, v := range sc.Objects {
 		if ast.IsExported(k) {
 			snake := strings.Replace(pack, "/", "_", -1)
+			snake = strings.Replace(snake, ".", "_", -1)
+			snake = strings.Replace(snake, "-", "_", -1)
 			short := pack
 			j := strings.LastIndex(pack, "/")
 			if j > 0 {
@@ -79,6 +81,8 @@ func main() {
 		}
 		pp = append(pp, p)
 		snake := strings.Replace(pack, "/", "_", -1)
+		snake = strings.Replace(snake, ".", "_", -1)
+		snake = strings.Replace(snake, "-", "_", -1)
 		Printf("import %s \"%s\"\n", snake, pack)
 	}
 
