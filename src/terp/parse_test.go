@@ -28,13 +28,11 @@ func TestT2(t *testing.T) {
 	MustST("three", a[2])
 }
 
-/*
 func TestT3(t *testing.T) {
 	fr := New()
-	a := fr.Eval(MkString("list abc[list def]ghi"))
+	a := fr.Eval(MkString("list xabc[list def]ghi"))
 	MustA("xabcdefghi", a.String())
 }
-*/
 
 func TestParseEscaping(t *testing.T) {
 	fr := New()
