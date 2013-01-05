@@ -4,3 +4,7 @@ make web ( demo/hello_web.t ) TODO:
 	-- dont need "http_handler"
 	-- "" := [nil]
 	-- \n and other \\ escapes
+
+
+Garbage Producers?
+  ./goterp -c 'yproc yes {} { while 1 { yield yes } } ; proc first g { foreach x $g { return $x } } ; while 1 { puts [first [yes]] } '
