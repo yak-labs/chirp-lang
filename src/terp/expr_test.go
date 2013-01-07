@@ -53,6 +53,11 @@ var exprTests = `
   must 1 [expr {$disjLazy != 123 || [set disjLazy 567] == 567}]
   must 1 [expr {$disjLazy == 567 || [set disjLazy 789] == 789}]
   must 567 $disjLazy
+
+  must 123 [expr 1 ? 123 : 456]
+  must 456 [expr 0 ? 123 : 456]
+  must 456 [expr 0 ? 123 : 1 ? 456 : 789]
+  must 789 [expr 0 ? 123 : 0 ? 456 : 789]
 `
 
 func TestExpr(a *testing.T) {

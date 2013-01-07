@@ -45,13 +45,43 @@ func isOperator(ch uint8) bool {
 func (fr *Frame) ParseExpression(s string) (result T) {
 	log.Printf("ParseExpression <- %q", s)
 
-	t, _ := fr.ParseExprDisjunct(s)
+	t, _ := fr.ParseExprCond(s)
 
 	return t
 }
 
+func (fr *Frame) ParseExprCond(s string) (T, string) {
+	log.Printf("ParseExprCond <- %q", s)
+	var z T
+	z, s = fr.ParseExprDisjunct(s)
+	n := len(s)
+	i := 0
+
+Loop:
+	for i < n {
+		c := s[i]
+
+		switch {
+		case c == '?':
+			i++
+			colon := strings.Index(s[i:], ":") // find the ':' character.
+			if z.Truth() {
+				z = fr.ParseExpression(s[i:colon+1])
+				break Loop
+			} else {
+				z = fr.ParseExpression(s[colon+2:])
+				break Loop
+			}
+		default:
+			i++
+		}
+	}
+
+	return z, s[i:]
+}
+
 func (fr *Frame) ParseExprDisjunct(s string) (T, string) {
-	log.Printf("ParseExprConjunct <- %q", s)
+	log.Printf("ParseExprDisjunct <- %q", s)
 	i := 0
 	n := len(s)
 	var op [2]uint8
