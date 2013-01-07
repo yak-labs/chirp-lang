@@ -58,6 +58,15 @@ var exprTests = `
   must 456 [expr 0 ? 123 : 456]
   must 456 [expr 0 ? 123 : 1 ? 456 : 789]
   must 789 [expr 0 ? 123 : 0 ? 456 : 789]
+
+  must 0 [expr {{word one} lt "word $a"}]
+  must 1 [expr {"word $a" lt {word one}}]
+  must 1 [expr {{word one} gt "word $a"}]
+  must 0 [expr {"word $a" gt {word one}}]
+  must 0 [expr {"asdf" eq {qwer}}]
+  must 1 [expr {"qwer" eq {qwer}}]
+  must 1 [expr {"asdf" ne {qwer}}]
+  must 0 [expr {"qwer" ne {qwer}}]
 `
 
 func TestExpr(a *testing.T) {

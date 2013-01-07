@@ -163,7 +163,7 @@ Loop:
 				break Loop
 			}
 		} else {
-			t, rest := fr.ParseExprRel(s[i:])
+			t, rest := fr.ParseExprRelStr(s[i:])
 			s = rest
 			n = len(s)
 			i = 0
@@ -188,6 +188,71 @@ Loop:
 					}
 				} else {
 					panic("Unexpected operator in ParseExprConjunct.")
+				}
+			}
+		}
+	}
+
+	return z, s[i:]
+}
+
+func (fr *Frame) ParseExprRelStr(s string) (T, string) {
+	log.Printf("ParseExprRelStr <- %q", s)
+	i := 0
+	n := len(s)
+	var op string
+	var z T = Empty
+	var lookForOp bool = false
+
+Loop:
+	for i < n {
+		if lookForOp == true {
+			if len(s) >= 2 {
+				op = s[i:i+2]
+			}
+
+			switch {
+			case op == "eq", op == "ne", op == "lt", op == "le",
+			op == "gt", op == "ge":
+				lookForOp = false
+				i += 2
+			case White(op[0]):
+				i++
+			default:
+				break Loop
+			}
+		} else {
+			t, rest := fr.ParseExprRel(s[i:])
+			s = rest
+			n = len(s)
+			i = 0
+			lookForOp = true
+
+			if t == Empty {
+				break Loop
+			}
+
+			if z == Empty {
+				z = t
+			} else {
+				switch op {
+				case "eq":
+					z = MkBool(z.String() == t.String())
+
+				case "ne":
+					z = MkBool(z.String() != t.String())
+
+				case "lt":
+					z = MkBool(z.String() < t.String())
+
+				case "le":
+					z = MkBool(z.String() <= t.String())
+
+				case "gt":
+					z = MkBool(z.String() > t.String())
+
+				case "ge":
+					z = MkBool(z.String() >= t.String())
 				}
 			}
 		}
