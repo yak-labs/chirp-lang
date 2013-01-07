@@ -35,6 +35,24 @@ var exprTests = `
   must 1 [expr { 4 >= 3 }]
   must 0 [expr { 3 >= 4 }]
   must 1 [expr { 3 >= 3 }]
+
+  set conjLazy 123
+  must 1 [expr 3 >= 3 && 4 > 3]
+  must 0 [expr 3 >= 3 && 4 < 3]
+  must 0 [expr 3 > 3 && 4 > 3]
+  must 0 [expr 3 > 3 && 4 < 3]
+  must 1 [expr {$conjLazy == 123 && [set conjLazy 567] == 567}]
+  must 0 [expr {$conjLazy == 123 && [set conjLazy 789] == 789}]
+  must 567 $conjLazy
+
+  set disjLazy 123
+  must 1 [expr 3 >= 3 || 4 > 3]
+  must 1 [expr 3 >= 3 || 4 < 3]
+  must 1 [expr 3 > 3 || 4 > 3]
+  must 0 [expr 3 > 3 || 4 < 3]
+  must 1 [expr {$disjLazy != 123 || [set disjLazy 567] == 567}]
+  must 1 [expr {$disjLazy == 567 || [set disjLazy 789] == 789}]
+  must 567 $disjLazy
 `
 
 func TestExpr(a *testing.T) {

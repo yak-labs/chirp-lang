@@ -45,9 +45,125 @@ func isOperator(ch uint8) bool {
 func (fr *Frame) ParseExpression(s string) (result T) {
 	log.Printf("ParseExpression <- %q", s)
 
-	t, _ := fr.ParseExprRel(s)
+	t, _ := fr.ParseExprDisjunct(s)
 
 	return t
+}
+
+func (fr *Frame) ParseExprDisjunct(s string) (T, string) {
+	log.Printf("ParseExprConjunct <- %q", s)
+	i := 0
+	n := len(s)
+	var op [2]uint8
+	var z T = Empty
+	var lookForOp bool = false
+
+Loop:
+	for i < n {
+		c := s[i]
+		p := s[i+1]
+
+		if lookForOp {
+			switch {
+			case c == '|' && p == '|':
+				op = [2]uint8{c, p}
+				lookForOp = false
+				i += 2
+			case White(c):
+				i++
+			default:
+				break Loop
+			}
+		} else {
+			t, rest := fr.ParseExprConjunct(s[i:])
+			s = rest
+			n = len(s)
+			i = 0
+			lookForOp = true
+
+			if t == Empty {
+				break Loop
+			}
+
+			if z == Empty {
+				z = t
+				if z.Truth() {
+					break Loop // shortcircuit
+				}
+			} else {
+				if op == [2]uint8{'|', '|'} {
+					if t.Truth() {
+						z = MkBool(true)
+						break Loop // shortcircuit
+					} else {
+						z = MkBool(false)
+					}
+				} else {
+					panic("Unexpected operator in ParseExprConjunct.")
+				}
+			}
+		}
+	}
+
+	return z, s[i:]
+}
+
+func (fr *Frame) ParseExprConjunct(s string) (T, string) {
+	log.Printf("ParseExprConjunct <- %q", s)
+	i := 0
+	n := len(s)
+	var op [2]uint8
+	var z T = Empty
+	var lookForOp bool = false
+
+Loop:
+	for i < n {
+		c := s[i]
+		p := s[i+1]
+
+		if lookForOp {
+			switch {
+			case c == '&' && p == '&':
+				op = [2]uint8{c, p}
+				lookForOp = false
+				i += 2
+			case White(c):
+				i++
+			default:
+				break Loop
+			}
+		} else {
+			t, rest := fr.ParseExprRel(s[i:])
+			s = rest
+			n = len(s)
+			i = 0
+			lookForOp = true
+
+			if t == Empty {
+				break Loop
+			}
+
+			if z == Empty {
+				z = t
+				if !z.Truth() {
+					break Loop // shortcircuit
+				}
+			} else {
+				if op == [2]uint8{'&', '&'} {
+					if z.Truth() && t.Truth() {
+						z = MkBool(true)
+					} else {
+						z = MkBool(false)
+						break Loop // shortcircuit
+					}
+				} else {
+					panic("Unexpected operator in ParseExprConjunct.")
+				}
+			}
+		}
+	}
+
+	return z, s[i:]
 }
 
 func (fr *Frame) ParseExprRel(s string) (T, string) {
@@ -134,6 +250,13 @@ Loop:
 		if lookForOp == true {
 			switch {
 			case c == '+', c == '-', c == '|',  c == '^':
+				if c == '|' {
+					peek := s[i+1]
+					if peek == '|' {
+						// break if we found "||"
+						break Loop
+					}
+				}
 				i++
 				op = c
 				lookForOp = false
@@ -191,6 +314,13 @@ Loop:
 		if lookForOp == true {
 			switch {
 			case c == '*', c == '/', c == '%',  c == '&':
+				if c == '&' {
+					peek := s[i+1]
+					if peek == '&' {
+						// break if we found "&&"
+						break Loop
+					}
+				}
 				i++
 				op = c
 				lookForOp = false
