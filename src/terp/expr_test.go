@@ -6,10 +6,10 @@ import (
 )
 
 var exprTests = `
-  must 9 [expr { [+ 4 5] }]
-  must 9 [expr { 4 + 5 }]
-  must 20 [expr { 4 * 5 }]
-  must 16 [expr { 4 * 5 + 3 - 7 }]
+  must 9 [expr [+ 4 5]]
+  must 9 [expr 4 + 5]
+  must 20 [expr 4 * 5]
+  must 16 [expr 4 * 5 + 3 - 7]
   must 16 [expr 16]
   must 44 [expr { 3 * 2 * 4 + 5 * 4} ]
 

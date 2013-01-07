@@ -5,17 +5,25 @@ import (
 	. "fmt"
 	"log"
 	"strconv"
+	"strings"
 )
 
 func (fr *Frame) initExpr() {
 	Builtins["expr"] = cmdExpr
 }
 
+// Concatenate the arguments, adding a space separator, before evaluating the
+// expression.
 func cmdExpr(fr *Frame, argv []T) T {
-	// Just support 1 arg expressions for now.  We'll concat later.
-	ex := Arg1(argv)
+	strs := make([]string, len(argv))
 
-	return fr.EvalExpr(ex)
+	for i, t := range argv {
+		strs[i] = t.String()
+	}
+
+	ex := strings.Join(strs, " ")
+
+	return fr.ParseExpression(ex)
 }
 
 // Takes a single word that represents an expression and returns the result.
