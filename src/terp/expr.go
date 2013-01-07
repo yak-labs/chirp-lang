@@ -17,7 +17,7 @@ func (fr *Frame) initExpr() {
 func cmdExpr(fr *Frame, argv []T) T {
 	strs := make([]string, len(argv))
 
-	for i, t := range argv {
+	for i, t := range argv[1:] {
 		strs[i] = t.String()
 	}
 
