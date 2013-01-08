@@ -15,7 +15,7 @@ func (fr *Frame) initExpr() {
 // Concatenate the arguments, adding a space separator, before evaluating the
 // expression.
 func cmdExpr(fr *Frame, argv []T) T {
-	strs := make([]string, len(argv))
+	strs := make([]string, len(argv)-1)
 
 	for i, t := range argv[1:] {
 		strs[i] = t.String()
