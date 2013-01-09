@@ -15,7 +15,7 @@ func (fr *Frame) initExpr() {
 // Concatenate the arguments, adding a space separator, before evaluating the
 // expression.
 func cmdExpr(fr *Frame, argv []T) T {
-	strs := make([]string, len(argv))
+	strs := make([]string, len(argv)-1)
 
 	for i, t := range argv[1:] {
 		strs[i] = t.String()
@@ -90,16 +90,16 @@ func (fr *Frame) ParseExprDisjunct(s string) (T, string) {
 
 Loop:
 	for i < n {
-		c := s[i]
-		p := s[i+1]
-
 		if lookForOp {
+			if len(s) >= 2 {
+				op = [2]uint8{s[i], s[i+1]}
+			}
+
 			switch {
-			case c == '|' && p == '|':
-				op = [2]uint8{c, p}
+			case op == [2]uint8{'|', '|'}:
 				lookForOp = false
 				i += 2
-			case White(c):
+			case White(op[0]):
 				i++
 			default:
 				break Loop
@@ -148,16 +148,16 @@ func (fr *Frame) ParseExprConjunct(s string) (T, string) {
 
 Loop:
 	for i < n {
-		c := s[i]
-		p := s[i+1]
-
 		if lookForOp {
+			if len(s) >= 2 {
+				op = [2]uint8{s[i], s[i+1]}
+			}
+
 			switch {
-			case c == '&' && p == '&':
-				op = [2]uint8{c, p}
+			case op == [2]uint8{'&', '&'}:
 				lookForOp = false
 				i += 2
-			case White(c):
+			case White(op[0]):
 				i++
 			default:
 				break Loop
