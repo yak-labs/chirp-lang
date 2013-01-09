@@ -5,17 +5,25 @@ import (
 	. "fmt"
 	"log"
 	"strconv"
+	"strings"
 )
 
 func (fr *Frame) initExpr() {
 	Builtins["expr"] = cmdExpr
 }
 
+// Concatenate the arguments, adding a space separator, before evaluating the
+// expression.
 func cmdExpr(fr *Frame, argv []T) T {
-	// Just support 1 arg expressions for now.  We'll concat later.
-	ex := Arg1(argv)
+	strs := make([]string, len(argv)-1)
 
-	return fr.EvalExpr(ex)
+	for i, t := range argv[1:] {
+		strs[i] = t.String()
+	}
+
+	ex := strings.Join(strs, " ")
+
+	return fr.ParseExpression(ex)
 }
 
 // Takes a single word that represents an expression and returns the result.
@@ -37,9 +45,220 @@ func isOperator(ch uint8) bool {
 func (fr *Frame) ParseExpression(s string) (result T) {
 	log.Printf("ParseExpression <- %q", s)
 
-	t, _ := fr.ParseExprRel(s)
+	t, _ := fr.ParseExprCond(s)
 
 	return t
+}
+
+func (fr *Frame) ParseExprCond(s string) (T, string) {
+	log.Printf("ParseExprCond <- %q", s)
+	var z T
+	z, s = fr.ParseExprDisjunct(s)
+	n := len(s)
+	i := 0
+
+Loop:
+	for i < n {
+		c := s[i]
+
+		switch {
+		case c == '?':
+			i++
+			colon := strings.Index(s[i:], ":") // find the ':' character.
+			if z.Truth() {
+				z = fr.ParseExpression(s[i:colon+1])
+				break Loop
+			} else {
+				z = fr.ParseExpression(s[colon+2:])
+				break Loop
+			}
+		default:
+			i++
+		}
+	}
+
+	return z, s[i:]
+}
+
+func (fr *Frame) ParseExprDisjunct(s string) (T, string) {
+	log.Printf("ParseExprDisjunct <- %q", s)
+	i := 0
+	n := len(s)
+	var op [2]uint8
+	var z T = Empty
+	var lookForOp bool = false
+
+Loop:
+	for i < n {
+		if lookForOp {
+			if len(s) >= 2 {
+				op = [2]uint8{s[i], s[i+1]}
+			}
+
+			switch {
+			case op == [2]uint8{'|', '|'}:
+				lookForOp = false
+				i += 2
+			case White(op[0]):
+				i++
+			default:
+				break Loop
+			}
+		} else {
+			t, rest := fr.ParseExprConjunct(s[i:])
+			s = rest
+			n = len(s)
+			i = 0
+			lookForOp = true
+
+			if t == Empty {
+				break Loop
+			}
+
+			if z == Empty {
+				z = t
+				if z.Truth() {
+					break Loop // shortcircuit
+				}
+			} else {
+				if op == [2]uint8{'|', '|'} {
+					if t.Truth() {
+						z = MkBool(true)
+						break Loop // shortcircuit
+					} else {
+						z = MkBool(false)
+					}
+				} else {
+					panic("Unexpected operator in ParseExprConjunct.")
+				}
+			}
+		}
+	}
+
+	return z, s[i:]
+}
+
+func (fr *Frame) ParseExprConjunct(s string) (T, string) {
+	log.Printf("ParseExprConjunct <- %q", s)
+	i := 0
+	n := len(s)
+	var op [2]uint8
+	var z T = Empty
+	var lookForOp bool = false
+
+Loop:
+	for i < n {
+		if lookForOp {
+			if len(s) >= 2 {
+				op = [2]uint8{s[i], s[i+1]}
+			}
+
+			switch {
+			case op == [2]uint8{'&', '&'}:
+				lookForOp = false
+				i += 2
+			case White(op[0]):
+				i++
+			default:
+				break Loop
+			}
+		} else {
+			t, rest := fr.ParseExprRelStr(s[i:])
+			s = rest
+			n = len(s)
+			i = 0
+			lookForOp = true
+
+			if t == Empty {
+				break Loop
+			}
+
+			if z == Empty {
+				z = t
+				if !z.Truth() {
+					break Loop // shortcircuit
+				}
+			} else {
+				if op == [2]uint8{'&', '&'} {
+					if z.Truth() && t.Truth() {
+						z = MkBool(true)
+					} else {
+						z = MkBool(false)
+						break Loop // shortcircuit
+					}
+				} else {
+					panic("Unexpected operator in ParseExprConjunct.")
+				}
+			}
+		}
+	}
+
+	return z, s[i:]
+}
+
+func (fr *Frame) ParseExprRelStr(s string) (T, string) {
+	log.Printf("ParseExprRelStr <- %q", s)
+	i := 0
+	n := len(s)
+	var op string
+	var z T = Empty
+	var lookForOp bool = false
+
+Loop:
+	for i < n {
+		if lookForOp == true {
+			if len(s) >= 2 {
+				op = s[i:i+2]
+			}
+
+			switch {
+			case op == "eq", op == "ne", op == "lt", op == "le",
+			op == "gt", op == "ge":
+				lookForOp = false
+				i += 2
+			case White(op[0]):
+				i++
+			default:
+				break Loop
+			}
+		} else {
+			t, rest := fr.ParseExprRel(s[i:])
+			s = rest
+			n = len(s)
+			i = 0
+			lookForOp = true
+
+			if t == Empty {
+				break Loop
+			}
+
+			if z == Empty {
+				z = t
+			} else {
+				switch op {
+				case "eq":
+					z = MkBool(z.String() == t.String())
+
+				case "ne":
+					z = MkBool(z.String() != t.String())
+
+				case "lt":
+					z = MkBool(z.String() < t.String())
+
+				case "le":
+					z = MkBool(z.String() <= t.String())
+
+				case "gt":
+					z = MkBool(z.String() > t.String())
+
+				case "ge":
+					z = MkBool(z.String() >= t.String())
+				}
+			}
+		}
+	}
+
+	return z, s[i:]
 }
 
 func (fr *Frame) ParseExprRel(s string) (T, string) {
@@ -126,6 +345,13 @@ Loop:
 		if lookForOp == true {
 			switch {
 			case c == '+', c == '-', c == '|',  c == '^':
+				if c == '|' {
+					peek := s[i+1]
+					if peek == '|' {
+						// break if we found "||"
+						break Loop
+					}
+				}
 				i++
 				op = c
 				lookForOp = false
@@ -183,6 +409,13 @@ Loop:
 		if lookForOp == true {
 			switch {
 			case c == '*', c == '/', c == '%',  c == '&':
+				if c == '&' {
+					peek := s[i+1]
+					if peek == '&' {
+						// break if we found "&&"
+						break Loop
+					}
+				}
 				i++
 				op = c
 				lookForOp = false
