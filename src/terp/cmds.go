@@ -59,7 +59,7 @@ func (fr *Frame) initBuiltins() {
 	Builtins["interp-alias"] = cmdInterpAlias
 	Builtins["interp-eval"] = cmdInterpEval
 	Builtins["interp-eval-in-clone"] = cmdInterpEvalClone
-	Builtins["string-range"] = cmdStringRange
+	Builtins["string"] = MkEnsemble(stringEnsemble)
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -800,19 +800,48 @@ func cmdInterpEvalClone(fr *Frame, argv []T) T {
 	return z
 }
 
+var stringEnsemble = []EnsembleItem{
+	EnsembleItem{Name: "range", Cmd: cmdStringRange},
+}
+
 func cmdStringRange(fr *Frame, argv []T) T {
 	str, first, last := Arg3(argv)
 
 	strS := str.String()
+	n := len(strS)
 	firstI := int(first.Int())
 	
 	var lastI int
 	if (!last.IsEmpty()) {
 		lastI = int(last.Int())
 	} else {
-		lastI = len(strS)
+		lastI = n
+	}
+
+	// Last may be negative, like in Python.
+	if lastI < 0 {
+		lastI += n
+	}
+
+	// If first is too small, Zero.
+	if firstI < 0 {
+		firstI = 0
+	}
+
+    // If first is too large, Empty.
+	if firstI > n {
+		return Empty
+	}
+
+	// If last is too small, Empty.
+	if lastI < firstI {
+		return Empty
+	}
+
+    // If last is too large, End.
+	if lastI > n {
+		lastI = n
 	}
 
 	return MkString(strS[firstI:lastI])
 }
-

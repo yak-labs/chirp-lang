@@ -39,7 +39,7 @@ type Frame struct {
 
 	Prev *Frame
 	G    *Global
-	Mu   sync.Mutex
+
 	Chan chan<- T // for yproc & yield
 	MixinLevel int
 }
@@ -892,4 +892,39 @@ func (g *Global) MintMixinSerial() int {
 
 	 g.MixinSerial++
 	 return g.MixinSerial
+}
+
+type EnsembleItem struct {
+	Name	string
+	Cmd		Command	
+	Doc		string
+}
+
+func MkEnsemble(items []EnsembleItem) Command {
+	cmd := func(fr *Frame, argv []T) T {
+		switch len(argv) {
+		case 0:
+			panic("TODO: doc string")
+		case 1:
+			panic("Ensemble command needs a subcommand argument: " + Showv(argv))
+		}
+		subName := argv[1].String()
+		for _, e := range items {
+			if e.Name == subName {
+				return e.Cmd(fr, argv[1:])
+			}
+		}
+		panic("Ensemble subcommand not found: " + Showv(argv))
+	}
+	return cmd
+}
+
+func NonEmpty(v []string) []string {
+	z := make([]string, 0, len(v))
+	for _, e := range v {
+		if len(e) > 1 {
+			z = append(z, e)
+		}
+	}
+	return z
 }

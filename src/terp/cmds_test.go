@@ -222,6 +222,15 @@ var cmdTests = `
   }
   must "a {b c d e}" [helloArgs2 a b c d e]
 
+  must abcdef [string range abcdefghij -99 6]
+  must abcdefghij [string range abcdefghij -99 99]
+  must "" [string range abcdefghij 3 2]
+  must "" [string range abcdefghij 3 3]
+  must d [string range abcdefghij 3 4]
+  must def [string range abcdefghij 3 6]
+  must defghij [string range abcdefghij 3 ""]
+  must defgh [string range abcdefghij 3 -2]
+
 `
 
 func TestFoo(a *testing.T) {
