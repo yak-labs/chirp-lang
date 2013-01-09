@@ -8,3 +8,33 @@ make web ( demo/hello_web.t ) TODO:
 
 Garbage Producers?
   ./goterp -c 'yproc yes {} { while 1 { yield yes } } ; proc first g { foreach x $g { return $x } } ; while 1 { puts [first [yes]] } '
+
+
+=======
+func MkEnsemble(name string, items []EnsembleItem) Command {
+	cnd := func(fr *Frame, argv []T) T {
+		switch len(argv) {
+		case 0:
+			panic("TODO: doc string")
+		case 1:
+			panic("Ensemble command needs a subcommand argument: " + Showv(argv))
+		}
+		subName := argv[1]
+		for _, e := range items {
+			if e.Name == subName {
+				return e.Cmd(argv[1:])
+			}
+		}
+		panic("Ensemble subcommand not found: " + Showv(argv))
+	}
+	return cmd
+}
+type EnsembleItem struct {
+	Name	string
+	Cmd		Command	
+	Doc		string
+}
+
+var Empty = MkString("")
+var InvalidValue = *new(R.Value)
+=======
