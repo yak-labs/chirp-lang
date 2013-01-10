@@ -479,7 +479,7 @@ func (fr *Frame) ParseExprPrim(s string) (T, string) {
 		case c == '"':
 			return fr.ParseQuote(s[i:])
 
-		case isNumeric(c) || c == '.' && isNumeric(s[i+1]):
+		case isNumeric(c) || c == '.' && isNumeric(s[i+1]) || c == '-' && isNumeric(s[i+1]):
 			return fr.ParseNumber(s[i:])
 
 		case isOperator(c):
@@ -504,7 +504,7 @@ Loop:
 		c := s[i]
 
 		switch {
-		case isNumeric(c) || c == '.' && decimal == false:
+		case isNumeric(c) || c == '.' && decimal == false || c == '-':
 			if c == '.' {
 				decimal = true
 			}

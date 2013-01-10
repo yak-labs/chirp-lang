@@ -67,6 +67,9 @@ var exprTests = `
   must 1 [expr {"qwer" eq {qwer}}]
   must 1 [expr {"asdf" ne {qwer}}]
   must 0 [expr {"qwer" ne {qwer}}]
+
+	must 0 [expr {20 == -1}]
+	must 1 [expr {-1 == -1}]
 `
 
 func TestExpr(a *testing.T) {
