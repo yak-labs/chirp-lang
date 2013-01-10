@@ -21,27 +21,27 @@ proc starter {w r} {
 	/fmt/Fprintf $w "</ul>"
 }
 
-proc home {w r} {
+proc Home {w r} {
 	starter $w $r
-	display "HomePage" $w
+	Display "HomePage" $w
 }
 
-proc display {page w} {
+proc Display {page w} {
 	set pagef "$page.wik"
-	/fmt/Fprintf $w "(display( %s ))" [/io/ioutil/ReadFile $pagef]
+	/fmt/Fprintf $w "(Display( %s ))" [/io/ioutil/ReadFile $pagef]
 }
 
-proc view {w r} {
+proc View {w r} {
 	starter $w $r
 	set page [GetQuery $r page]
 	if {[catch {/io/ioutil/ReadFile "$page.wik"} junk]} {
 		/fmt/Fprintf $w "Page Not Found: $page"
 	} else {
-		display $page $w
+		Display $page $w
 	}
 }
 
-proc list {w r} {
+proc List {w r} {
 	starter $w $r
 	/fmt/Fprintf $w "<ul>"
 	foreach f [/io/ioutil/ReadDir .] {
@@ -59,8 +59,8 @@ proc list {w r} {
 
 set ValidName [/regexp/MustCompile {^([A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*)[.]wik$}]
 
-/net/http/HandleFunc / [http_handler home]
-/net/http/HandleFunc /view [http_handler view]
-/net/http/HandleFunc /list [http_handler list]
+/net/http/HandleFunc / [http_handler Home]
+/net/http/HandleFunc /view [http_handler View]
+/net/http/HandleFunc /list [http_handler List]
 
 /net/http/ListenAndServe 127.0.0.1:8080 ""

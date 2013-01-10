@@ -24,10 +24,10 @@ type CmdScope map[string]*CmdNode
 // at different mixin levels, highest level first.
 // A non-mixin command has level 0 and only one CmdNode.
 type CmdNode struct {
-	Fn	Command
-	MixinLevel	int
-	MixinName	string
-	Next	*CmdNode
+	Fn         Command
+	MixinLevel int
+	MixinName  string
+	Next       *CmdNode
 }
 
 // Frame is a local variable frame.
@@ -35,13 +35,14 @@ type CmdNode struct {
 // and a new one is created for each proc or yproc invocation
 // (but not for every Command; non-proc commands do not make Frames).
 type Frame struct {
-	Vars  Scope
+	Vars Scope
 
 	Prev *Frame
 	G    *Global
 
-	Chan chan<- T // for yproc & yield
+	Chan       chan<- T // for yproc & yield
 	MixinLevel int
+	MixinName  string
 }
 
 // Global holds the global state of an interpreter,
@@ -51,13 +52,13 @@ type Frame struct {
 // after all overridable procs are defined,
 // but before other goroutines start.
 type Global struct {
-	Cmds CmdScope
-	Fr    Frame // global scope
-	SubTerps	map[string]*Global	
+	Cmds     CmdScope
+	Fr       Frame // global scope
+	SubTerps map[string]*Global
 
-	MixinSerial		int  // Increment before defining Mixin.
-	MixinNumberDefining	int  // Set nonzero while defining Mixin.
-	MixinNameDefining	string  // Set nonzero while defining Mixin.
+	MixinSerial         int    // Increment before defining Mixin.
+	MixinNumberDefining int    // Set nonzero while defining Mixin.
+	MixinNameDefining   string // Set nonzero while defining Mixin.
 
 	Mu sync.Mutex
 }
@@ -77,7 +78,7 @@ func (g *Global) Clone() *Global {
 	for k, v := range g.Cmds {
 		z.Cmds[k] = v
 	}
-	
+
 	for k, loc := range g.Fr.Vars {
 		z.Fr.SetVar(k, loc.Get())
 	}
@@ -87,6 +88,7 @@ func (g *Global) Clone() *Global {
 
 // StatusCode are the same integers as Tcl/C uses for return, break, and continue.
 type StatusCode int
+
 const (
 	RETURN = StatusCode(iota + 2)
 	BREAK
@@ -109,6 +111,7 @@ type Loc interface {
 type Slot struct {
 	Elem T
 }
+
 // UpSlot forwards a variable to another variable.
 type UpSlot struct {
 	Fr         *Frame
@@ -138,9 +141,9 @@ func New() *Frame {
 
 func (fr *Frame) NewFrame() *Frame {
 	return &Frame{
-		Vars:  make(Scope),
-		Prev:   fr,
-		G:      fr.G,
+		Vars: make(Scope),
+		Prev: fr,
+		G:    fr.G,
 	}
 }
 
@@ -215,22 +218,36 @@ func (fr *Frame) FindCommand(name T, callSuper bool) Command {
 			if maxMixinLevel < 0 {
 				panic("cannot callSuper from non-mixin")
 			}
-	        log.Printf("FindCommand: callSuper: maxMixinLevel=%d try=%#v", maxMixinLevel, cmdNode)
+			log.Printf("FindCommand: callSuper: maxMixinLevel=%d try=%#v", maxMixinLevel, cmdNode)
 			for cmdNode != nil && cmdNode.MixinLevel > maxMixinLevel {
-	        	log.Printf("FindCommand: callSuper: maxMixinLevel=%d try=%#v", maxMixinLevel, cmdNode)
+				log.Printf("FindCommand: callSuper: maxMixinLevel=%d try=%#v", maxMixinLevel, cmdNode)
 				cmdNode = cmdNode.Next
 			}
-	        log.Printf("FindCommand: callSuper: OK")
+			log.Printf("FindCommand: callSuper: OK")
 		}
 		if cmdNode == nil {
 			ok = false
 		} else {
-	        log.Printf("FindCommand: Choosing mixin level %d from %#v", cmdNode.MixinLevel, cmdNode)
+			log.Printf("FindCommand: Choosing mixin level %d from %#v", cmdNode.MixinLevel, cmdNode)
 			fn = cmdNode.Fn
 		}
 	} else {
 		fn, ok = Builtins[cmdName.s]
 	}
+
+	// Mixin Local Commands:
+	if !ok && fr.MixinLevel > 0 && !IsGlobal(cmdName.s) {
+		// Use long name for mixin local fn.
+		localCmdName := fr.MixinName + "~" + cmdName.s
+		log.Printf("FindCommand: level %d: try Long Name: %q", fr.MixinLevel, localCmdName)
+		var localNode *CmdNode
+		localNode, ok = fr.G.Cmds[localCmdName]
+		if ok {
+			fn = localNode.Fn // Should be singleton.
+			log.Printf("FindCommand: level %d: Found Long Name: %q -> %v", fr.MixinLevel, localCmdName, fn)
+		}
+	}
+
 	if !ok {
 		panic(Sprintf("FindCommand: command not found: %q", cmdName.s))
 	}
@@ -254,7 +271,7 @@ func (fr *Frame) Apply(argv []T) T {
 	if len(cmdName.s) > 1 && cmdName.s[0] == '/' {
 		call := []T{MkString("call"), head}
 		call = append(call, argv[1:]...) // Append all but first of argv.
-		return fr.Apply(call)           // Recurse.
+		return fr.Apply(call)            // Recurse.
 	}
 
 	fn := fr.FindCommand(head, false) // false: Don't call super.
@@ -841,32 +858,39 @@ func (t terpValue) HeadTail() (hd, tl T) {
 
 func NeedsOctalEscape(b byte) bool {
 	switch b {
-		case '{' : return true
-		case '}' : return true
-		case '\\' : return true
+	case '{':
+		return true
+	case '}':
+		return true
+	case '\\':
+		return true
 	}
-	if b < ' ' {return true}
+	if b < ' ' {
+		return true
+	}
 	return false
 }
 
-func OctalEscape (s string) string {
+func OctalEscape(s string) string {
 	needsEscaping := false
-	for _, b := range []byte (s) {
+	for _, b := range []byte(s) {
 		if NeedsOctalEscape(b) {
 			needsEscaping = true
 			break
 		}
 	}
-	if !needsEscaping {return s}
+	if !needsEscaping {
+		return s
+	}
 	buf := bytes.NewBuffer(nil)
-	for _, b := range []byte (s) {
+	for _, b := range []byte(s) {
 		if NeedsOctalEscape(b) {
-			buf.WriteString(Sprintf("\\%03o",b))
+			buf.WriteString(Sprintf("\\%03o", b))
 		} else {
 			buf.WriteByte(b)
 		}
 	}
-	return(buf.String())
+	return (buf.String())
 }
 
 func ToListElementString(s string) string {
@@ -887,17 +911,17 @@ func (t terpValue) Hash() Hash {
 func (t terpValue) QuickReflectValue() R.Value { return t.v }
 
 func (g *Global) MintMixinSerial() int {
-     g.Mu.Lock()
-     defer g.Mu.Unlock()
+	g.Mu.Lock()
+	defer g.Mu.Unlock()
 
-	 g.MixinSerial++
-	 return g.MixinSerial
+	g.MixinSerial++
+	return g.MixinSerial
 }
 
 type EnsembleItem struct {
-	Name	string
-	Cmd		Command	
-	Doc		string
+	Name string
+	Cmd  Command
+	Doc  string
 }
 
 func MkEnsemble(items []EnsembleItem) Command {
