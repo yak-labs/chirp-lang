@@ -184,18 +184,21 @@ var cmdTests = `
   	return "$s 0"
   }
   mixin One {
+      proc mix_number {} { return 1 } ; list -- mixin-local proc.
 	  proc F s {
-		return "$s 1 [super F $s]"
+		return "$s [mix_number] [super F $s]"
 	  }
   }
   mixin Two {
+      proc mix_number {} { return 2 } ; list -- mixin-local proc.
 	  proc F s {
-		return "$s 2 [super F $s]"
+		return "$s [mix_number] [super F $s]"
 	  }
   }
   mixin Three {
+      proc mix_number {} { return 3 } ; list -- mixin-local proc.
 	  proc F s {
-		return "$s 3 [super F $s]"
+		return "$s [mix_number] [super F $s]"
 	  }
   }
   must "foo 3 foo 2 foo 1 foo 0" [F "foo"]
