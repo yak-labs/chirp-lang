@@ -5,6 +5,7 @@ import (
 	. "fmt"
 	"log"
 	"net/http"
+	"strings"
 )
 
 var _ = log.Printf
@@ -59,6 +60,9 @@ func (fr *Frame) initBuiltins() {
 	Builtins["interp-alias"] = cmdInterpAlias
 	Builtins["interp-eval"] = cmdInterpEval
 	Builtins["interp-eval-in-clone"] = cmdInterpEvalClone
+	Builtins["incr"] = cmdIncr
+	Builtins["append"] = cmdAppend
+	Builtins["error"] = cmdError
 	Builtins["string"] = MkEnsemble(stringEnsemble)
 }
 
@@ -828,8 +832,59 @@ func cmdInterpEvalClone(fr *Frame, argv []T) T {
 	return z
 }
 
+// Tcl requires integers, but our base numeric value is float64.
+// TODO: Make the increment argument optional.
+func cmdIncr(fr *Frame, argv []T) T {
+	varName, incr := Arg2(argv)
+
+	name := varName.String()
+
+	v := fr.GetVar(name).Float()
+	i := incr.Float()
+	z := MkFloat(v + i)
+
+	fr.SetVar(name, z)
+
+	return z
+}
+
+func cmdAppend(fr *Frame, argv []T) T {
+	varName, values := Arg1v(argv)
+
+	name := varName.String()
+
+	v := fr.GetVar(name)
+
+	i := 0
+	n := len(values)
+
+	if n == 0 {
+		// We get to return early.
+		return v
+	}
+
+	buf := bytes.NewBufferString(v.String())
+
+	for i < n {
+		buf.WriteString(values[i].String())
+		i++
+	}
+
+	z := MkString(buf.String())
+	fr.SetVar(name, z)
+	return z
+}
+
+func cmdError(fr *Frame, argv []T) T {
+	message := Arg1(argv)
+
+	panic(message.String())
+}
+
 var stringEnsemble = []EnsembleItem{
 	EnsembleItem{Name: "range", Cmd: cmdStringRange},
+	EnsembleItem{Name: "first", Cmd: cmdStringFirst},
+	EnsembleItem{Name: "index", Cmd: cmdStringIndex},
 }
 
 func cmdStringRange(fr *Frame, argv []T) T {
@@ -837,18 +892,18 @@ func cmdStringRange(fr *Frame, argv []T) T {
 
 	strS := str.String()
 	n := len(strS)
-	firstI := int(first.Int())
+	firstI := int(first.Int()) // The index of the first character to include.
 
-	var lastI int
-	if !last.IsEmpty() {
-		lastI = int(last.Int())
+	var lastI int // The index of the last character to include.
+	if last.IsEmpty() || last.String() == "end" {
+		lastI = n - 1
 	} else {
-		lastI = n
+		lastI = int(last.Int())
 	}
 
 	// Last may be negative, like in Python.
 	if lastI < 0 {
-		lastI += n
+		lastI += n - 1
 	}
 
 	// If first is too small, Zero.
@@ -867,9 +922,33 @@ func cmdStringRange(fr *Frame, argv []T) T {
 	}
 
 	// If last is too large, End.
-	if lastI > n {
-		lastI = n
+	if lastI >= n {
+		lastI = n - 1
 	}
 
-	return MkString(strS[firstI:lastI])
+	return MkString(strS[firstI:lastI+1])
+}
+
+// TODO: Add optional argument "startIndex"
+func cmdStringFirst(fr *Frame, argv[]T) T {
+	needle, haystack := Arg2(argv)
+
+	i := strings.Index(haystack.String(), needle.String())
+
+	return MkFloat(float64(i))
+}
+
+func cmdStringIndex(fr *Frame, argv[]T) T {
+	str, charIndex := Arg2(argv)
+
+	s := str.String()
+	i := int(charIndex.Int())
+	n := len(s)
+
+	if i < 0 || i >= n {
+		return Empty
+	}
+
+	z := string(s[i])
+	return MkString(z)
 }
