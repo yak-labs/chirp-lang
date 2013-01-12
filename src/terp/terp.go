@@ -103,6 +103,7 @@ type Jump struct {
 
 // Loc is protocol for a variable location.
 type Loc interface {
+	Has() bool
 	Get() T
 	Set(T)
 }
@@ -163,6 +164,7 @@ func IsLocal(name string) bool {
 	return !ast.IsExported(name)
 }
 
+func (p *Slot) Has() bool  { return p.Elem != nil }
 func (p *Slot) Get() T  { return p.Elem }
 func (p *Slot) Set(t T) { p.Elem = t }
 
@@ -175,6 +177,16 @@ func (fr *Frame) GetVarScope(name string) Scope {
 		return fr.G.Fr.Vars
 	}
 	return fr.Vars
+}
+
+func (fr *Frame) HasVar(name string) bool {
+	sc := fr.GetVarScope(name)
+	var loc Loc
+	var ok bool
+	if loc, ok = sc[name]; !ok {
+		return false
+	}
+	return loc.Has()
 }
 
 func (fr *Frame) GetVar(name string) T {
@@ -195,6 +207,7 @@ func (fr *Frame) SetVar(name string, x T) {
 	sc[name].Set(x)
 }
 
+func (p *UpSlot) Has() bool  { return p.Fr.HasVar(p.RemoteName) }
 func (p *UpSlot) Get() T  { return p.Fr.GetVar(p.RemoteName) }
 func (p *UpSlot) Set(t T) { p.Fr.SetVar(p.RemoteName, t) }
 
