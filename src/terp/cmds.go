@@ -659,7 +659,7 @@ func cmdSet(fr *Frame, argv []T) T {
 	if len(targ) == 0 {
 		panic("command 'set' target is empty")
 	}
-    n := len(targ)
+	n := len(targ)
 	if targ[n-1] == ')' {
 		// Case Subscript:
 		i := strings.Index(targ, "(")
@@ -671,12 +671,12 @@ func cmdSet(fr *Frame, argv []T) T {
 		}
 
 		name := targ[:i]
-		key := targ[i+1:n-1]
+		key := targ[i+1 : n-1]
 		if len(argv) == 2 {
 			h := fr.GetVar(name)
 			return h.GetAt(MkString(key))
 		}
-		if ! fr.HasVar(name) {
+		if !fr.HasVar(name) {
 			fr.SetVar(name, MkHash())
 		}
 		_, x := Arg2(argv)
@@ -958,11 +958,11 @@ func cmdStringRange(fr *Frame, argv []T) T {
 		lastI = n - 1
 	}
 
-	return MkString(strS[firstI:lastI+1])
+	return MkString(strS[firstI : lastI+1])
 }
 
 // TODO: Add optional argument "startIndex"
-func cmdStringFirst(fr *Frame, argv[]T) T {
+func cmdStringFirst(fr *Frame, argv []T) T {
 	needle, haystack := Arg2(argv)
 
 	i := strings.Index(haystack.String(), needle.String())
@@ -970,7 +970,7 @@ func cmdStringFirst(fr *Frame, argv[]T) T {
 	return MkFloat(float64(i))
 }
 
-func cmdStringIndex(fr *Frame, argv[]T) T {
+func cmdStringIndex(fr *Frame, argv []T) T {
 	str, charIndex := Arg2(argv)
 
 	s := str.String()

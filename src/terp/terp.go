@@ -164,9 +164,9 @@ func IsLocal(name string) bool {
 	return !ast.IsExported(name)
 }
 
-func (p *Slot) Has() bool  { return p.Elem != nil }
-func (p *Slot) Get() T  { return p.Elem }
-func (p *Slot) Set(t T) { p.Elem = t }
+func (p *Slot) Has() bool { return p.Elem != nil }
+func (p *Slot) Get() T    { return p.Elem }
+func (p *Slot) Set(t T)   { p.Elem = t }
 
 func (fr *Frame) GetVarScope(name string) Scope {
 	if len(name) == 0 {
@@ -207,9 +207,9 @@ func (fr *Frame) SetVar(name string, x T) {
 	sc[name].Set(x)
 }
 
-func (p *UpSlot) Has() bool  { return p.Fr.HasVar(p.RemoteName) }
-func (p *UpSlot) Get() T  { return p.Fr.GetVar(p.RemoteName) }
-func (p *UpSlot) Set(t T) { p.Fr.SetVar(p.RemoteName, t) }
+func (p *UpSlot) Has() bool { return p.Fr.HasVar(p.RemoteName) }
+func (p *UpSlot) Get() T    { return p.Fr.GetVar(p.RemoteName) }
+func (p *UpSlot) Set(t T)   { p.Fr.SetVar(p.RemoteName, t) }
 
 func (fr *Frame) UpVar(name string, remFr *Frame, remName string) {
 	sc := fr.GetVarScope(name)

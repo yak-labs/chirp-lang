@@ -249,7 +249,7 @@ Loop:
 // Parse a variable name after a '$', returning result and new position
 func (fr *Frame) ParseDollar(s string) (T, string) {
 	log.Printf("< ParseDollar < %#v\n", s)
-	var key T  // nil unless Key exists.
+	var key T // nil unless Key exists.
 	if '$' != s[0] {
 		panic("Expected $ at beginning of ParseDollar")
 	}
@@ -260,7 +260,7 @@ Loop:
 	for i < n {
 		c := s[i]
 		if c == '(' {
-			i++	
+			i++
 			key, s = fr.ParseDollarKey(s[i:])
 			n = len(s)
 			i = 0
@@ -362,12 +362,12 @@ Loop:
 
 func consumeBackslashEscaped(s string, i int) (byte, int) {
 	switch s[i+1] {
-		case 'n':
-			return '\n', i+2
-		case 'r':
-			return '\r', i+2
-		case 't':
-			return '\t', i+2
+	case 'n':
+		return '\n', i + 2
+	case 'r':
+		return '\r', i + 2
+	case 't':
+		return '\t', i + 2
 	}
 	if s[i+1] < '0' || s[i+1] > '7' {
 		panic(Sprintf("First character after backslash is not octal %q.", s[i:i+2]))
@@ -381,7 +381,7 @@ func consumeBackslashEscaped(s string, i int) (byte, int) {
 	a := s[i+1] - '0'
 	b := s[i+2] - '0'
 	c := s[i+3] - '0'
-	return byte(a*64 + b*8 + c), i+4
+	return byte(a*64 + b*8 + c), i + 4
 }
 
 func ParseList(s string) []T {
