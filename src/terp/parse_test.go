@@ -53,3 +53,9 @@ func TestSlashEscaping(t *testing.T) {
 	}
 }
 
+func TestDollarKey(t *testing.T) {
+	fr := New()
+	a := fr.Eval(MkString("set h [hash]; hset $h foo bar;  list aaa$h(foo)zzz"))
+	MustA("aaabarzzz", a.String())
+}
+

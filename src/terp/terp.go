@@ -330,6 +330,8 @@ type T interface {
 	IsPreservedByList() bool
 	HeadTail() (hd, tl T)
 	Hash() Hash
+	GetAt(key T) T
+	PutAt(value T, key T)
 	QuickReflectValue() R.Value
 }
 
@@ -583,6 +585,12 @@ func (t terpHash) HeadTail() (hd, tl T) {
 func (t terpHash) Hash() Hash {
 	return t.h
 }
+func (t terpHash) GetAt(key T) T {
+	return t.h[key.String()]
+}
+func (t terpHash) PutAt(value T, key T) {
+	t.h[key.String()] = value
+}
 func (t terpHash) QuickReflectValue() R.Value { return InvalidValue }
 
 // terpGenerator implements T
@@ -638,6 +646,12 @@ func (t terpGenerator) HeadTail() (hd, tl T) {
 func (t terpGenerator) Hash() Hash {
 	panic("terpGenerator is not a Hash")
 }
+func (t terpGenerator) GetAt(key T) T {
+	panic("terpGenerator is not a Hash")
+}
+func (t terpGenerator) PutAt(value T, key T) {
+	panic("terpGenerator is not a Hash")
+}
 func (t terpGenerator) QuickReflectValue() R.Value { return InvalidValue }
 
 // terpFloat implements T
@@ -675,6 +689,12 @@ func (t terpFloat) HeadTail() (hd, tl T) {
 }
 func (t terpFloat) Hash() Hash {
 	panic(" is not a Hash")
+}
+func (t terpFloat) GetAt(key T) T {
+	panic("terpFloat is not a Hash")
+}
+func (t terpFloat) PutAt(value T, key T) {
+	panic("terpFloat is not a Hash")
 }
 func (t terpFloat) QuickReflectValue() R.Value { return InvalidValue }
 
@@ -717,6 +737,12 @@ func (t terpString) HeadTail() (hd, tl T) {
 }
 func (t terpString) Hash() Hash {
 	panic("A string is not a Hash")
+}
+func (t terpString) GetAt(key T) T {
+	panic("terpString is not a Hash")
+}
+func (t terpString) PutAt(value T, key T) {
+	panic("terpString is not a Hash")
 }
 func (t terpString) QuickReflectValue() R.Value { return InvalidValue }
 
@@ -778,6 +804,12 @@ func (t terpList) HeadTail() (hd, tl T) {
 }
 func (t terpList) Hash() Hash {
 	panic("A List is not a Hash")
+}
+func (t terpList) GetAt(key T) T {
+	panic("terpList is not a Hash")
+}
+func (t terpList) PutAt(value T, key T) {
+	panic("terpList is not a Hash")
 }
 func (t terpList) QuickReflectValue() R.Value { return InvalidValue }
 
@@ -907,6 +939,12 @@ func ToListElementString(s string) string {
 }
 func (t terpValue) Hash() Hash {
 	panic("A GoValue is not a Hash")
+}
+func (t terpValue) GetAt(key T) T {
+	panic("terpValue is not a Hash")
+}
+func (t terpValue) PutAt(value T, key T) {
+	panic("terpValue is not a Hash")
 }
 func (t terpValue) QuickReflectValue() R.Value { return t.v }
 

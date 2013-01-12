@@ -196,9 +196,60 @@ Loop:
 	return MkString(buf.String()), s[i:]
 }
 
+// Parse the Key for a Dollar with Parens, e.g. $x(key).
+// Dollar, Square, and Backslash substitutions occur.
+// White space and DQuotes are not special.
+// Terminates with ")".
+func (fr *Frame) ParseDollarKey(s string) (T, string) {
+	//- log.Printf("< ParseDollarKey < %#v\n", s)
+	i := 0
+	n := len(s)
+	buf := bytes.NewBuffer(nil)
+
+Loop:
+	for i < n {
+		c := s[i]
+		switch c {
+		case ')':
+			i++ // Skip over ')'
+			break Loop
+		case '[':
+			// Mid-word, squares should return stringlike result.
+			newresult2, rest2 := fr.ParseSquare(s[i:])
+			buf.WriteString(newresult2.String())
+			s = rest2
+			n = len(s)
+			i = 0
+		case '$':
+			newresult3, rest3 := fr.ParseDollar(s[i:])
+
+			// Special case, the entire word is dollar-substituted. 
+			if i == 0 && buf.Len() == 0 && (len(rest3) == 0 || WhiteOrSemi(rest3[0]) || rest3[0] == ']') {
+				return newresult3, rest3
+			}
+
+			buf.WriteString(newresult3.String())
+			s = rest3
+			n = len(s)
+			i = 0
+		case '\\':
+			c, i = consumeBackslashEscaped(s, i)
+			buf.WriteByte(c)
+		default:
+			buf.WriteByte(c)
+			i++
+		}
+	}
+	result := MkString(buf.String())
+	rest := s[i:]
+	log.Printf("> ParseDollarKey > %s > %q\n", Show(result), rest)
+	return result, rest
+}
+
 // Parse a variable name after a '$', returning result and new position
 func (fr *Frame) ParseDollar(s string) (T, string) {
-	//- log.Printf("< ParseDollar < %#v\n", s)
+	log.Printf("< ParseDollar < %#v\n", s)
+	var key T  // nil unless Key exists.
 	if '$' != s[0] {
 		panic("Expected $ at beginning of ParseDollar")
 	}
@@ -208,19 +259,30 @@ func (fr *Frame) ParseDollar(s string) (T, string) {
 Loop:
 	for i < n {
 		c := s[i]
-		if 'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || '0' <= c && c <= '9' || c == '_' {
+		if c == '(' {
+			i++	
+			key, s = fr.ParseDollarKey(s[i:])
+			n = len(s)
+			i = 0
+			break Loop
+		} else if 'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || '0' <= c && c <= '9' || c == '_' {
 			buf.WriteByte(c)
+			i++
 		} else {
 			break Loop
 		}
-		i++
 	}
 
 	varName := buf.String()
 	if len(varName) < 1 {
 		panic(Sprintf("Empty Variable Name after $ here: %q", s))
 	}
-	return fr.GetVar(varName), s[i:]
+	z := fr.GetVar(varName)
+	if key != nil {
+		z = z.GetAt(key)
+	}
+	log.Printf("> ParseDollar > %s ... %q\n", Show(z), s[i:])
+	return z, s[i:]
 }
 
 // Might return nonempty <rest> if it finds ']'
