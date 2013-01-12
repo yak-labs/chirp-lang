@@ -5,6 +5,7 @@ import (
 	. "fmt"
 	"log"
 	"net/http"
+	"strings"
 )
 
 var _ = log.Printf
@@ -59,6 +60,9 @@ func (fr *Frame) initBuiltins() {
 	Builtins["interp-alias"] = cmdInterpAlias
 	Builtins["interp-eval"] = cmdInterpEval
 	Builtins["interp-eval-in-clone"] = cmdInterpEvalClone
+	Builtins["incr"] = cmdIncr
+	Builtins["append"] = cmdAppend
+	Builtins["error"] = cmdError
 	Builtins["string"] = MkEnsemble(stringEnsemble)
 }
 
@@ -212,7 +216,7 @@ func procOrYProc(fr *Frame, argv []T, generating bool) T {
 	captureMixinNameDefining := fr.G.MixinNameDefining
 	var longMixinName string
 	if captureMixinNumberDefining > 0 {
-		longMixinName = nameStr + "~" + captureMixinNameDefining
+		longMixinName = captureMixinNameDefining + "~" + nameStr
 	}
 
 	cmd := func(fr2 *Frame, argv2 []T) (result T) {
@@ -231,9 +235,9 @@ func procOrYProc(fr *Frame, argv []T, generating bool) T {
 							result = j.Result
 							return
 						case BREAK:
-							r =("break command was not inside a loop")
+							r = ("break command was not inside a loop")
 						case CONTINUE:
-							r =("continue command was not inside a loop")
+							r = ("continue command was not inside a loop")
 						}
 					}
 					if rs, ok := r.(string); ok {
@@ -256,13 +260,14 @@ func procOrYProc(fr *Frame, argv []T, generating bool) T {
 				panic(Sprintf("%s %q expects arguments %#v but got %#v", argv[0], nameStr, aa, argv2))
 			}
 		} else {
-			if len(argv2) != n + 1 {
+			if len(argv2) != n+1 {
 				panic(Sprintf("%s %q expects arguments %#v but got %#v", argv[0], nameStr, aa, argv2))
 			}
 		}
 
 		fr3 := fr2.NewFrame()
 		fr3.MixinLevel = captureMixinNumberDefining
+		fr3.MixinName = captureMixinNameDefining
 
 		if varargs {
 			for i, arg := range astrs[:len(astrs)-1] {
@@ -314,32 +319,60 @@ func procOrYProc(fr *Frame, argv []T, generating bool) T {
 		return MkGenerator(ch)
 	}
 
-	existingNode := fr.G.Cmds[nameStr]
-	node := &CmdNode{
-		Fn: cmd,
-		MixinLevel: fr.G.MixinNumberDefining,
-		MixinName: fr.G.MixinNameDefining,
-		Next: existingNode,
+	builtin := Builtins[nameStr]
+	if builtin != nil {
+		panic(Sprintf("cannot redefine a builtin: %q", nameStr))
 	}
-	log.Printf("%s: NEW NODE %s: make %#v", argv[0], nameStr, node)
-	fr.G.Cmds[nameStr] = node
 
-	// Debug Dump
-	node = fr.G.Cmds[nameStr]
-	for node != nil {
-		log.Printf("%s: NODE DUMP %s: %#v", argv[0], nameStr, node)
-		node = node.Next
+	existingNode := fr.G.Cmds[nameStr]
+
+	if IsGlobal(nameStr) {
+		// Procs that behave as Mixins have Capital Initial Letter.
+
+		node := &CmdNode{
+			Fn:         cmd,
+			MixinLevel: fr.G.MixinNumberDefining,
+			MixinName:  fr.G.MixinNameDefining,
+			Next:       existingNode,
+		}
+		log.Printf("%s: NEW NODE %s: make %#v", argv[0], nameStr, node)
+		fr.G.Cmds[nameStr] = node
+
+		// Debug Dump
+		node = fr.G.Cmds[nameStr]
+		for node != nil {
+			log.Printf("%s: NODE DUMP %s: %#v", argv[0], nameStr, node)
+			node = node.Next
+		}
+	} else {
+		if existingNode != nil {
+			panic(Sprintf("Name already defined at base level; cannot redefine: %q", nameStr))
+		}
+		if captureMixinNumberDefining == 0 {
+			// Install base command.
+			node := &CmdNode{
+				Fn:         cmd,
+				MixinLevel: fr.G.MixinNumberDefining,
+				MixinName:  fr.G.MixinNameDefining,
+				Next:       nil,
+			}
+			log.Printf("%s: NEW BASE NODE %s: make %#v", argv[0], nameStr, node)
+			fr.G.Cmds[nameStr] = node
+		} else {
+			// Install as Long Name below.
+		}
 	}
 
 	if captureMixinNumberDefining > 0 {
 		// TODO: Check that long name is unique.
 		newNode := &CmdNode{
-			Fn: cmd,
+			Fn:         cmd,
 			MixinLevel: captureMixinNumberDefining,
-			MixinName: captureMixinNameDefining,
-			Next: nil,
+			MixinName:  captureMixinNameDefining,
+			Next:       nil,
 		}
 		fr.G.Cmds[longMixinName] = newNode
+		log.Printf("%s: INSTALLED LONG NAME: %q -> %v", argv[0], longMixinName, cmd)
 	}
 
 	return Empty
@@ -366,14 +399,14 @@ func cmdMixin(fr *Frame, argv []T) T {
 
 func cmdSuper(fr *Frame, argv []T) T {
 	name, _ := Arg1v(argv)
-    log.Printf("< Super < %s", Showv(argv))
+	log.Printf("< Super < %s", Showv(argv))
 	log.Printf("= Super = From mixin level %d", fr.MixinLevel)
 	if fr.MixinLevel < 1 {
 		panic("cannot super from non-mixin")
 	}
-	fn := fr.FindCommand(name, true)  // true: Call Super.
+	fn := fr.FindCommand(name, true) // true: Call Super.
 	z := fn(fr, argv[1:])
-    log.Printf("> Super > %s", Show(z))
+	log.Printf("> Super > %s", Show(z))
 	return z
 }
 
@@ -723,11 +756,11 @@ func cmdInterpAlias(fr *Frame, argv []T) T {
 				if j, ok := r.(Jump); ok {
 					switch j.Status {
 					case RETURN:
-						r ="return reached in an interp-alias"
+						r = "return reached in an interp-alias"
 					case BREAK:
-						r ="break command was not inside a loop"
+						r = "break command was not inside a loop"
 					case CONTINUE:
-						r ="continue command was not inside a loop"
+						r = "continue command was not inside a loop"
 					}
 				}
 				if rs, ok := r.(string); ok {
@@ -761,7 +794,6 @@ func cmdInterpAlias(fr *Frame, argv []T) T {
 
 	return Empty
 }
-
 
 func cmdInterpEval(fr *Frame, argv []T) T {
 	name, scripts := Arg1v(argv)
@@ -800,8 +832,59 @@ func cmdInterpEvalClone(fr *Frame, argv []T) T {
 	return z
 }
 
+// Tcl requires integers, but our base numeric value is float64.
+// TODO: Make the increment argument optional.
+func cmdIncr(fr *Frame, argv []T) T {
+	varName, incr := Arg2(argv)
+
+	name := varName.String()
+
+	v := fr.GetVar(name).Float()
+	i := incr.Float()
+	z := MkFloat(v + i)
+
+	fr.SetVar(name, z)
+
+	return z
+}
+
+func cmdAppend(fr *Frame, argv []T) T {
+	varName, values := Arg1v(argv)
+
+	name := varName.String()
+
+	v := fr.GetVar(name)
+
+	i := 0
+	n := len(values)
+
+	if n == 0 {
+		// We get to return early.
+		return v
+	}
+
+	buf := bytes.NewBufferString(v.String())
+
+	for i < n {
+		buf.WriteString(values[i].String())
+		i++
+	}
+
+	z := MkString(buf.String())
+	fr.SetVar(name, z)
+	return z
+}
+
+func cmdError(fr *Frame, argv []T) T {
+	message := Arg1(argv)
+
+	panic(message.String())
+}
+
 var stringEnsemble = []EnsembleItem{
 	EnsembleItem{Name: "range", Cmd: cmdStringRange},
+	EnsembleItem{Name: "first", Cmd: cmdStringFirst},
+	EnsembleItem{Name: "index", Cmd: cmdStringIndex},
 }
 
 func cmdStringRange(fr *Frame, argv []T) T {
@@ -809,18 +892,18 @@ func cmdStringRange(fr *Frame, argv []T) T {
 
 	strS := str.String()
 	n := len(strS)
-	firstI := int(first.Int())
-	
-	var lastI int
-	if (!last.IsEmpty()) {
-		lastI = int(last.Int())
+	firstI := int(first.Int()) // The index of the first character to include.
+
+	var lastI int // The index of the last character to include.
+	if last.IsEmpty() || last.String() == "end" {
+		lastI = n - 1
 	} else {
-		lastI = n
+		lastI = int(last.Int())
 	}
 
 	// Last may be negative, like in Python.
 	if lastI < 0 {
-		lastI += n
+		lastI += n - 1
 	}
 
 	// If first is too small, Zero.
@@ -828,7 +911,7 @@ func cmdStringRange(fr *Frame, argv []T) T {
 		firstI = 0
 	}
 
-    // If first is too large, Empty.
+	// If first is too large, Empty.
 	if firstI > n {
 		return Empty
 	}
@@ -838,10 +921,34 @@ func cmdStringRange(fr *Frame, argv []T) T {
 		return Empty
 	}
 
-    // If last is too large, End.
-	if lastI > n {
-		lastI = n
+	// If last is too large, End.
+	if lastI >= n {
+		lastI = n - 1
 	}
 
-	return MkString(strS[firstI:lastI])
+	return MkString(strS[firstI:lastI+1])
+}
+
+// TODO: Add optional argument "startIndex"
+func cmdStringFirst(fr *Frame, argv[]T) T {
+	needle, haystack := Arg2(argv)
+
+	i := strings.Index(haystack.String(), needle.String())
+
+	return MkFloat(float64(i))
+}
+
+func cmdStringIndex(fr *Frame, argv[]T) T {
+	str, charIndex := Arg2(argv)
+
+	s := str.String()
+	i := int(charIndex.Int())
+	n := len(s)
+
+	if i < 0 || i >= n {
+		return Empty
+	}
+
+	z := string(s[i])
+	return MkString(z)
 }

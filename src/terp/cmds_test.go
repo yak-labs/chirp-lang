@@ -184,18 +184,21 @@ var cmdTests = `
   	return "$s 0"
   }
   mixin One {
+      proc mix_number {} { return 1 } ; list -- mixin-local proc.
 	  proc F s {
-		return "$s 1 [super F $s]"
+		return "$s [mix_number] [super F $s]"
 	  }
   }
   mixin Two {
+      proc mix_number {} { return 2 } ; list -- mixin-local proc.
 	  proc F s {
-		return "$s 2 [super F $s]"
+		return "$s [mix_number] [super F $s]"
 	  }
   }
   mixin Three {
+      proc mix_number {} { return 3 } ; list -- mixin-local proc.
 	  proc F s {
-		return "$s 3 [super F $s]"
+		return "$s [mix_number] [super F $s]"
 	  }
   }
   must "foo 3 foo 2 foo 1 foo 0" [F "foo"]
@@ -222,15 +225,39 @@ var cmdTests = `
   }
   must "a {b c d e}" [helloArgs2 a b c d e]
 
-  must abcdef [string range abcdefghij -99 6]
+  must abcdefg [string range abcdefghij -99 6]
   must abcdefghij [string range abcdefghij -99 99]
   must "" [string range abcdefghij 3 2]
-  must "" [string range abcdefghij 3 3]
-  must d [string range abcdefghij 3 4]
-  must def [string range abcdefghij 3 6]
+  must d [string range abcdefghij 3 3]
+  must de [string range abcdefghij 3 4]
+  must defg [string range abcdefghij 3 6]
   must defghij [string range abcdefghij 3 ""]
+  must defghij [string range abcdefghij 3 end]
   must defgh [string range abcdefghij 3 -2]
+  must j [string range abcdefghij 9 10]
 
+
+	set iincr 0
+	must 1 [incr iincr 1]
+	must 2 [incr iincr 1]
+	must 3 [incr iincr 1]
+	must 3 [set iincr]
+	must 1 [incr iincr -2]
+	must 1 [set iincr]
+
+	must 10 [string first a 0123456789abcdef]
+	must -1 [string first z 0123456789abcdef]
+
+	set str {}
+	must asdf [append str asdf]
+	must asdfqwer123 [append str qwer 123]
+	must asdfqwer123 [append str]
+	must asdfqwer123 [set str]
+
+	set str 0123456789abcdef
+	must a [string index $str 10]
+	must {} [string index $str -1]
+	must {} [string index $str 100]
 `
 
 func TestFoo(a *testing.T) {
