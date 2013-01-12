@@ -315,6 +315,9 @@ func MustA(a, b interface{}) {
 }
 
 func Show(a T) string {
+	if a == nil {
+		return "{(T)nil}"
+	}
 	return Sprintf("{(%T) ## %#v ## %q}", a, a, a.String())
 }
 

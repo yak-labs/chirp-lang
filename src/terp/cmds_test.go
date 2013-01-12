@@ -258,6 +258,15 @@ var cmdTests = `
 	must a [string index $str 10]
 	must {} [string index $str -1]
 	must {} [string index $str 100]
+
+	set key one
+	set arr(one) foo
+	must foo $arr($key) 
+	set arr(b) one
+	must foo $arr($arr(b)) 
+	set arr(z) n
+	must foo $arr(o$arr(z)e) 
+	must 1 [catch {list $arr(aaa$arr(z)zzz) } what]
 `
 
 func TestFoo(a *testing.T) {

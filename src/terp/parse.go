@@ -280,6 +280,9 @@ Loop:
 	z := fr.GetVar(varName)
 	if key != nil {
 		z = z.GetAt(key)
+		if z == nil {
+			panic(Sprintf("ParseDollar: key not found: varName=%q key=%s", varName, Show(key)))
+		}
 	}
 	log.Printf("> ParseDollar > %s ... %q\n", Show(z), s[i:])
 	return z, s[i:]

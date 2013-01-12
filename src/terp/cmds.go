@@ -654,6 +654,38 @@ func cmdUpVar(fr *Frame, argv []T) T {
 }
 
 func cmdSet(fr *Frame, argv []T) T {
+	target, _ := Arg1v(argv)
+	targ := target.String()
+	if len(targ) == 0 {
+		panic("command 'set' target is empty")
+	}
+    n := len(targ)
+	if targ[n-1] == ')' {
+		// Case Subscript:
+		i := strings.Index(targ, "(")
+		if i < 0 {
+			panic("command 'set' target ends with ')' but has no '('")
+		}
+		if i < 1 {
+			panic("command 'set' target is empty before '('")
+		}
+
+		name := targ[:i]
+		key := targ[i+1:n-1]
+		if len(argv) == 2 {
+			h := fr.GetVar(name)
+			return h.GetAt(MkString(key))
+		}
+		if ! fr.HasVar(name) {
+			fr.SetVar(name, MkHash())
+		}
+		_, x := Arg2(argv)
+		h := fr.GetVar(name)
+		h.PutAt(x, MkString(key))
+		return x
+	}
+
+	// Case No Subscript:
 	if len(argv) == 2 {
 		// Retrieve value of variable, if 2nd arg is missing.
 		name := Arg1(argv)
