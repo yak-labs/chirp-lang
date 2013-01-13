@@ -37,8 +37,8 @@ func (fr *Frame) initReflect() {
 	Builtins["index"] = tcmdIndex
 }
 
-func AdaptToValue(a T, t R.Type) R.Value {
-	switch t.Kind() {
+func (fr *Frame) AdaptToValue(a T, ty R.Type) R.Value {
+	switch ty.Kind() {
 	case R.Bool:
 		return R.ValueOf(a.Truth())
 	case R.Int:
@@ -72,13 +72,13 @@ func AdaptToValue(a T, t R.Type) R.Value {
 	case R.Array:
 	case R.Chan:
 		if a.IsEmpty() {
-			log.Printf("AdaptToValue: Nil for Chan (%s), due to IsEmpty.", t)
-			return R.Zero(t)
+			log.Printf("AdaptToValue: Nil for Chan (%s), due to IsEmpty.", ty)
+			return R.Zero(ty)
 		}
 	case R.Func:
 		if a.IsEmpty() {
-			log.Printf("AdaptToValue: Nil for Func (%s), due to IsEmpty.", t)
-			return R.Zero(t)
+			log.Printf("AdaptToValue: Nil for Func (%s), due to IsEmpty.", ty)
+			return R.Zero(ty)
 		}
 		v := R.ValueOf(a)
 		if v.Kind() == R.Func {
@@ -86,14 +86,31 @@ func AdaptToValue(a T, t R.Type) R.Value {
 		}
 	case R.Interface:
 		if a.IsEmpty() {
-			log.Printf("AdaptToValue: Nil for Interface (%s), due to IsEmpty.", t)
-			return R.Zero(t)
+			log.Printf("AdaptToValue: Nil for Interface (%s), due to IsEmpty.", ty)
+			return R.Zero(ty)
+		}
+		// Very special case of T: Return arg as a Value.
+		/*
+		var nilT T
+		nilTType := R.TypeOf(nilT)
+		if ty == nilTType {
+			return R.ValueOf(a)
+		}
+		*/
+		if ty.String() == "terp.T" {
+			return R.ValueOf(a)
 		}
 	case R.Map:
 	case R.Ptr:
 		if a.IsEmpty() {
-			log.Printf("AdaptToValue: Nil for Ptr (%s), due to IsEmpty.", t)
-			return R.Zero(t)
+			log.Printf("AdaptToValue: Nil for Ptr (%s), due to IsEmpty.", ty)
+			return R.Zero(ty)
+		}
+		// Very special case of *Frame:
+		framePtrValue := R.ValueOf(fr)
+		framePtrType := framePtrValue.Type()
+		if ty == framePtrType {
+			return framePtrValue
 		}
 	case R.Slice:
 	case R.String:
@@ -103,7 +120,7 @@ func AdaptToValue(a T, t R.Type) R.Value {
 	// We haven't checked this is correct;
 	//  cmdCall will reject it, if it won't work.
 	// But maybe we can do better, so log it.
-	log.Printf("AdaptToValue: Default: for type <%s>: %s", t, Show(a))
+	log.Printf("AdaptToValue: Default: for type <%s>: %s", ty, Show(a))
 	return R.ValueOf(a.Raw())
 }
 
@@ -193,13 +210,13 @@ func commonCall(fr *Frame, funcName string, fn R.Value, args []T) T {
 		} else {
 			target = ty.In(i)
 		}
-		pp[i] = AdaptToValue(p, target)
+		pp[i] = fr.AdaptToValue(p, target)
 		log.Printf("........ passing [%d] %s as (%s) %s", i, Show(p), pp[i].Kind().String(), pp[i].Type().String())
 
 	}
 
 	// Call it.
-	log.Printf("...(calling)...  %#v  (  %#v  )", funcName, pp)
+	log.Printf("...(calling)...  %v  (  %v  )", funcName, pp)
 	xx := fn.Call(pp)
 	log.Printf("...(called)...")
 
@@ -269,7 +286,7 @@ func tcmdSetf(fr *Frame, argv []T) T {
 	}
 
 	x := argv[n-1] // The value to be assigned.
-	zv := AdaptToValue(x, loc.Type())
+	zv := fr.AdaptToValue(x, loc.Type())
 	log.Printf(".... Reflect Set loc <%s> %s = %s", zv.Kind(), zv.Type(), Show(x))
 	loc.Set(zv)
 	return x

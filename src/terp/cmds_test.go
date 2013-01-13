@@ -204,13 +204,14 @@ var cmdTests = `
   must "foo 3 foo 2 foo 1 foo 0" [F "foo"]
 
   proc demo1 { a b c d e } { list $a $b $c $d $e }
-  interp-new S1
-  interp-alias S1 demo2 "demo1 1 2 3"
-  must [list 1 2 3 x y] [interp-eval S1 {demo2 x y}]
+  set sub [interp]
+  send $sub Alias - demo2 "demo1 1 2 3"
+  must [list 1 2 3 x y] [send $sub Eval {demo2 x y}]
 
-  must 5 [interp-eval S1 {set x 5}]
-  must 9 [interp-eval-in-clone S1 {set x 9; set x}]
-  must 5 [interp-eval-in-clone S1 {set x}]
+  must 5 [send $sub Eval {set x 5}]
+  set clone [send $sub Clone]
+  must 9 [send $clone Eval {set x 9; set x}]
+  must 5 [send $sub Eval {set x}]
 
   proc helloArgs { x args } {
   	return [llen $args]

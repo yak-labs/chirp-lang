@@ -59,6 +59,7 @@ type Global struct {
 	MixinSerial         int    // Increment before defining Mixin.
 	MixinNumberDefining int    // Set nonzero while defining Mixin.
 	MixinNameDefining   string // Set nonzero while defining Mixin.
+	isSafe	bool               // Set true for safe subinterpreter.
 
 	Mu sync.Mutex
 }
@@ -138,6 +139,12 @@ func New() *Frame {
 	g.Fr.initExpr()
 	g.Fr.initDbCmds()
 	return &g.Fr
+}
+
+func NewSafe() *Frame {
+	fr := New()
+	fr.G.isSafe = true
+	return fr
 }
 
 func (fr *Frame) NewFrame() *Frame {
@@ -281,7 +288,7 @@ func (fr *Frame) Apply(argv []T) T {
 		panic(Sprintf("Command must be a string: %s", Show(head)))
 	}
 
-	if len(cmdName.s) > 1 && cmdName.s[0] == '/' {
+	if !fr.G.isSafe && len(cmdName.s) > 1 && cmdName.s[0] == '/' {
 		call := []T{MkString("call"), head}
 		call = append(call, argv[1:]...) // Append all but first of argv.
 		return fr.Apply(call)            // Recurse.
@@ -424,7 +431,8 @@ func MkT(a interface{}) T {
 	// Very specific type cases.
 	switch x := a.(type) {
 	case T:
-		panic(Sprintf("Calling MkT() on a T: <%T> <%#v> %s", x, x, x.String()))
+		// panic(Sprintf("Calling MkT() on a T: <%T> <%#v> %s", x, x, x.String()))
+		return x
 	case R.Value:
 		// Some day we'll allow this, but for now, flag an error.
 		panic(Sprintf("Calling MkT() on a R.Value: <%T> <%#v> %s", x, x, x.String()))

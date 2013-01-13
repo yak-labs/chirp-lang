@@ -56,10 +56,7 @@ func (fr *Frame) initBuiltins() {
 	Builtins["hset"] = cmdHSet   // FIXME: temporary: Use setf
 	Builtins["hdel"] = cmdHDel   // FIXME: temporary: Use delf
 	Builtins["hkeys"] = cmdHKeys // FIXME: temporary: use keys
-	Builtins["interp-new"] = cmdInterpNew
-	Builtins["interp-alias"] = cmdInterpAlias
-	Builtins["interp-eval"] = cmdInterpEval
-	Builtins["interp-eval-in-clone"] = cmdInterpEvalClone
+	Builtins["interp"] = cmdInterp
 	Builtins["incr"] = cmdIncr
 	Builtins["append"] = cmdAppend
 	Builtins["error"] = cmdError
@@ -90,6 +87,12 @@ func MkChainingBinaryFlopCmd(fr *Frame, starter float64, flop BinaryFlop) Comman
 			z = flop(z, a.Float())
 		}
 		return MkFloat(z)
+	}
+}
+
+func Arg0(argv []T) {
+	if len(argv) != 1 {
+		panic(Sprintf("Expected 0 arguments, but got argv=%s", Showv(argv)))
 	}
 }
 
@@ -757,31 +760,20 @@ func cmdHKeys(fr *Frame, argv []T) T {
 	return MkList(z)
 }
 
-func cmdInterpNew(fr *Frame, argv []T) T {
-	name := Arg1(argv)
-	nameStr := name.String()
-
-	if _, ok := fr.G.SubTerps[nameStr]; ok {
-		panic("Subterp already exists.")
-	}
-
-	// TODO - restrict our subinterp to only safe go functions.
-	fr.G.SubTerps[nameStr] = New().G
-
-	return Empty
+type SafeSubInterp struct {
+	fr	*Frame // Private member.
 }
 
-func cmdInterpAlias(fr *Frame, argv []T) T {
-	name, newcmdname, prefix := Arg3(argv)
-	nameStr := name.String()
-	newcmdnameStr := newcmdname.String()
-
-	var sub *Global
-	var ok bool
-	if sub, ok = fr.G.SubTerps[nameStr]; !ok {
-		panic("Subterp does not exist.")
+func cmdInterp(fr *Frame, argv []T) T {
+	Arg0(argv)
+	
+	z := &SafeSubInterp{
+		fr: NewSafe(),
 	}
+	return MkT(z)
+}
 
+func (ssi *SafeSubInterp) Alias(fr *Frame, newcmdnameStr string, prefix T) {
 	cmd := func(fr2 *Frame, argv2 []T) (result T) {
 		defer func() {
 			if r := recover(); r != nil {
@@ -802,11 +794,6 @@ func cmdInterpAlias(fr *Frame, argv []T) T {
 			}
 		}()
 
-		if argv2 == nil {
-			// Debug Data, if invoked with nil argv2.
-			return MkList(argv)
-		}
-
 		z := make([]T, 0, 4)
 		z = append(z, prefix.List()...)
 		z = append(z, argv2[1:]...)
@@ -814,53 +801,26 @@ func cmdInterpAlias(fr *Frame, argv []T) T {
 		return fr.Apply(z)
 	}
 
-	if _, ok := sub.Cmds[newcmdnameStr]; ok {
+	if _, ok := ssi.fr.G.Cmds[newcmdnameStr]; ok {
 		panic("The command already exists within that subinterp.")
 	}
 
 	node := &CmdNode{
 		Fn: cmd,
 	}
-	log.Printf("%s: NEW Interp-Alias NODE %s: make %#v", argv[0], newcmdnameStr, node)
-	sub.Cmds[newcmdnameStr] = node
-
-	return Empty
+	log.Printf("NEW Interp-Alias NODE %s: make %#v", newcmdnameStr, node)
+	ssi.fr.G.Cmds[newcmdnameStr] = node
 }
 
-func cmdInterpEval(fr *Frame, argv []T) T {
-	name, scripts := Arg1v(argv)
-	nameStr := name.String()
-
-	var sub *Global
-	var ok bool
-	if sub, ok = fr.G.SubTerps[nameStr]; !ok {
-		panic("Subterp does not exist.")
-	}
-
-	var z T = Empty
-	for _, script := range scripts {
-		z = sub.Fr.Eval(script)
-	}
-
-	return z
+func (ssi *SafeSubInterp) Eval(script T) T {
+	return ssi.fr.Eval(script)
 }
 
-func cmdInterpEvalClone(fr *Frame, argv []T) T {
-	name, scripts := Arg1v(argv)
-	nameStr := name.String()
-
-	var sub *Global
-	var ok bool
-	if sub, ok = fr.G.SubTerps[nameStr]; !ok {
-		panic("Subterp does not exist.")
+func (ssi *SafeSubInterp) Clone() *SafeSubInterp {
+	cloned := ssi.fr.G.Clone()
+	z := &SafeSubInterp{
+		fr: &cloned.Fr,
 	}
-
-	cloned := sub.Clone()
-	var z T = Empty
-	for _, script := range scripts {
-		z = cloned.Fr.Eval(script)
-	}
-
 	return z
 }
 

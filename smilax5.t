@@ -52,33 +52,34 @@ proc Route { path query } {
 	/fmt/Fprintf $W {path: %s | query: %s} $path $query
 }
 
+proc RxCompile { pattern } {
+	/regexp/MustCompile $pattern
+}
+
 set DB [db-scan ./data]
 
 proc ZygoteHandler {w r} {
-	set dirs [ListDirs root]
-	interp-eval-in-clone zygote [
-		list set W $w
-	] [
-		list set R $r
-	] [
-		list Route [getf $r URL Path] [send [getf $r URL] Query]
-	]
+	set clone [send $Zygote Clone]
+	send $clone Eval [ list set W $w ]
+	send $clone Eval [ list set R $r ]
+	send $clone Eval [ list Route [getf $r URL Path] [send [getf $r URL] Query] ]
 }
 
-interp-new zygote
-interp-alias zygote rem rem
-interp-alias zygote Route Route
-interp-alias zygote ListDirs ListDirs
-interp-alias zygote ListFiles ListFiles
-interp-alias zygote ListRevs ListRevs
-interp-alias zygote ReadFile ReadFile
-interp-alias zygote WriteFile WriteFile
-interp-alias zygote DB "set DB"
+set Zygote [interp]
+send $Zygote Alias - rem rem
+send $Zygote Alias - Route Route
+send $Zygote Alias - ListDirs ListDirs
+send $Zygote Alias - ListFiles ListFiles
+send $Zygote Alias - ListRevs ListRevs
+send $Zygote Alias - ReadFile ReadFile
+send $Zygote Alias - WriteFile WriteFile
+send $Zygote Alias - RxCompile RxCompile
+send $Zygote Alias - DB "set DB"
 
 rem -- Load our mixins into our sub-interpreter
 set mixins [ListFiles root Mixin]
 foreach m $mixins {
-	interp-eval zygote [list mixin $m [ReadFile root Mixin $m]]
+	send $Zygote Eval [list mixin $m [ReadFile root Mixin $m]]
 }
 
 /net/http/HandleFunc / [http_handler ZygoteHandler]
