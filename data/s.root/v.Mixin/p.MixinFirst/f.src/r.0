@@ -8,7 +8,7 @@ proc ModeHtml {} {
 	send [send $W Header] Set "Content-Type" "text/html"
 }
 
-set WikiFile_rx [RxCompile {^([A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*)[.]wik$}]
+set WikiPage_rx [RxCompile {^([A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*)$}]
 
 proc Route { path query } {
 	send $R ParseForm
@@ -50,17 +50,17 @@ proc Route { path query } {
 }
 
 proc Verb/view {} {
-	set c [ReadFile root $Volume $Page.wik]
+	set c [ReadFile root $Volume $Page wiki]
 
 	Puts $c
 }
 
 proc Verb/list {} {
 	Puts "<ul>"
-	set files [ListFiles root $Volume]
-	foreach f $files {
-		set m [send $WikiFile_rx FindStringSubmatch $f]
-		if {[set m]} {
+	set pages [ListPages root $Volume]
+	foreach p $pages {
+		set m [send $WikiPage_rx FindStringSubmatch $p]
+		if {[notnull $m]} {
 			set page [lat $m 1]
 			Puts "<li><a href=$page.view>$page</a></li>"
 		}
@@ -77,11 +77,11 @@ proc Verb/edit {} {
 		Puts "Content2 value: $content2 <br>"
 
 	rem if {[set content]} {
-		WriteFile root $Volume $Page.wik $content
+		WriteFile root $Volume $Page wiki $content
 	}
 	}
 
-	set c [ReadFile root $Volume $Page.wik]
+	set c [ReadFile root $Volume $Page wiki]
 
 	Puts "<form method=POST action=/$Volume/$Page.edit>"
 	Puts "<textarea name=text>$c</textarea>"

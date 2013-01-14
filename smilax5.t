@@ -3,48 +3,87 @@ proc rem {args} {
 	return ""
 }
 
-set InternalFileName_rx [/regexp/MustCompile {^[a-z][.]([-A-Za-z0-9_.]+)$}]
+rem {
+# New Storage Hierarchy:
+# s: site (old bundle)
+# v: volume (old dir)
+# p: page (old file)
+# f: file.  Special files: "wiki", "src", "db".
+# r: revision; also v: varient.
+}
 
-yproc ListDirs { bundle } {
-	foreach f [/io/ioutil/ReadDir "./data/b.$bundle"] {
+set SiteNameRx     [/regexp/MustCompile {^[a-z][a-z0-9_]*$}]
+set VolNameRx      [/regexp/MustCompile {^[A-Z]+[a-z0-9_]*$}]
+set PageNameRx     [/regexp/MustCompile {^[A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*$}]
+set FileNameRx     [/regexp/MustCompile {^[A-Za-z0-9_.@%~][-A-Za-z0-9_.@%~]*[.][-A-Za-z0-9_.@%~]+$}]
+
+set SiteDirRx     [/regexp/MustCompile {^s[.]([-A-Za-z0-9_.]+)$}]
+set VolDirRx      [/regexp/MustCompile {^v[.]([-A-Za-z0-9_.]+)$}]
+set PageDirRx     [/regexp/MustCompile {^p[.]([-A-Za-z0-9_.]+)$}]
+set FileDirRx     [/regexp/MustCompile {^f[.]([-A-Za-z0-9_.]+)$}]
+set RevFileRx     [/regexp/MustCompile {^r[.]([-A-Za-z0-9_.]+)$}]
+set VarientFileRx [/regexp/MustCompile {^v[.]([-A-Za-z0-9_.]+)$}]
+
+yproc ListSites { } {
+	foreach f [/io/ioutil/ReadDir "data"] {
 		set fname [send $f Name]
-		set m [send $InternalFileName_rx FindStringSubmatch $fname]
-		if {[set m]} {
+		set m [send $SiteDirRx FindStringSubmatch $fname]
+		if {[notnull $m]} {
 			yield [lat $m 1]
 		}
 	}
 }
 
-yproc ListFiles { bundle dir } {
-	foreach f [/io/ioutil/ReadDir "./data/b.$bundle/d.$dir"] {
+yproc ListVols { site } {
+	foreach f [/io/ioutil/ReadDir "data/s.$site"] {
 		set fname [send $f Name]
-		set m [send $InternalFileName_rx FindStringSubmatch $fname]
-		if {[set m]} {
+		set m [send $VolDirRx FindStringSubmatch $fname]
+		if {[notnull $m]} {
 			yield [lat $m 1]
 		}
 	}
 }
 
-yproc ListRevs { bundle dir file } {
-	foreach f [/io/ioutil/ReadDir "./data/b.$bundle/d.$dir/f.$file"] {
+yproc ListPages { site vol } {
+	foreach f [/io/ioutil/ReadDir "data/s.$site/v.$vol"] {
 		set fname [send $f Name]
-		set m [send $InternalFileName_rx FindStringSubmatch $fname]
-		if {[set m]} {
+		set m [send $PageDirRx FindStringSubmatch $fname]
+		if {[notnull $m]} {
 			yield [lat $m 1]
 		}
 	}
 }
 
-proc ReadFile { bundle dir file } {
-	set revs [concat [ListRevs $bundle $dir $file]]
+yproc ListFiles { site vol page } {
+	foreach f [/io/ioutil/ReadDir "data/s.$site/v.$vol/p.$page"] {
+		set fname [send $f Name]
+		set m [send $FileDirRx FindStringSubmatch $fname]
+		if {[notnull $m]} {
+			yield [lat $m 1]
+		}
+	}
+}
+
+yproc ListRevs { site vol page file } {
+	foreach f [/io/ioutil/ReadDir "data/s.$site/v.$vol/p.$page/f.$file"] {
+		set fname [send $f Name]
+		set m [send $RevFileRx FindStringSubmatch $fname]
+		if {[notnull $m]} {
+			yield [lat $m 1]
+		}
+	}
+}
+
+proc ReadFile { site vol page file } {
+	set revs [concat [ListRevs $site $vol $page $file]]
 	set rev [lat $revs 0]
 
-	return [/io/ioutil/ReadFile "./data/b.$bundle/d.$dir/f.$file/r.$rev"]
+	return [/io/ioutil/ReadFile "data/s.$site/v.$vol/p.$page/f.$file/r.$rev"]
 }
 
-proc WriteFile { bundle dir file contents } {
-	/os/MkDirAll "./data/b.$bundle/d.$dir/f.$file" 448
-	/io/ioutil/WriteFile "./data/b.$bundle/d.$dir/f.$file/r.0" $contents 384
+proc WriteFile { site vol page file contents } {
+	/os/MkDirAll "data/s.$site/v.$vol/p.$page/f.$file" 448
+	/io/ioutil/WriteFile "data/s.$site/v.$vol/p.$page/f.$file/r.0" $contents 384
 }
 
 proc Route { path query } {
@@ -56,7 +95,7 @@ proc RxCompile { pattern } {
 	/regexp/MustCompile $pattern
 }
 
-set DB [db-scan ./data]
+set DB [db-scan data]
 
 proc ZygoteHandler {w r} {
 	set clone [send $Zygote Clone]
@@ -68,7 +107,9 @@ proc ZygoteHandler {w r} {
 set Zygote [interp]
 send $Zygote Alias - rem rem
 send $Zygote Alias - Route Route
-send $Zygote Alias - ListDirs ListDirs
+send $Zygote Alias - ListSites ListSites
+send $Zygote Alias - ListVols ListVols
+send $Zygote Alias - ListPages ListPages
 send $Zygote Alias - ListFiles ListFiles
 send $Zygote Alias - ListRevs ListRevs
 send $Zygote Alias - ReadFile ReadFile
@@ -77,9 +118,9 @@ send $Zygote Alias - RxCompile RxCompile
 send $Zygote Alias - DB "set DB"
 
 rem -- Load our mixins into our sub-interpreter
-set mixins [ListFiles root Mixin]
+set mixins [ListPages root Mixin]
 foreach m $mixins {
-	send $Zygote Eval [list mixin $m [ReadFile root Mixin $m]]
+	send $Zygote Eval [list mixin $m [ReadFile root Mixin $m src]]
 }
 
 /net/http/HandleFunc / [http_handler ZygoteHandler]

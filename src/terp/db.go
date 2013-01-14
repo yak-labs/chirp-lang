@@ -3,6 +3,7 @@ package terp
 import (
 	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -26,7 +27,7 @@ var ColumnSplit_rx = regexp.MustCompile("^([A-Za-z0-9_]+)([:](.*))$")
 
 var InternalFileName_rx = regexp.MustCompile("^[a-z][.]([-A-Za-z0-9_.]+)$")
 
-func ParseFileToRecords(fname string, bundle, volume, page string, z []Record) []Record {
+func ParseFileToRecords(fname string, site, volume, page string, z []Record) []Record {
 	log.Printf("ParseFile %s", fname)
 	all, err := ioutil.ReadFile(fname)
 	if err != nil {
@@ -46,7 +47,7 @@ func ParseFileToRecords(fname string, bundle, volume, page string, z []Record) [
 			m := ColumnSplit_rx.FindStringSubmatch(words[1].String())
 			if len(m) > 0 {
 				r := Record{
-					Bundle: bundle,
+					Bundle: site,
 					Field: m[1],
 					Volume: volume,
 					Page: page,
@@ -61,29 +62,29 @@ func ParseFileToRecords(fname string, bundle, volume, page string, z []Record) [
 	return z
 }
 
-func ScanBundles(dataDir string) []Record {
-	log.Printf("ScanBundles %s", dataDir)
+func ScanSites(dataDir string) []Record {
+	log.Printf("ScanSites %s", dataDir)
 	var z []Record = make([]Record, 0, 4)
 
-	bundles, err := ioutil.ReadDir(dataDir) 
+	sites, err := ioutil.ReadDir(dataDir) 
 	if err != nil {
 		panic(err)
 	}
 
-	for _, b := range bundles {
-		m := InternalFileName_rx.FindStringSubmatch(b.Name())
-		if b.IsDir() && len(m) > 0 {
-			bundle := m[1]
-			z = ScanVolumes(filepath.Join(dataDir, b.Name()), bundle, z)
+	for _, f := range sites {
+		m := InternalFileName_rx.FindStringSubmatch(f.Name())
+		if f.IsDir() && len(m) > 0 {
+			site := m[1]
+			z = ScanVolumes(filepath.Join(dataDir, f.Name()), site, z)
 		}
 	}
 
 	return z
 }
 
-func ScanVolumes(bundleDir string, bundle string, z []Record) []Record {
-	log.Printf("ScanVolumes %s %s", bundleDir, bundle)
-	volumes, err := ioutil.ReadDir(bundleDir)
+func ScanVolumes(siteDir string, site string, z []Record) []Record {
+	log.Printf("ScanVolumes %s %s", siteDir, site)
+	volumes, err := ioutil.ReadDir(siteDir)
 	if err != nil {
 		panic(err)
 	}
@@ -92,14 +93,14 @@ func ScanVolumes(bundleDir string, bundle string, z []Record) []Record {
 		m := InternalFileName_rx.FindStringSubmatch(v.Name())
 		if v.IsDir() && len(m) > 0 {
 			volume := m[1]
-			z = ScanPages(filepath.Join(bundleDir, v.Name()), bundle, volume, z)
+			z = ScanPages(filepath.Join(siteDir, v.Name()), site, volume, z)
 		}
 	}
 	return z
 }
 
-func ScanPages(volumeDir string, bundle, volume string, z []Record) []Record {
-	log.Printf("ScanPages %s %s %s", volumeDir, bundle, volume)
+func ScanPages(volumeDir string, site, volume string, z []Record) []Record {
+	log.Printf("ScanPages %s %s %s", volumeDir, site, volume)
 	pages, err := ioutil.ReadDir(volumeDir)
 	if err != nil {
 		panic(err)
@@ -108,20 +109,27 @@ func ScanPages(volumeDir string, bundle, volume string, z []Record) []Record {
 	for _, p := range pages {
 		m := InternalFileName_rx.FindStringSubmatch(p.Name())
 		if p.IsDir() && len(m) > 0 {
-			fname := filepath.Join(volumeDir, p.Name(), "r.0")
+			fname := filepath.Join(volumeDir, p.Name(), "f.db", "r.0")
 			page := m[1]
 
-			z = ParseFileToRecords(fname, bundle, volume, page, z)
+			// Test whether a db file exists.
+			fd, fdErr := os.Open(fname)
+			if fdErr != nil {
+				continue  // Skip if cannot open.
+			}
+			fd.Close()  // Close the test.
+
+			z = ParseFileToRecords(fname, site, volume, page, z)
 		}
 	}
 	return z
 }
 
-func SelectLike(db []Record, bundle, field, volume, page, suffix, value string) []Record {
+func SelectLike(db []Record, site, field, volume, page, suffix, value string) []Record {
 	var z []Record = make([]Record, 0, 4)
 
 	for _, r := range db {
-		if !MatchTailStar(bundle, r.Bundle) {
+		if !MatchTailStar(site, r.Bundle) {
 			continue
 		}
 		if !MatchTailStar(field, r.Field) {
@@ -166,11 +174,11 @@ func MatchTailStar(pattern, str string) bool {
 func cmdDbScan(fr *Frame, argv []T) T {
 	dataDir := Arg1(argv)
 	
-	return MkT(ScanBundles(dataDir.String()))
+	return MkT(ScanSites(dataDir.String()))
 }
 
 func cmdDbSelectLike(fr *Frame, argv []T) T {
-	database, bundle, field, volume, page, suffix, value := Arg7(argv)
+	database, site, field, volume, page, suffix, value := Arg7(argv)
 
 	//var db []Record = make([]Record, 0, 4)
 	//for _, r := range database.List() {
@@ -181,7 +189,7 @@ func cmdDbSelectLike(fr *Frame, argv []T) T {
 	
 	return MkT(SelectLike(
 		db,
-		bundle.String(),
+		site.String(),
 		field.String(),
 		volume.String(),
 		page.String(),
