@@ -36,6 +36,8 @@ func (fr *Frame) initBuiltins() {
 	Builtins["ls"] = cmdLs
 	Builtins["slen"] = cmdSLen
 	Builtins["llen"] = cmdLLen
+	Builtins["null"] = cmdNull
+	Builtins["notnull"] = cmdNotNull
 	Builtins["list"] = cmdList
 	Builtins["sat"] = cmdSAt // a.k.a. string index
 	Builtins["lat"] = cmdLAt // a.k.a. lindex
@@ -438,6 +440,16 @@ func cmdSLen(fr *Frame, argv []T) T {
 func cmdLLen(fr *Frame, argv []T) T {
 	a := Arg1(argv)
 	return MkInt(int64(len(a.List())))
+}
+
+func cmdNull(fr *Frame, argv []T) T {
+	a := Arg1(argv)
+	return MkBool(a.IsEmpty())
+}
+
+func cmdNotNull(fr *Frame, argv []T) T {
+	a := Arg1(argv)
+	return MkBool(!a.IsEmpty())
 }
 
 func cmdList(fr *Frame, argv []T) T {

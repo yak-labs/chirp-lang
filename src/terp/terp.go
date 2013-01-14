@@ -641,7 +641,8 @@ func (t terpGenerator) Truth() bool {
 	panic("not implemented on generator (terpGenerator)")
 }
 func (t terpGenerator) IsEmpty() bool {
-	panic("not implemented on generator (terpGenerator)")
+	hd, _ := t.HeadTail()
+	return hd == nil
 }
 func (t terpGenerator) IsPreservedByList() bool { return true }
 func (t terpGenerator) List() []T {

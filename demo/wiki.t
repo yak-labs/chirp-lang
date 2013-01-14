@@ -47,11 +47,11 @@ proc List {w r} {
 	foreach f [/io/ioutil/ReadDir .] {
 		set fname [send $f Name]
 		set m [send $ValidName FindStringSubmatch $fname]
-		if {[set m]} {
+		if {[null $m]} {
+			/fmt/Fprintf $w {<li> Invalid Filename: %s} $fname
+		} else {
 			set name [lat $m 1]
 			/fmt/Fprintf $w {<li> <a href="/view?page=%s">"%s"</a> for filename %s} $name $name $fname
-		} else {
-			/fmt/Fprintf $w {<li> Invalid Filename: %s} $fname
 		}
 	}
 	/fmt/Fprintf $w "</ul>"
