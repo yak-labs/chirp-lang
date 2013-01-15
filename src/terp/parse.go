@@ -368,6 +368,8 @@ func consumeBackslashEscaped(s string, i int) (byte, int) {
 		return '\r', i + 2
 	case 't':
 		return '\t', i + 2
+	case '"', '\\', '{', '}', ';', ' ', '\t', '\r', '\n':
+		return s[i+1], i + 2
 	}
 	if s[i+1] < '0' || s[i+1] > '7' {
 		panic(Sprintf("First character after backslash is not octal %q.", s[i:i+2]))
