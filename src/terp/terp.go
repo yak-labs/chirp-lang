@@ -138,6 +138,7 @@ func New() *Frame {
 	g.Fr.initReflect()
 	g.Fr.initExpr()
 	g.Fr.initDbCmds()
+	g.Fr.initHt()
 	return &g.Fr
 }
 
@@ -528,7 +529,7 @@ func MkT(a interface{}) T {
 		}
 
 	case R.String:
-		return MkString(v.Interface().(string))
+		return MkString(v.String())
 	case R.Struct:
 	case R.UnsafePointer:
 	}

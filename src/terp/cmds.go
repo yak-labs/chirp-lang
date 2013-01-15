@@ -98,6 +98,13 @@ func Arg0(argv []T) {
 	}
 }
 
+func Arg0v(argv []T) []T {
+	if len(argv) < 1 {
+		panic(Sprintf("Expected at least 0 arguments, but got argv=%s", Showv(argv)))
+	}
+	return argv[1:]
+}
+
 func Arg1(argv []T) T {
 	if len(argv) != 1+1 {
 		panic(Sprintf("Expected 1 arguments, but got argv=%s", Showv(argv)))

@@ -280,6 +280,13 @@ var cmdTests = `
 	set arr(z) n
 	must foo $arr(o$arr(z)e) 
 	must 1 [catch {list $arr(aaa$arr(z)zzz) } what]
+
+	set link [ tag a  href http://www.foo.com/bar  alt FooBar  click ]
+	set ht [ ht [ht-raw "&lt;"] <One> \040 Two&Three \040 $link ]
+	set expect {&lt;&lt;One&gt; Two&amp;Three <a href="http://www.foo.com/bar" alt="FooBar">click</a
+>}
+	must $expect [send $ht Html]
+
 `
 
 func TestFoo(a *testing.T) {
