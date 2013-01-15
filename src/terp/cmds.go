@@ -887,10 +887,12 @@ func cmdError(fr *Frame, argv []T) T {
 
 var stringEnsemble = []EnsembleItem{
 	EnsembleItem{Name: "range", Cmd: cmdStringRange},
+	EnsembleItem{Name: "slice", Cmd: cmdStringSlice},
 	EnsembleItem{Name: "first", Cmd: cmdStringFirst},
 	EnsembleItem{Name: "index", Cmd: cmdStringIndex},
 }
 
+// Follows Tcl's string range spec.
 func cmdStringRange(fr *Frame, argv []T) T {
 	str, first, last := Arg3(argv)
 
@@ -898,39 +900,87 @@ func cmdStringRange(fr *Frame, argv []T) T {
 	n := len(strS)
 	firstI := int(first.Int()) // The index of the first character to include.
 
+	keep := 1 // Tcl's string range includes the character indexed by last
 	var lastI int // The index of the last character to include.
 	if last.IsEmpty() || last.String() == "end" {
-		lastI = n - 1
+		lastI = n - keep
 	} else {
 		lastI = int(last.Int())
 	}
 
-	// Last may be negative, like in Python.
-	if lastI < 0 {
-		lastI += n - 1
+	low, high, ok := slicer(n, firstI, lastI, keep)
+	if !ok {
+		return Empty
 	}
 
+	return MkString(strS[low:high])
+}
+
+// Follows golang's slice spec.
+func cmdStringSlice(fr *Frame, argv []T) T {
+	str, first, last := Arg3(argv)
+
+	strS := str.String()
+	n := len(strS)
+	firstI := int(first.Int()) // The index of the first character to include.
+
+	var lastI int // The number characters to include.
+	if last.IsEmpty() || last.String() == "end" {
+		lastI = n
+	} else {
+		lastI = int(last.Int())
+	}
+
+	low, high, ok := slicer(n, firstI, lastI, 0)
+	if !ok {
+		return Empty
+	}
+
+	return MkString(strS[low:high])
+}
+
+// Slicer will find the low and high values for slicing a golang slice.
+// http://golang.org/ref/spec#Slices
+//
+// Parameters:
+// length - The length of the slice.
+// first  - The index of the first element to take.
+// last   - The high value for the slice.
+//          If keep is 0, this will return a low/high value that will satisfy
+//          0 <= low <= high <= length, like in go.
+// keep   - The number of elements to keep.
+//
+// Returns:
+// low    - The low value for the slice.
+// high   - The high value for the slice.
+// ok     - false if there is an invalid request.
+func slicer(length int, first, last int, keep int) (int, int, bool) {
 	// If first is too small, Zero.
-	if firstI < 0 {
-		firstI = 0
+	if first < 0 {
+		first = 0
 	}
 
 	// If first is too large, Empty.
-	if firstI > n {
-		return Empty
+	if first > length {
+		return -1, -1, false
+	}
+
+	// Last may be negative, like in Python.
+	if last < 0 {
+		last += length - keep
 	}
 
 	// If last is too small, Empty.
-	if lastI < firstI {
-		return Empty
+	if last < first {
+		return -1, -1, false
 	}
 
 	// If last is too large, End.
-	if lastI >= n {
-		lastI = n - 1
+	if last > length - keep {
+		last = length - keep
 	}
 
-	return MkString(strS[firstI : lastI+1])
+	return first, last + keep, true
 }
 
 // TODO: Add optional argument "startIndex"

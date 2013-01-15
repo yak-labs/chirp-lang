@@ -238,6 +238,18 @@ var cmdTests = `
   must j [string range abcdefghij 9 10]
 
 
+  must abcdef [string slice abcdefghij -99 6]
+  must abcdefghij [string slice abcdefghij -99 99]
+  must "" [string slice abcdefghij 3 2]
+  must "" [string slice abcdefghij 3 3]
+  must d [string slice abcdefghij 3 4]
+  must def [string slice abcdefghij 3 6]
+  must defghij [string slice abcdefghij 3 ""]
+  must defghij [string slice abcdefghij 3 end]
+  must defgh [string slice abcdefghij 3 -2]
+  must j [string slice abcdefghij 9 10]
+
+
 	set iincr 0
 	must 1 [incr iincr 1]
 	must 2 [incr iincr 1]
