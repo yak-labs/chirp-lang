@@ -10,7 +10,7 @@ import (
 )
 
 type Record struct {
-	Bundle	string
+	Site	string
 	Field	string
 	Volume	string
 	Page	string
@@ -47,7 +47,7 @@ func ParseFileToRecords(fname string, site, volume, page string, z []Record) []R
 			m := ColumnSplit_rx.FindStringSubmatch(words[1].String())
 			if len(m) > 0 {
 				r := Record{
-					Bundle: site,
+					Site: site,
 					Field: m[1],
 					Volume: volume,
 					Page: page,
@@ -129,7 +129,7 @@ func SelectLike(db []Record, site, field, volume, page, suffix, value string) []
 	var z []Record = make([]Record, 0, 4)
 
 	for _, r := range db {
-		if !MatchTailStar(site, r.Bundle) {
+		if !MatchTailStar(site, r.Site) {
 			continue
 		}
 		if !MatchTailStar(field, r.Field) {
