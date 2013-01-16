@@ -1,16 +1,11 @@
+# smilax5.t -- the trusted (unsafe) part of Smilax5, that configs & launches the safe interps.
 
-proc rem {args} {
-	return ""
-}
-
-rem {
-# New Storage Hierarchy:
+#### New Storage Hierarchy:
 # s: site (old bundle)
 # v: volume (old dir)
 # p: page (old file)
 # f: file.  Special files: "wiki", "src", "db".
 # r: revision; also v: varient.
-}
 
 set SiteNameRx     [/regexp/MustCompile {^[a-z][a-z0-9_]*$}]
 set VolNameRx      [/regexp/MustCompile {^[A-Z]+[a-z0-9_]*$}]
@@ -105,7 +100,6 @@ proc ZygoteHandler {w r} {
 }
 
 set Zygote [interp]
-send $Zygote Alias - rem rem
 send $Zygote Alias - Route Route
 send $Zygote Alias - ListSites ListSites
 send $Zygote Alias - ListVols ListVols
@@ -117,7 +111,7 @@ send $Zygote Alias - WriteFile WriteFile
 send $Zygote Alias - RxCompile RxCompile
 send $Zygote Alias - DB "set DB"
 
-rem -- Load our mixins into our sub-interpreter
+# -- Load our mixins into our sub-interpreter
 set mixins [ListPages root Mixin]
 foreach m $mixins {
 	send $Zygote Eval [list mixin $m [ReadFile root Mixin $m src]]

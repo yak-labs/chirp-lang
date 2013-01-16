@@ -4,6 +4,7 @@ import (
 	"bytes"
 	. "fmt"
 	"log"
+	"strings"
 )
 
 func White(ch uint8) bool {
@@ -296,6 +297,7 @@ func (fr *Frame) ParseCmd(str string) (zwords []T, s string) {
 	zwords = make([]T, 0, 4)
 	var c uint8
 
+Restart:
 	// skip space or ;
 	i := 0
 	n := len(s)
@@ -314,11 +316,11 @@ Loop:
 		switch s[0] {
 		case ']':
 			break Loop
-		case '{':
+		case '{': // stupid vim: '}'
 			newresult, rest := fr.ParseCurly(s)
 			zwords = append(zwords, newresult)
 			s = rest
-		case '[':
+		case '[': // stupid vim: ']'
 			newresult, rest := fr.ParseSquare(s)
 			zwords = append(zwords, newresult)
 			s = rest
@@ -326,6 +328,17 @@ Loop:
 			newresult, rest := fr.ParseQuote(s)
 			zwords = append(zwords, newresult)
 			s = rest
+		case '#':
+			if len(zwords)==0 {
+				eol := strings.Index(s, "\n")
+				if eol >= 0 {
+					s = s[eol:]
+					goto Restart
+				}
+				s = ""
+				goto Restart
+			}
+			fallthrough
 		default:
 			newresult, rest := fr.ParseWord(s)
 			zwords = append(zwords, newresult)

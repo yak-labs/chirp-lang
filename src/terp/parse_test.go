@@ -59,3 +59,27 @@ func TestDollarKey(t *testing.T) {
 	MustA("aaabarzzz", a.String())
 }
 
+func TestComment(t *testing.T) {
+	fr := New()
+	a := fr.Eval(MkString("#list 1; list 2 \n list 3 \n list 4"))
+	MustA("4", a.String())
+
+	a = fr.Eval(MkString("#list 1; list 2 \n list 3 \n #list 4"))
+	MustA("3", a.String())
+
+	a = fr.Eval(MkString("list #1; list #2 \n list #3 \n #list 4"))
+	MustA("#3", a.String())
+
+	a = fr.Eval(MkString("# xyzzy \n # plough"))
+	MustA("", a.String())
+
+	a = fr.Eval(MkString("list 8 # xyzzy ; ; ; \n ; \n # plough"))
+	MustA("8 # xyzzy", a.String())
+
+	a = fr.Eval(MkString("proc #foo {} {return 777} ; \"#foo\" "))
+	MustA("777", a.String())
+
+	a = fr.Eval(MkString("proc #bar {} {return 888} ; {#bar} "))
+	MustA("888", a.String())
+}
+

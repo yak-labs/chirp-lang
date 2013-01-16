@@ -7,6 +7,8 @@ import (
 )
 
 var cmdTests = `
+  #must ignore comments
+
   must 0 [+ ]
   must 5 [+ 5]
   must 9 [+ 4 5]

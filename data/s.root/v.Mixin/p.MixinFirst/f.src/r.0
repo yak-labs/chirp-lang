@@ -1,4 +1,4 @@
-rem -- I am the first Mixin
+# -- I am the first Mixin
 
 proc Puts {str} {
 	/fmt/Fprintf $W %s $str
@@ -76,9 +76,9 @@ proc Verb/edit {} {
 		Puts "Content2 len: [slen $content2] <br>"
 		Puts "Content2 value: $content2 <br>"
 
-	rem if {[set content]} {
-		WriteFile root $Volume $Page wiki $content
-	}
+		#if {[set content]} {
+		#	WriteFile root $Volume $Page wiki $content
+		#}
 	}
 
 	set c [ReadFile root $Volume $Page wiki]
