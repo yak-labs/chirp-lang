@@ -63,6 +63,7 @@ func (fr *Frame) initBuiltins() {
 	Builtins["append"] = cmdAppend
 	Builtins["error"] = cmdError
 	Builtins["string"] = MkEnsemble(stringEnsemble)
+	Builtins["info"] = MkEnsemble(infoEnsemble)
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -1012,4 +1013,38 @@ func cmdStringIndex(fr *Frame, argv []T) T {
 
 	z := string(s[i])
 	return MkString(z)
+}
+
+var infoEnsemble = []EnsembleItem{
+	EnsembleItem{Name: "commands", Cmd: cmdInfoCommands},
+	EnsembleItem{Name: "globals", Cmd: cmdInfoGlobals},
+	EnsembleItem{Name: "locals", Cmd: cmdInfoLocals},
+}
+
+func cmdInfoCommands(fr *Frame, argv []T) T {
+	Arg0(argv)  // TODO: optional pattern
+	z := make([]T, 0, 100)
+
+	for k, _ := range fr.G.Cmds {
+		z = append(z, MkString(k))
+	}
+	return MkList(z)
+}
+func cmdInfoGlobals(fr *Frame, argv []T) T {
+	Arg0(argv)  // TODO: optional pattern
+	z := make([]T, 0, 100)
+
+	for k, _ := range fr.G.Fr.Vars {
+		z = append(z, MkString(k))
+	}
+	return MkList(z)
+}
+func cmdInfoLocals(fr *Frame, argv []T) T {
+	Arg0(argv)  // TODO: optional pattern
+	z := make([]T, 0, 100)
+
+	for k, _ := range fr.Vars {
+		z = append(z, MkString(k))
+	}
+	return MkList(z)
 }

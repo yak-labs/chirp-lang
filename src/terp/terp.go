@@ -134,11 +134,20 @@ func New() *Frame {
 	}
 
 	g.Fr.G = g
-	g.Fr.initBuiltins()
-	g.Fr.initReflect()
-	g.Fr.initExpr()
-	g.Fr.initDbCmds()
-	g.Fr.initHt()
+
+	if len(Builtins) == 0 {
+		g.Fr.initBuiltins()
+		g.Fr.initReflect()
+		g.Fr.initExpr()
+		g.Fr.initDbCmds()
+		g.Fr.initHt()
+	}
+
+	// Copy Builtins to commands.
+	for k, v := range Builtins {
+		node := CmdNode{ Fn: v }
+		g.Cmds[k] = &node
+	}
 	return &g.Fr
 }
 
@@ -252,8 +261,6 @@ func (fr *Frame) FindCommand(name T, callSuper bool) Command {
 			log.Printf("FindCommand: Choosing mixin level %d from %#v", cmdNode.MixinLevel, cmdNode)
 			fn = cmdNode.Fn
 		}
-	} else {
-		fn, ok = Builtins[cmdName.s]
 	}
 
 	// Mixin Local Commands:

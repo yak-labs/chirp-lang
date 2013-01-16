@@ -1,1 +1,1 @@
-/set serve:localhost:8080 {root HomePage}
+/set serve:localhost:8080 site local

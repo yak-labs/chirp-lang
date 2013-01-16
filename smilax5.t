@@ -92,6 +92,12 @@ proc RxCompile { pattern } {
 
 set DB [db-scan data]
 
+proc RequestBasicAuth {realm} {
+	set h [send $W Header]
+	send $h Set "WWW-Authenticate" "Basic realm=\"$realm\""
+	send $W WriteHeader 401
+}
+
 proc ZygoteHandler {w r} {
 	set clone [send $Zygote Clone]
 	send $clone Eval [ list set W $w ]
