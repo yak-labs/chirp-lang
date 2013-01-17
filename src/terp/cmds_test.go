@@ -251,6 +251,11 @@ var cmdTests = `
   must defgh [string slice abcdefghij 3 -2]
   must j [string slice abcdefghij 9 10]
 
+  must {{} a b {} c {}} [split /a/b//c/ /]
+  must {a b c} [dropnull [split /a/b/c /]]
+  must {/a/b/c d e f} [split "/a/b/c d e f"]
+  must {a b c} [join {  a   b   c }]
+  must {a:=b:=c} [join {  a   b   c } :=]
 
 	set iincr 0
 	must 1 [incr iincr 1]

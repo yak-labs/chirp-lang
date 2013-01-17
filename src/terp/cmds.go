@@ -1065,26 +1065,22 @@ func cmdSplit(fr *Frame, argv []T) T {
 		delim = ""
 	case 1:
 		delim = delimV[0].String()
-		println("delim:", delim)
 	default:
 		panic("Usage: split str ?delims?")
 	}
 	if delim == "" {
 		delim = " \t\n\r"  // White Space.
 	}
-	println(":delim:", delim)
 
 	z := make([]T, 0, 4)
 	for {
 			i := strings.IndexAny(s, delim)
-		log.Printf("i=%d s=%q z=%s", i, s, Showv(z)) 
 			if i == -1 {
 				z = append(z, MkString(s))
 				break
 			}
 			z = append(z, MkString(s[:i]))
 			s = s[i+1:]
-		log.Printf("       s=%q z=%s", s, Showv(z)) 
 	}
 	return MkList(z)
 }
