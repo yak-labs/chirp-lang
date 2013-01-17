@@ -64,6 +64,9 @@ func (fr *Frame) initBuiltins() {
 	Builtins["error"] = cmdError
 	Builtins["string"] = MkEnsemble(stringEnsemble)
 	Builtins["info"] = MkEnsemble(infoEnsemble)
+	Builtins["split"] = cmdSplit
+	Builtins["join"] = cmdJoin
+	Builtins["dropnull"] = cmdDropNull
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -1045,6 +1048,78 @@ func cmdInfoLocals(fr *Frame, argv []T) T {
 
 	for k, _ := range fr.Vars {
 		z = append(z, MkString(k))
+	}
+	return MkList(z)
+}
+
+func cmdSplit(fr *Frame, argv []T) T {
+	str, delimV := Arg1v(argv)
+	s := str.String()
+	if s == "" {
+		return Empty  // Special case in Tcl.
+	}
+
+	var delim string
+	switch len(delimV) {
+	case 0:
+		delim = ""
+	case 1:
+		delim = delimV[0].String()
+		println("delim:", delim)
+	default:
+		panic("Usage: split str ?delims?")
+	}
+	if delim == "" {
+		delim = " \t\n\r"  // White Space.
+	}
+	println(":delim:", delim)
+
+	z := make([]T, 0, 4)
+	for {
+			i := strings.IndexAny(s, delim)
+		log.Printf("i=%d s=%q z=%s", i, s, Showv(z)) 
+			if i == -1 {
+				z = append(z, MkString(s))
+				break
+			}
+			z = append(z, MkString(s[:i]))
+			s = s[i+1:]
+		log.Printf("       s=%q z=%s", s, Showv(z)) 
+	}
+	return MkList(z)
+}
+
+func cmdJoin(fr *Frame, argv []T) T {
+	list, joinV := Arg1v(argv)
+
+	var joiner string
+	switch len(joinV) {
+	case 0:
+		joiner = " "
+	case 1:
+		joiner = joinV[0].String()
+	default:
+		panic("Usage: join list ?joinString?")
+	}
+	
+	buf := bytes.NewBuffer(nil)
+	for i, e := range list.List() {
+		if i > 0 {
+			buf.WriteString(joiner)
+		}
+		buf.WriteString(e.String())
+	}
+	return MkString(buf.String())
+}
+
+func cmdDropNull(fr *Frame, argv []T) T {
+	listT := Arg1(argv)
+	list := listT.List()
+	z := make([]T, 0, len(list))
+	for _, e := range list {
+		if !e.IsEmpty() {
+			z = append(z, e)
+		}
 	}
 	return MkList(z)
 }

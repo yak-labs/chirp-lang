@@ -424,14 +424,18 @@ func MkUint(a uint64) terpFloat {
 	return terpFloat{f: float64(a)}
 }
 func MkString(a string) terpString {
-	if len(a) > 6 && a[:6] == "Value:" {
-		panic(666)
-	}
 	return terpString{s: a}
 }
 func MkList(a []T) terpList {
 	log.Printf("MkList: from <%T> <%s>", a, a)
 	return terpList{l: a}
+}
+func MkStringList(a []string) terpList {
+	z := make([]T, len(a))
+	for i, e := range a {
+		z[i] = MkString(e)
+	}
+	return terpList{l: z}
 }
 func MkValue(a R.Value) terpValue {
 	return terpValue{v: a}

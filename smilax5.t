@@ -92,6 +92,9 @@ proc RxCompile { pattern } {
 
 set DB [db-scan data]
 
+proc auth-require-level {level} {
+}
+
 proc RequestBasicAuth {realm} {
 	set h [send $W Header]
 	send $h Set "WWW-Authenticate" "Basic realm=\"$realm\""
