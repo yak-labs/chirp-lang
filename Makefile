@@ -15,9 +15,14 @@ src/generated/reflections.go : src/mkreflections.go
 	mkdir -p src/generated
 	GOPATH=$$PWD go  run  src/mkreflections.go > src/generated/reflections.go $$(cd $$(go env GOROOT)/pkg/$$(go env GOHOSTOS)_$$(go env GOHOSTARCH)/ ; find * -name \*.a ! -name cgo.a | sed 's/[.]a$$//' | LANG=C sort)
 ci:
-	ci -l -q -m/dev/null -t/dev/null src/*/*.go 
+	ci -l -q -m/dev/null -t/dev/null src/*.go src/*/*.go *.t *.txt demo/*.t
 fmt:
 	gofmt -w src/*/*.go 
+
+run1: all
+	rm -rf ./data
+	./goterp unbundle.t < run1.txt
+	./goterp smilax5.t
 
 demos: goterp
 	sh demo/all.sh
@@ -27,6 +32,6 @@ wiki: goterp
 	( cd demo ; ../goterp demo/wiki.t )
 
 clean:
-	rm -rf ./goterp src/generated/reflections.go pkg/* demo/_*.err
+	rm -rf ./goterp src/generated/reflections.go pkg/* demo/_*.err ./data
 
 FORCE:

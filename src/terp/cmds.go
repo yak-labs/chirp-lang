@@ -41,6 +41,7 @@ func (fr *Frame) initBuiltins() {
 	Builtins["list"] = cmdList
 	Builtins["sat"] = cmdSAt // a.k.a. string index
 	Builtins["lat"] = cmdLAt // a.k.a. lindex
+	Builtins["lindex"] = cmdLAt
 	Builtins["http_handler"] = cmdHttpHandler
 	Builtins["foreach"] = cmdForEach
 	Builtins["while"] = cmdWhile

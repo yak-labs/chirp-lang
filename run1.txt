@@ -1,3 +1,17 @@
+/TEXT /root/Sys/PassWord/db/0
+
+/set pw:super:user gold 90
+
+/TEXT /root/Sys/ServeSite/db/0
+
+/set serve:localhost:8080 site local
+
+/TEXT /root/Main/HomePage/wiki/0
+
+This is the HomePage.
+
+/TEXT /root/Mixin/MixinFirst/src/0
+
 # -- I am the first Mixin
 
 proc Puts {str} {
@@ -94,3 +108,4 @@ proc Verb/db {} {
 	/fmt/Fprintf $W %v [DB]
 	/fmt/Fprintf $W %v [db-select-like [DB] * * * * * *]
 }
+

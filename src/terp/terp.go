@@ -448,17 +448,18 @@ func MkT(a interface{}) T {
 	case T:
 		// panic(Sprintf("Calling MkT() on a T: <%T> <%#v> %s", x, x, x.String()))
 		return x
+
 	case R.Value:
 		// Some day we'll allow this, but for now, flag an error.
 		panic(Sprintf("Calling MkT() on a R.Value: <%T> <%#v> %s", x, x, x.String()))
+
 	case nil:
 		return Empty
 
 	case string:
 		if len(x) > 6 && x[:6] == "Value:" {
-			panic(666)
+			panic(666) // TODO: TEMPORARY
 		}
-
 	}
 
 	// Use reflection to figure it out.

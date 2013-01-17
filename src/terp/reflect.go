@@ -7,6 +7,7 @@ import (
 	R "reflect"
 
 	G "generated"
+	"unsafe"
 )
 
 var errorInterfaceType R.Type = R.TypeOf(errors.New).Out(0)
@@ -40,33 +41,61 @@ func (fr *Frame) initReflect() {
 func (fr *Frame) AdaptToValue(a T, ty R.Type) R.Value {
 	switch ty.Kind() {
 	case R.Bool:
-		return R.ValueOf(a.Truth())
+		var tmp bool = a.Truth()
+		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+
 	case R.Int:
-		return R.ValueOf(int(a.Int()))
+		var tmp int = int(a.Int())
+		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+
 	case R.Int8:
-		return R.ValueOf(int8(a.Int()))
+		var tmp int8 = int8(a.Int())
+		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+
 	case R.Int16:
-		return R.ValueOf(int16(a.Int()))
+		var tmp int16 = int16(a.Int())
+		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+
 	case R.Int32:
-		return R.ValueOf(int32(a.Int()))
+		var tmp int32 = int32(a.Int())
+		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+
 	case R.Int64:
-		return R.ValueOf(a.Int())
+		var tmp int64 = a.Int()
+		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+
 	case R.Uint:
-		return R.ValueOf(uint(a.Uint()))
+		var tmp uint = uint(a.Uint())
+		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+
 	case R.Uint8:
-		return R.ValueOf(uint8(a.Uint()))
+		var tmp uint8 = uint8(a.Uint())
+		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+
 	case R.Uint16:
-		return R.ValueOf(uint16(a.Uint()))
+		var tmp uint16 = uint16(a.Uint())
+		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+
 	case R.Uint32:
-		return R.ValueOf(uint32(a.Uint()))
+		var tmp uint32 = uint32(a.Uint())
+		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+
 	case R.Uint64:
-		return R.ValueOf(a.Uint())
+		var tmp uint64 = a.Uint()
+		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+
 	case R.Uintptr:
-		return R.ValueOf(uintptr(a.Uint()))
+		var tmp uintptr = uintptr(a.Uint())
+		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+
 	case R.Float32:
-		return R.ValueOf(uint32(a.Float()))
+		var tmp float32 = float32(a.Float())
+		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+
 	case R.Float64:
-		return R.ValueOf(a.Float())
+		var tmp float64 = a.Float()
+		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+
 	case R.Complex64:
 	case R.Complex128:
 	case R.Array:
@@ -90,13 +119,6 @@ func (fr *Frame) AdaptToValue(a T, ty R.Type) R.Value {
 			return R.Zero(ty)
 		}
 		// Very special case of T: Return arg as a Value.
-		/*
-		var nilT T
-		nilTType := R.TypeOf(nilT)
-		if ty == nilTType {
-			return R.ValueOf(a)
-		}
-		*/
 		if ty.String() == "terp.T" {
 			return R.ValueOf(a)
 		}
@@ -113,7 +135,29 @@ func (fr *Frame) AdaptToValue(a T, ty R.Type) R.Value {
 			return framePtrValue
 		}
 	case R.Slice:
+		raw := a.Raw()
+		val := R.ValueOf(raw)
+
+		switch ty.Elem().Kind() {
+		case R.Uint8:
+			var tmp []byte = make([]byte, val.Len())
+			copy(tmp, val.String())
+			return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+		}
+
 	case R.String:
+		raw := a.Raw()
+		val := R.ValueOf(raw)
+
+		switch val.Kind() {
+		case R.Slice:
+			switch val.Elem().Kind() {
+			case R.Uint8:
+				var tmp string = string(val.Bytes())
+				return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+			}
+		}
+
 	case R.Struct:
 	case R.UnsafePointer:
 	}
