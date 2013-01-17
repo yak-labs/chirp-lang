@@ -388,10 +388,13 @@ type terpValue struct { // Implements T.
 }
 
 // terpGenerator holds a channel for reading from a generator (yproc command).
-type terpGenerator struct { // Implements T.
+type terpGeneratorGuts struct { // Mutable.
 	ch <-chan T
 	hd T
 	tl T
+}
+type terpGenerator struct { // Implements T.
+	guts *terpGeneratorGuts // Pointer to mutable.
 }
 
 // terpHash holds a Hash.
@@ -403,7 +406,7 @@ func MkHash() terpHash {
 	return terpHash{h: make(Hash, 4)}
 }
 func MkGenerator(ch <-chan T) terpGenerator {
-	return terpGenerator{ch: ch}
+	return terpGenerator{guts: &terpGeneratorGuts{ch: ch}}
 }
 func MkBool(a bool) terpFloat {
 	if a {
@@ -631,7 +634,7 @@ func (t terpGenerator) Raw() interface{} {
 	panic("not implemented on generator (terpGenerator)")
 }
 func (t terpGenerator) String() string {
-	return Repr(t)
+	return Repr(t.guts)
 }
 func (t terpGenerator) Float() float64 {
 	panic("not implemented on generator (terpGenerator)")
@@ -656,7 +659,7 @@ func (t terpGenerator) IsPreservedByList() bool { return true }
 func (t terpGenerator) List() []T {
 	z := make([]T, 0, 4)
 	for {
-		t := <-t.ch
+		t := <-t.guts.ch
 		if t == nil {
 			break
 		}
@@ -665,16 +668,17 @@ func (t terpGenerator) List() []T {
 	return z
 }
 func (t terpGenerator) HeadTail() (hd, tl T) {
-	if t.ch == nil {
-		return t.hd, t.tl
+	g := t.guts
+	if g.ch == nil {
+		return g.hd, g.tl
 	}
-	t.hd = <-t.ch
-	if t.hd == nil {
-		t.ch = nil
+	g.hd = <-g.ch
+	if g.hd == nil {
+		g.ch = nil
 		return nil, nil
 	}
-	t.tl = terpGenerator{ch: t.ch}
-	return t.hd, t.tl
+	g.tl = terpGenerator{guts: &terpGeneratorGuts{ch: g.ch}}
+	return g.hd, g.tl
 }
 func (t terpGenerator) Hash() Hash {
 	panic("terpGenerator is not a Hash")
