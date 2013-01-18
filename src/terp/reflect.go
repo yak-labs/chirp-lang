@@ -6,7 +6,7 @@ import (
 	"log"
 	R "reflect"
 
-	G "generated"
+	"generated"
 	"unsafe"
 )
 
@@ -18,24 +18,25 @@ func findExternalGoFunctionAsValue(name string) R.Value {
 	}
 	var f interface{}
 	var ok bool
-	if f, ok = G.Funcs[name]; !ok {
-		panic("External command not found in G.Funcs" + Repr(name))
+	if f, ok = generated.Funcs[name]; !ok {
+		panic("External command not found in generated.Funcs" + Repr(name))
 	}
 	z := R.ValueOf(f)
 	if z.Kind() != R.Func {
-		panic("Element of G.Funcs should have been kind Func: " + Repr(name))
+		panic("Element of generated.Funcs should have been kind Func: " + Repr(name))
 	}
 	return z
 }
 
 func (fr *Frame) initReflect() {
-	Builtins["call"] = tcmdCall
-	Builtins["send"] = tcmdSend
-	Builtins["getf"] = tcmdGetf
-	Builtins["setf"] = tcmdSetf
+	Builtins["call"] = cmdCall
+	Builtins["send"] = cmdSend
+	Builtins["getf"] = cmdGetf
+	Builtins["setf"] = cmdSetf
+	Builtins["goget"] = cmdGoGet
 
-	Builtins["elem"] = tcmdElem
-	Builtins["index"] = tcmdIndex
+	Builtins["goelem"] = cmdElem
+	Builtins["goindex"] = cmdIndex
 }
 
 func (fr *Frame) AdaptToValue(a T, ty R.Type) R.Value {
@@ -168,7 +169,7 @@ func (fr *Frame) AdaptToValue(a T, ty R.Type) R.Value {
 	return R.ValueOf(a.Raw())
 }
 
-func tcmdElem(fr *Frame, argv []T) T {
+func cmdElem(fr *Frame, argv []T) T {
 	p := Arg1(argv)
 
 	rv := p.QuickReflectValue()
@@ -180,7 +181,7 @@ func tcmdElem(fr *Frame, argv []T) T {
 	return MkT(e.Interface())
 }
 
-func tcmdIndex(fr *Frame, argv []T) T {
+func cmdIndex(fr *Frame, argv []T) T {
 	slice, i := Arg2(argv)
 
 	rv := slice.QuickReflectValue()
@@ -192,7 +193,7 @@ func tcmdIndex(fr *Frame, argv []T) T {
 	return MkT(z.Interface())
 }
 
-func tcmdCall(fr *Frame, argv []T) T {
+func cmdCall(fr *Frame, argv []T) T {
 	funcName := argv[1].String()
 	log.Printf("Call fn=%s  len(argv)=%d", funcName, len(argv))
 
@@ -200,7 +201,7 @@ func tcmdCall(fr *Frame, argv []T) T {
 	return commonCall(fr, funcName, fn, argv[2:])
 }
 
-func tcmdSend(fr *Frame, argv []T) T {
+func cmdSend(fr *Frame, argv []T) T {
 	r, meth, args := Arg2v(argv)
 	log.Printf("----send----receiver = %s", Show(r))
 	methName := meth.String()
@@ -317,12 +318,12 @@ func derefChain(fr *Frame, argv []T) R.Value {
 	return av
 }
 
-func tcmdGetf(fr *Frame, argv []T) T {
+func cmdGetf(fr *Frame, argv []T) T {
 	z := derefChain(fr, argv).Interface()
 	return MkT(z)
 }
 
-func tcmdSetf(fr *Frame, argv []T) T {
+func cmdSetf(fr *Frame, argv []T) T {
 	n := len(argv)
 	loc := derefChain(fr, argv[:n-1]) // Location to assign to.
 	if !loc.CanSet() {
@@ -334,4 +335,12 @@ func tcmdSetf(fr *Frame, argv []T) T {
 	log.Printf(".... Reflect Set loc <%s> %s = %s", zv.Kind(), zv.Type(), Show(x))
 	loc.Set(zv)
 	return x
+}
+
+func cmdGoGet(fr *Frame, argv []T) T {
+	varT := Arg1(argv)
+	if fr.G.isSafe {
+		panic("cannot use 'goget' from safe interp")
+	}    
+	return MkT(generated.Vars[varT.String()])
 }

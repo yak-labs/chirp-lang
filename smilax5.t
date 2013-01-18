@@ -19,7 +19,10 @@ set FileDirRx     [/regexp/MustCompile {^f[.]([-A-Za-z0-9_.]+)$}]
 set RevFileRx     [/regexp/MustCompile {^r[.]([-A-Za-z0-9_.]+)$}]
 set VarientFileRx [/regexp/MustCompile {^v[.]([-A-Za-z0-9_.]+)$}]
 
-yproc ListSites { } {
+set MarkForSubinterpRx [/regexp/MustCompile {^[@]([-A-Za-z0-9_]+)$}]
+set BasicAuthUserPwSplitterRx [/regexp/MustCompile {^([^:]*)[:](.*)$}]
+
+yproc @ListSites {} {
 	foreach f [/io/ioutil/ReadDir "data"] {
 		set fname [send $f Name]
 		set m [send $SiteDirRx FindStringSubmatch $fname]
@@ -29,7 +32,7 @@ yproc ListSites { } {
 	}
 }
 
-yproc ListVols { site } {
+yproc @ListVols { site } {
 	foreach f [/io/ioutil/ReadDir "data/s.$site"] {
 		set fname [send $f Name]
 		set m [send $VolDirRx FindStringSubmatch $fname]
@@ -39,7 +42,7 @@ yproc ListVols { site } {
 	}
 }
 
-yproc ListPages { site vol } {
+yproc @ListPages { site vol } {
 	foreach f [/io/ioutil/ReadDir "data/s.$site/v.$vol"] {
 		set fname [send $f Name]
 		set m [send $PageDirRx FindStringSubmatch $fname]
@@ -49,7 +52,7 @@ yproc ListPages { site vol } {
 	}
 }
 
-yproc ListFiles { site vol page } {
+yproc @ListFiles { site vol page } {
 	foreach f [/io/ioutil/ReadDir "data/s.$site/v.$vol/p.$page"] {
 		set fname [send $f Name]
 		set m [send $FileDirRx FindStringSubmatch $fname]
@@ -59,7 +62,7 @@ yproc ListFiles { site vol page } {
 	}
 }
 
-yproc ListRevs { site vol page file } {
+yproc @ListRevs { site vol page file } {
 	foreach f [/io/ioutil/ReadDir "data/s.$site/v.$vol/p.$page/f.$file"] {
 		set fname [send $f Name]
 		set m [send $RevFileRx FindStringSubmatch $fname]
@@ -69,63 +72,85 @@ yproc ListRevs { site vol page file } {
 	}
 }
 
-proc ReadFile { site vol page file } {
-	set revs [concat [ListRevs $site $vol $page $file]]
+proc @ReadFile { site vol page file } {
+	set revs [concat [@ListRevs $site $vol $page $file]]
 	set rev [lat $revs 0]
 
 	return [/io/ioutil/ReadFile "data/s.$site/v.$vol/p.$page/f.$file/r.$rev"]
 }
 
-proc WriteFile { site vol page file contents } {
+proc @WriteFile { site vol page file contents } {
 	/os/MkDirAll "data/s.$site/v.$vol/p.$page/f.$file" 448
 	/io/ioutil/WriteFile "data/s.$site/v.$vol/p.$page/f.$file/r.0" $contents 384
 }
 
-proc Route { path query } {
+proc @Route { path query } {
 	/fmt/Fprintf $W %s "This is the base Router.  Replace me."
 	/fmt/Fprintf $W {path: %s | query: %s} $path $query
 }
 
-proc RxCompile { pattern } {
+proc @RxCompile { pattern } {
 	/regexp/MustCompile $pattern
 }
 
 set DB [db-scan data]
 
-proc auth-require-level {level} {
+proc @auth-require-level {level} {
 }
 
-proc RequestBasicAuth {realm} {
-	set h [send $W Header]
+proc @RequestBasicAuth {w realm} {
+	set h [send $w Header]
 	send $h Set "WWW-Authenticate" "Basic realm=\"$realm\""
-	send $W WriteHeader 401
+	send $w WriteHeader 401
 }
 
+proc @User {} {
+	return $USER
+}
+
+######  DEFINE @-procs ABOVE.
+
+set Zygote [interp]
+
+foreach cmd [info commands] {
+  set m [send $MarkForSubinterpRx FindStringSubmatch $cmd]
+  if [notnull $m] {
+    send $Zygote Alias - [lindex $m 1] $cmd
+  }
+}
+
+send $Zygote Alias - DB "set DB"
+
+# -- Load our mixins into our sub-interpreter
+set mixins [@ListPages root Mixin]
+foreach m $mixins {
+	send $Zygote Eval [list mixin $m [@ReadFile root Mixin $m src]]
+}
+
+# NOW HANDLE REQUESTS
 proc ZygoteHandler {w r} {
 	set clone [send $Zygote Clone]
+
+	set headers [getf $r Header]
+	set authorization [send $headers Get Authorization]
+	if [notnull $authorization] {
+		set obfuscated [lindex $authorization 1]
+		# TODO: Use global var /encoding/base64/StdEncoding.
+		# set b64 [/encoding/base64/NewEncoding "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"]
+		set b64 [goelem [goget /encoding/base64/StdEncoding]]
+		set decoded [send $b64 DecodeString $obfuscated]
+		set m [send $BasicAuthUserPwSplitterRx FindStringSubmatch $decoded]
+		if [notnull $m] {
+			set USER [lindex $m 1]
+			set PASSWORD [lindex $m 2]
+		}
+	} else {
+		@RequestBasicAuth $w 5.SMILAX.ORG
+	}
+
 	send $clone Eval [ list set W $w ]
 	send $clone Eval [ list set R $r ]
 	send $clone Eval [ list Route [getf $r URL Path] [send [getf $r URL] Query] ]
 }
-
-set Zygote [interp]
-send $Zygote Alias - Route Route
-send $Zygote Alias - ListSites ListSites
-send $Zygote Alias - ListVols ListVols
-send $Zygote Alias - ListPages ListPages
-send $Zygote Alias - ListFiles ListFiles
-send $Zygote Alias - ListRevs ListRevs
-send $Zygote Alias - ReadFile ReadFile
-send $Zygote Alias - WriteFile WriteFile
-send $Zygote Alias - RxCompile RxCompile
-send $Zygote Alias - DB "set DB"
-
-# -- Load our mixins into our sub-interpreter
-set mixins [ListPages root Mixin]
-foreach m $mixins {
-	send $Zygote Eval [list mixin $m [ReadFile root Mixin $m src]]
-}
-
 /net/http/HandleFunc / [http_handler ZygoteHandler]
-
 /net/http/ListenAndServe 127.0.0.1:8080 ""
