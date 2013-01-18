@@ -1,12 +1,15 @@
-/TEXT /root/Sys/PassWord/db/0
+/TEXT /local/Sys/PassWord/db/0
 
-/set pw:super:user gold 90
+/set pw:super:super gold 90
+/set pw:foo:bar gold 70
+/set pw:*:xyzzy gold 30
+/set pw:*:* gold 10
 
 /TEXT /root/Sys/ServeSite/db/0
 
 /set serve:localhost:8080 site local
 
-/TEXT /root/Main/HomePage/wiki/0
+/TEXT /local/Main/HomePage/wiki/0
 
 This is the HomePage.
 
@@ -49,7 +52,10 @@ proc Route { path query } {
 			set Volume [lat $m 1]
 			set Page [lat $m 2]
 			set Verb [lat $m 4]
-			Puts "User: [User]<br>"
+			Puts "Level: [level]<br>"
+			Puts "Host: [host]<br>"
+			Puts "Site: [site]<br>"
+			Puts "User: [user]<br>"
 			Puts "Vol: $Volume<br>"
 			Puts "Page: $Page<br>"
 			Puts "Verb: $Verb<br>"
@@ -65,14 +71,14 @@ proc Route { path query } {
 }
 
 proc Verb/view {} {
-	set c [ReadFile root $Volume $Page wiki]
+	set c [ReadFile [site] $Volume $Page wiki]
 
 	Puts $c
 }
 
 proc Verb/list {} {
 	Puts "<ul>"
-	set pages [ListPages root $Volume]
+	set pages [ListPages [site] $Volume]
 	foreach p $pages {
 		set m [send $WikiPage_rx FindStringSubmatch $p]
 		if {[notnull $m]} {
@@ -92,11 +98,11 @@ proc Verb/edit {} {
 		Puts "Content2 value: $content2 <br>"
 
 		#if {[set content]} {
-		#	WriteFile root $Volume $Page wiki $content
+		#	WriteFile [site] $Volume $Page wiki $content
 		#}
 	}
 
-	set c [ReadFile root $Volume $Page wiki]
+	set c [ReadFile [site] $Volume $Page wiki]
 
 	Puts "<form method=POST action=/$Volume/$Page.edit>"
 	Puts "<textarea name=text>$c</textarea>"

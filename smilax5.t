@@ -94,8 +94,6 @@ proc @RxCompile { pattern } {
 	/regexp/MustCompile $pattern
 }
 
-set DB [db-scan data]
-
 proc @auth-require-level {level} {
 }
 
@@ -105,9 +103,20 @@ proc @RequestBasicAuth {w realm} {
 	send $w WriteHeader 401
 }
 
-proc @User {} {
+proc @user {} {
 	return $USER
 }
+proc @host {} {
+	return $HOST
+}
+proc @level {} {
+	return $LEVEL
+}
+proc @site {} {
+	return $SITE
+}
+
+set DB [db-scan data]
 
 ######  DEFINE @-procs ABOVE.
 
@@ -128,9 +137,26 @@ foreach m $mixins {
 	send $Zygote Eval [list mixin $m [@ReadFile root Mixin $m src]]
 }
 
+proc gold-level {user pw} {
+	foreach r [db-select-like $DB $SITE pw Sys PassWord "$user:$pw" *] {
+		return [lindex [getf $r Values] 1]
+	}
+	return 0
+}
+
+proc lookup-site {} {
+	foreach r [db-select-like $DB root serve Sys ServeSite $HOST *] {
+		return [lindex [getf $r Values] 1]
+	}
+	error "Unknown Site for HOST=$HOST"
+}
+
 # NOW HANDLE REQUESTS
 proc ZygoteHandler {w r} {
 	set clone [send $Zygote Clone]
+
+	set HOST [getf $r Host]
+	set SITE [lookup-site]
 
 	set headers [getf $r Header]
 	set authorization [send $headers Get Authorization]
@@ -142,8 +168,13 @@ proc ZygoteHandler {w r} {
 			set USER [lindex $m 1]
 			set PASSWORD [lindex $m 2]
 		}
+		set LEVEL [gold-level $USER $PASSWORD]
+		if {$LEVEL <= 0} {
+			set LEVEL [gold-level * $PASSWORD]
+		}
 	} else {
-		@RequestBasicAuth $w 5.SMILAX.ORG
+		# @RequestBasicAuth $w 5.SMILAX.ORG
+		set LEVEL [gold-level * *]
 	}
 
 	send $clone Eval [ list set W $w ]
