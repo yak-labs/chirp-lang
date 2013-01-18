@@ -49,6 +49,7 @@ proc Route { path query } {
 			set Volume [lat $m 1]
 			set Page [lat $m 2]
 			set Verb [lat $m 4]
+			Puts "User: [User]<br>"
 			Puts "Vol: $Volume<br>"
 			Puts "Page: $Page<br>"
 			Puts "Verb: $Verb<br>"

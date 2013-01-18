@@ -21,6 +21,7 @@ set VarientFileRx [/regexp/MustCompile {^v[.]([-A-Za-z0-9_.]+)$}]
 
 set MarkForSubinterpRx [/regexp/MustCompile {^[@]([-A-Za-z0-9_]+)$}]
 set BasicAuthUserPwSplitterRx [/regexp/MustCompile {^([^:]*)[:](.*)$}]
+set BASE64 [goelem [goget /encoding/base64/StdEncoding]]
 
 yproc @ListSites {} {
 	foreach f [/io/ioutil/ReadDir "data"] {
@@ -135,10 +136,7 @@ proc ZygoteHandler {w r} {
 	set authorization [send $headers Get Authorization]
 	if [notnull $authorization] {
 		set obfuscated [lindex $authorization 1]
-		# TODO: Use global var /encoding/base64/StdEncoding.
-		# set b64 [/encoding/base64/NewEncoding "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"]
-		set b64 [goelem [goget /encoding/base64/StdEncoding]]
-		set decoded [send $b64 DecodeString $obfuscated]
+		set decoded [send $BASE64 DecodeString $obfuscated]
 		set m [send $BasicAuthUserPwSplitterRx FindStringSubmatch $decoded]
 		if [notnull $m] {
 			set USER [lindex $m 1]
