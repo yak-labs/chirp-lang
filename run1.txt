@@ -52,13 +52,13 @@ proc Route { path query } {
 			set Volume [lat $m 1]
 			set Page [lat $m 2]
 			set Verb [lat $m 4]
-			Puts "Level: [level]<br>"
-			Puts "Host: [host]<br>"
-			Puts "Site: [site]<br>"
-			Puts "User: [user]<br>"
-			Puts "Vol: $Volume<br>"
-			Puts "Page: $Page<br>"
-			Puts "Verb: $Verb<br>"
+			catch { Puts "Level: [level]<br>" } _
+			catch { Puts "Host: [host]<br>" } _
+			catch { Puts "Site: [site]<br>" } _
+			catch { Puts "User: [user]<br>" } _
+			catch { Puts "Vol: $Volume<br>" } _
+			catch { Puts "Page: $Page<br>" } _
+			catch { Puts "Verb: $Verb<br>" } _
 
 			Verb/$Verb
 		} else {
