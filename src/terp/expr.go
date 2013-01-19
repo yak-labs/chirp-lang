@@ -8,6 +8,9 @@ import (
 	"strings"
 )
 
+var False = MkInt(0)
+var True = MkInt(1)
+
 func (fr *Frame) initExpr() {
 	Builtins["expr"] = cmdExpr
 }
@@ -15,6 +18,11 @@ func (fr *Frame) initExpr() {
 // Concatenate the arguments, adding a space separator, before evaluating the
 // expression.
 func cmdExpr(fr *Frame, argv []T) T {
+	// Optimization: It's already a single arg.
+	if len(argv)==2 {
+		return fr.EvalExpr(argv[1])
+	}
+
 	strs := make([]string, len(argv)-1)
 
 	for i, t := range argv[1:] {
@@ -28,7 +36,23 @@ func cmdExpr(fr *Frame, argv []T) T {
 
 // Takes a single word that represents an expression and returns the result.
 func (fr *Frame) EvalExpr(a T) (result T) {
-	return fr.ParseExpression(a.String())
+	// Optimization: It's already a number.
+	if a.IsQuickNumber() {
+		return a
+	}
+
+	s := a.String()
+	// Optimization: "0" and "1"
+	if len(s) == 1 {
+		if s == "0" {
+			return False
+		}
+		if s == "1" {
+			return True
+		}
+	}
+
+	return fr.ParseExpression(s)
 }
 
 func isNumeric(ch uint8) bool {

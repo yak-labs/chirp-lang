@@ -609,13 +609,13 @@ func cmdCatch(fr *Frame, argv []T) (status T) {
 				return
 			}
 			fr.SetVar(varName, MkT(r))
-			status = MkInt(1)
+			status = True
 		}
 	}()
 
 	z := fr.Eval(body)
 	fr.SetVar(varName, z)
-	return MkInt(0)
+	return False
 }
 
 func cmdEval(fr *Frame, argv []T) T {

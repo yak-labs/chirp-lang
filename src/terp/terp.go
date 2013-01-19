@@ -359,6 +359,7 @@ type T interface {
 	IsEmpty() bool // Would String() return ""?
 	List() []T
 	IsPreservedByList() bool
+	IsQuickNumber() bool
 	HeadTail() (hd, tl T)
 	Hash() Hash
 	GetAt(key T) T
@@ -410,9 +411,9 @@ func MkGenerator(ch <-chan T) terpGenerator {
 }
 func MkBool(a bool) terpFloat {
 	if a {
-		return MkInt(1)
+		return True
 	}
-	return MkInt(0)
+	return False
 }
 func MkFloat(a float64) terpFloat {
 	return terpFloat{f: a}
@@ -606,6 +607,7 @@ func SortedKeysOfHash(h Hash) []string {
 }
 
 func (t terpHash) IsPreservedByList() bool { return true }
+func (t terpHash) IsQuickNumber() bool { return false }
 func (t terpHash) List() []T {
 	keys := SortedKeysOfHash(t.h)
 	z := make([]T, 0, 2*len(keys))
@@ -661,6 +663,7 @@ func (t terpGenerator) IsEmpty() bool {
 	return hd == nil
 }
 func (t terpGenerator) IsPreservedByList() bool { return true }
+func (t terpGenerator) IsQuickNumber() bool { return false }
 func (t terpGenerator) List() []T {
 	z := make([]T, 0, 4)
 	for {
@@ -723,6 +726,7 @@ func (t terpFloat) Uint() uint64 {
 	return uint64(t.f)
 }
 func (t terpFloat) IsPreservedByList() bool { return true }
+func (t terpFloat) IsQuickNumber() bool { return true }
 func (t terpFloat) List() []T {
 	return []T{t}
 }
@@ -776,6 +780,7 @@ func (t terpString) Int() int64 {
 func (t terpString) Uint() uint64 {
 	return uint64(t.Float()) //TODO
 }
+func (t terpString) IsQuickNumber() bool { return false }
 func (t terpString) IsPreservedByList() bool {
 	return nil != MatchBareWord.FindStringSubmatch(t.s)
 }
@@ -848,6 +853,12 @@ func (t terpList) Uint() uint64 {
 	}
 	return t.l[0].Uint()
 }
+func (t terpList) IsQuickNumber() bool {
+	if len(t.l) == 1 {
+		return t.l[0].IsQuickNumber()
+	}
+	return false
+}
 func (t terpList) IsPreservedByList() bool { return true }
 func (t terpList) List() []T {
 	return t.l
@@ -901,6 +912,9 @@ func (t terpValue) Int() int64 {
 	panic("cant yet")
 }
 func (t terpValue) Uint() uint64 {
+	panic("cant yet")
+}
+func (t terpValue) IsQuickNumber() bool {
 	panic("cant yet")
 }
 func (t terpValue) IsPreservedByList() bool { return true }
