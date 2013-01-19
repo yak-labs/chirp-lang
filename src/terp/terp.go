@@ -355,7 +355,7 @@ type T interface {
 	Int() int64
 	Uint() uint64
 	ListElementString() string
-	Truth() bool   // Like Python, empty values and 0 values are false.
+	Bool() bool   // Like Python, empty values and 0 values are false.
 	IsEmpty() bool // Would String() return ""?
 	List() []T
 	IsPreservedByList() bool
@@ -574,7 +574,7 @@ func (t terpHash) Uint() uint64 {
 func (t terpHash) ListElementString() string {
 	panic("not implemented on generator (terpHash)")
 }
-func (t terpHash) Truth() bool {
+func (t terpHash) Bool() bool {
 	return len(t.h) > 0
 }
 func (t terpHash) IsEmpty() bool {
@@ -653,7 +653,7 @@ func (t terpGenerator) Uint() uint64 {
 func (t terpGenerator) ListElementString() string {
 	panic("not implemented on generator (terpGenerator)")
 }
-func (t terpGenerator) Truth() bool {
+func (t terpGenerator) Bool() bool {
 	panic("not implemented on generator (terpGenerator)")
 }
 func (t terpGenerator) IsEmpty() bool {
@@ -707,7 +707,7 @@ func (t terpFloat) String() string {
 func (t terpFloat) ListElementString() string {
 	return t.String()
 }
-func (t terpFloat) Truth() bool {
+func (t terpFloat) Bool() bool {
 	return t.f != 0
 }
 func (t terpFloat) IsEmpty() bool {
@@ -751,8 +751,8 @@ func (t terpString) String() string {
 func (t terpString) ListElementString() string {
 	return ToListElementString(t.s)
 }
-func (t terpString) Truth() bool {
-	return t.s != "" && t.s != "0" // TODO: Reconsider Truth.
+func (t terpString) Bool() bool {
+	return t.s != "" && t.s != "0" // TODO: Reconsider Bool.
 }
 func (t terpString) IsEmpty() bool {
 	return t.s == ""
@@ -815,7 +815,7 @@ func (t terpList) String() string {
 func (t terpList) ListElementString() string {
 	return ToListElementString(t.String())
 }
-func (t terpList) Truth() bool {
+func (t terpList) Bool() bool {
 	return len(t.l) != 0
 }
 func (t terpList) IsEmpty() bool {
@@ -873,10 +873,10 @@ func (t terpValue) String() string {
 func (t terpValue) ListElementString() string {
 	return ToListElementString(t.String())
 }
-func (t terpValue) Truth() bool {
+func (t terpValue) Bool() bool {
 	// TODO
 	return !t.IsEmpty()
-	// TODO // panic("Restriction: cannot test terpValue for Truth")
+	// TODO // panic("Restriction: cannot test terpValue for Bool")
 }
 func (t terpValue) IsEmpty() bool {
 	switch t.v.Kind() {

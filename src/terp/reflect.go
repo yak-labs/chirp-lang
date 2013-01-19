@@ -42,7 +42,7 @@ func (fr *Frame) initReflect() {
 func (fr *Frame) AdaptToValue(a T, ty R.Type) R.Value {
 	switch ty.Kind() {
 	case R.Bool:
-		var tmp bool = a.Truth()
+		var tmp bool = a.Bool()
 		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
 
 	case R.Int:

@@ -188,7 +188,7 @@ func cmdIf(fr *Frame, argv []T) T {
 		panic(Sprintf("Wrong len(argv) for if: %#v", argv))
 	}
 
-	if fr.EvalExpr(cond).Truth() {
+	if fr.EvalExpr(cond).Bool() {
 		return fr.Eval(yes)
 	}
 
@@ -559,7 +559,7 @@ func cmdWhile(fr *Frame, argv []T) T {
 
 	for {
 		c := fr.EvalExpr(cond)
-		if !c.Truth() {
+		if !c.Bool() {
 			break
 		}
 

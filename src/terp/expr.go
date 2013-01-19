@@ -65,7 +65,7 @@ Loop:
 		case c == '?':
 			i++
 			colon := strings.Index(s[i:], ":") // find the ':' character.
-			if z.Truth() {
+			if z.Bool() {
 				z = fr.ParseExpression(s[i:colon+1])
 				break Loop
 			} else {
@@ -117,12 +117,12 @@ Loop:
 
 			if z == Empty {
 				z = t
-				if z.Truth() {
+				if z.Bool() {
 					break Loop // shortcircuit
 				}
 			} else {
 				if op == [2]uint8{'|', '|'} {
-					if t.Truth() {
+					if t.Bool() {
 						z = MkBool(true)
 						break Loop // shortcircuit
 					} else {
@@ -175,12 +175,12 @@ Loop:
 
 			if z == Empty {
 				z = t
-				if !z.Truth() {
+				if !z.Bool() {
 					break Loop // shortcircuit
 				}
 			} else {
 				if op == [2]uint8{'&', '&'} {
-					if z.Truth() && t.Truth() {
+					if z.Bool() && t.Bool() {
 						z = MkBool(true)
 					} else {
 						z = MkBool(false)
