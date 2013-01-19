@@ -236,6 +236,11 @@ func procOrYProc(fr *Frame, argv []T, generating bool) T {
 		longMixinName = captureMixinNameDefining + "~" + nameStr
 	}
 
+	var compiled Stmt
+	if !body.IsPreservedByList() {  // TODO: reconsider this test.
+		compiled = CompileSequence(fr, body.String())
+	}
+
 	cmd := func(fr2 *Frame, argv2 []T) (result T) {
 		if captureMixinNumberDefining > 0 {
 			argv2[0] = MkString(longMixinName)
@@ -300,6 +305,9 @@ func procOrYProc(fr *Frame, argv []T, generating bool) T {
 
 		// Case "proc":
 		if !generating {
+			if compiled != nil {
+				return compiled.Eval(fr3)
+			}
 			return fr3.Eval(body)
 		}
 
@@ -644,6 +652,7 @@ func EvalOrApplyLists(fr *Frame, lists []T) T {
 	}
 
 	if areLists {
+		log.Printf("EvalOrApplyLists: Preserving lists and calling Apply.")
 		return fr.Apply(ConcatLists(lists))
 	}
 
@@ -652,6 +661,7 @@ func EvalOrApplyLists(fr *Frame, lists []T) T {
 		buf.WriteString(e.String())
 		buf.WriteRune(' ')
 	}
+	log.Printf("EvalOrApplyLists: Connecting with spaces and calling Eval.")
 	return fr.Eval(MkString(buf.String()))
 }
 

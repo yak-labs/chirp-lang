@@ -9,12 +9,17 @@ import (
 var cmdTests = `
   #must ignore comments
 
+  # dumbCompileSequence can compile this:
+  # Note that "args" means varargs,
+  # and that eval concatenates lists.
+  proc sum {args} { eval + $args }
+
   must 0 [+ ]
   must 5 [+ 5]
   must 9 [+ 4 5]
   must 9.5 [+ 4 5.5]
   must 15 [+ 5 4 3 2 1 0]
-  must 15 [+ 5 [+ 2 2] [+ 1 2] 2 1 [- 99 99]]
+  must 15 [sum 5 [+ 2 2] [+ 1 2] 2 1 [- 99 99]]
 
   must 9 [- 12 3]
   must 8.5 [- 12 3.5]
@@ -45,15 +50,19 @@ var cmdTests = `
   must 2 [slen [llen [list aa bb cc dd ee 1 2 3 4 5] ]]
   must 0 [slen ""]
 
-  proc double {x} {+ [set x] [set x]}
-  proc square {x} {* [set x] [set x]}
+  # dumbCompileSequence can compile this:
+  proc double {x} {+ $x $x}
+  # dumbCompileSequence can compile this:
+  proc square {x} {* $x $x}
+
   must 16 [double 8]
   must 16 [square 4]
+
   proc triang n {
     if {[< [set n] 1]} {
-      + 0
+      sum 0
     } else {
-      + [set n] [triang [- [set n] 1]]
+      sum [set n] [triang [- [set n] 1]]
     }
   }
   must 15 [triang 5]
@@ -92,7 +101,7 @@ var cmdTests = `
       set i 0
       while {[+ 1]} {
           yield $i 
-          set i [+ $i 1]
+          set i [sum $i 1]
       }
   }
   yproc ytriangs_lt n {
@@ -157,10 +166,12 @@ var cmdTests = `
   must 6 [six]
 
   list -- test of "upvar"
+  # dumbCompileSequence can compile this:
   proc UpSet {name x} {
   	upvar 1 $name a
 	set a $x
   }
+  # dumbCompileSequence can compile this:
   proc UpGet {name} {
   	upvar 1 $name a
 	set a
@@ -186,26 +197,34 @@ var cmdTests = `
   	return "$s 0"
   }
   mixin One {
+      # dumbCompileSequence can compile this:
       proc mix_number {} { return 1 } ; list -- mixin-local proc.
+
 	  proc F s {
 		return "$s [mix_number] [super F $s]"
 	  }
   }
   mixin Two {
+      # dumbCompileSequence can compile this:
       proc mix_number {} { return 2 } ; list -- mixin-local proc.
+
 	  proc F s {
 		return "$s [mix_number] [super F $s]"
 	  }
   }
   mixin Three {
+      # dumbCompileSequence can compile this:
       proc mix_number {} { return 3 } ; list -- mixin-local proc.
+
 	  proc F s {
 		return "$s [mix_number] [super F $s]"
 	  }
   }
   must "foo 3 foo 2 foo 1 foo 0" [F "foo"]
 
+  # dumbCompileSequence can compile this:
   proc demo1 { a b c d e } { list $a $b $c $d $e }
+
   set sub [interp]
   send $sub Alias - demo2 "demo1 1 2 3"
   must [list 1 2 3 x y] [send $sub Eval {demo2 x y}]

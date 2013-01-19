@@ -770,8 +770,13 @@ func (t terpString) Int() int64 {
 func (t terpString) Uint() uint64 {
 	return uint64(t.Float()) //TODO
 }
-func (t terpString) IsPreservedByList() bool { return false }
+func (t terpString) IsPreservedByList() bool {
+	return nil != MatchBareWord.FindStringSubmatch(t.s)
+}
 func (t terpString) List() []T {
+	if t.IsPreservedByList() {
+		return []T{t}
+	}
 	return ParseList(t.s)
 }
 func (t terpString) HeadTail() (hd, tl T) {
