@@ -48,7 +48,7 @@ proc Route { path query } {
 
 		set rx [RxCompile {^/([A-Z][a-z]+)/([A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*)([.]([a-z]+))?$}]
 		set m [send $rx FindStringSubmatch $path]
-		if {[set m]} {
+		if {[notnull $m]} {
 			set Volume [lat $m 1]
 			set Page [lat $m 2]
 			set Verb [lat $m 4]

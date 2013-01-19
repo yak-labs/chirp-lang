@@ -575,7 +575,7 @@ func (t terpHash) ListElementString() string {
 	panic("not implemented on generator (terpHash)")
 }
 func (t terpHash) Bool() bool {
-	return len(t.h) > 0
+	panic("terpHash cannot be used as Bool")
 }
 func (t terpHash) IsEmpty() bool {
 	return len(t.h) == 0
@@ -654,7 +654,7 @@ func (t terpGenerator) ListElementString() string {
 	panic("not implemented on generator (terpGenerator)")
 }
 func (t terpGenerator) Bool() bool {
-	panic("not implemented on generator (terpGenerator)")
+	panic("terpGenerator cannot be used as Bool")
 }
 func (t terpGenerator) IsEmpty() bool {
 	hd, _ := t.HeadTail()
@@ -752,7 +752,13 @@ func (t terpString) ListElementString() string {
 	return ToListElementString(t.s)
 }
 func (t terpString) Bool() bool {
-	return t.s != "" && t.s != "0" // TODO: Reconsider Bool.
+	if t.s == "0" {
+		return false
+	}
+	if t.s == "1" {
+		return true
+	}
+	return MkFloat(t.Float()).Bool()
 }
 func (t terpString) IsEmpty() bool {
 	return t.s == ""
@@ -816,7 +822,10 @@ func (t terpList) ListElementString() string {
 	return ToListElementString(t.String())
 }
 func (t terpList) Bool() bool {
-	return len(t.l) != 0
+	if len(t.l) == 1 {
+		return t.l[0].Bool()
+	}
+	panic("terpList cannot be used as Bool")
 }
 func (t terpList) IsEmpty() bool {
 	return len(t.l) == 0
@@ -874,9 +883,7 @@ func (t terpValue) ListElementString() string {
 	return ToListElementString(t.String())
 }
 func (t terpValue) Bool() bool {
-	// TODO
-	return !t.IsEmpty()
-	// TODO // panic("Restriction: cannot test terpValue for Bool")
+	panic("terpValue cannot be used as Bool")
 }
 func (t terpValue) IsEmpty() bool {
 	switch t.v.Kind() {
