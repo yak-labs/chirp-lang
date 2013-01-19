@@ -8,8 +8,6 @@ import (
 	"strings"
 )
 
-var _ = log.Printf
-
 var Builtins map[string]Command = make(map[string]Command, 0)
 
 func (fr *Frame) initBuiltins() {

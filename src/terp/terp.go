@@ -287,6 +287,7 @@ func (fr *Frame) Apply(argv []T) T {
 	head := argv[0]
 	log.Printf("< Apply < %q", head)
 	for ai, av := range argv[1:] {
+		_, _ = ai, av
 		log.Printf("< ...... < [%d] (%T) ## %#v ## %q", ai, av, av, av.String())
 	}
 
