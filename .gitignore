@@ -1,0 +1,13 @@
+*~
+*.swp
+*,v
+*.err
+*.a
+*.o
+*.so
+*.exe
+
+/data/
+/src/generated
+
+/goterp

@@ -1,0 +1,15 @@
+syntax: glob
+*~
+*.swp
+*,v
+*.err
+*.a
+*.o
+*.so
+*.exe
+
+data/
+src/generated
+
+syntax: regexp
+^goterp$
