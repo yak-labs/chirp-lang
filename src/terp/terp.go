@@ -217,6 +217,21 @@ func (fr *Frame) GetVar(name string) T {
 }
 
 func (fr *Frame) SetVar(name string, x T) {
+	if strings.Contains(name, ",") {
+		// Support destructuring list assignment syntax.
+		xs := x.List()
+		names := strings.Split(name, ",")
+		for i, n := range names {
+			if len(n) > 0 {
+				if i < len(xs) {
+					fr.SetVar(n, xs[i])
+				} else {
+					fr.SetVar(n, Empty)  // Missing values become empty.
+				}
+			}
+		}
+		return
+	}
 	sc := fr.GetVarScope(name)
 	if sc[name] == nil {
 		sc[name] = new(Slot)

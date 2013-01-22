@@ -313,6 +313,17 @@ var cmdTests = `
 >}
 	must $expect [send $ht Html]
 
+	# destructuring list assignment:
+	set nada,uno,dos,tres [yrange 10]
+	must 0/1/2/3 $nada/$uno/$dos/$tres
+
+	set nada,uno,dos,tres [yrange 2]
+	must 0/1// $nada/$uno/$dos/$tres
+
+	foreach 1,2 [list "10 100" "20 200"] {
+		must $2 [expr $1 * 10]
+	}
+
 `
 
 func TestFoo(a *testing.T) {
