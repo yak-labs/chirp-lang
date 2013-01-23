@@ -60,6 +60,7 @@ func (fr *Frame) initBuiltins() {
 	Builtins["interp"] = cmdInterp
 	Builtins["incr"] = cmdIncr
 	Builtins["append"] = cmdAppend
+	Builtins["lappend"] = cmdLAppend
 	Builtins["error"] = cmdError
 	Builtins["string"] = MkEnsemble(stringEnsemble)
 	Builtins["info"] = MkEnsemble(infoEnsemble)
@@ -863,6 +864,9 @@ func cmdIncr(fr *Frame, argv []T) T {
 
 	name := varName.String()
 
+	if !fr.HasVar(name) {
+		fr.SetVar(name, MkInt(0))
+	}
 	v := fr.GetVar(name).Float()
 	i := incr.Float()
 	z := MkFloat(v + i)
@@ -877,6 +881,9 @@ func cmdAppend(fr *Frame, argv []T) T {
 
 	name := varName.String()
 
+	if !fr.HasVar(name) {
+		fr.SetVar(name, Empty)
+	}
 	v := fr.GetVar(name)
 
 	i := 0
@@ -895,6 +902,22 @@ func cmdAppend(fr *Frame, argv []T) T {
 	}
 
 	z := MkString(buf.String())
+	fr.SetVar(name, z)
+	return z
+}
+
+func cmdLAppend(fr *Frame, argv []T) T {
+	varName, values := Arg1v(argv)
+
+	name := varName.String()
+
+	if !fr.HasVar(name) {
+		fr.SetVar(name, Empty)
+	}
+	v := fr.GetVar(name).List()
+	v = append(v, values...)
+
+	z := MkList(v)
 	fr.SetVar(name, z)
 	return z
 }

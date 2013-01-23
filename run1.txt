@@ -16,7 +16,45 @@ This is the HomePage.
 
 /TEXT /root/Mixin/MixinFirst/src/0
 
-# -- I am the first Mixin
+proc HtmlOutput {} { tag html [ht [HtmlHead] [HtmlBody] [WikiTail]] }
+proc HtmlHead {} { tag head [ht [HtmlTitle] [HtmlCss]] }
+proc HtmlTitle {} { tag title [ht $Volume -- $Page -- $Verb] }
+proc HtmlCss {} { ht }
+proc HtmlBody {} { tag body [ht [WikiTop] [WikiMiddle] [WikiBottom]] }
+
+proc WikiTop {} { tag div class WikiTop [WideTable [list [list "TOP"]]] }
+proc WikiMiddle {} { tag div class WikiMiddle [WikiText] }
+proc WikiBottom {} { tag div class WikiBottom [WideTable [list [list "BOTTOM"]]] }
+proc WikiTail {} { tag div class WikiTail [WikiNotes] }
+
+proc WikiText {} { ReadFile [site] $Volume $Page wiki }
+
+proc WideTable rows {
+	set rr {}
+	foreach r $rows {
+		set dd {}
+		foreach d $r {
+			lappend dd [tag td align left $d]
+		}
+		lappend rr [tag tr [eval ht $dd]]
+	}
+	tag table width 99% border 1 cellpadding 5 [eval ht $rr]
+}
+set Notes {}
+proc Note x {
+	lappend Notes $x
+}
+proc WikiNotes {} {
+	set nn {}
+	foreach n $Notes {
+		lappend nn [tag li class WikiNote $n]
+	}
+	tag ul class WikiNotes [eval ht $nn]
+}
+			
+proc ShowValue v {
+	/fmt/Sprintf %v $v
+}
 
 proc Puts {str} {
 	/fmt/Fprintf $W %s $str
@@ -39,27 +77,27 @@ proc Route { path query } {
 
 	ModeHtml
 
-	/fmt/Fprintf $W %v $Form
-	/fmt/Fprintf $W %s " == Form <br>"
-
-	/fmt/Fprintf $W %v $Query
-	/fmt/Fprintf $W %s " == Query <br>"
+	if {$path eq "/"} {
+		set path "/Main/HomePage.view"
+	}
 
 	if {[catch {
 
 		set rx [RxCompile {^/([A-Z][a-z]+)/([A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*)([.]([a-z]+))?$}]
 		set m [send $rx FindStringSubmatch $path]
 		if {[notnull $m]} {
-			set Volume [lat $m 1]
-			set Page [lat $m 2]
-			set Verb [lat $m 4]
-			catch { Puts "Level: [level]<br>" } _
-			catch { Puts "Host: [host]<br>" } _
-			catch { Puts "Site: [site]<br>" } _
-			catch { Puts "User: [user]<br>" } _
-			catch { Puts "Vol: $Volume<br>" } _
-			catch { Puts "Page: $Page<br>" } _
-			catch { Puts "Verb: $Verb<br>" } _
+			set _,Volume,Page,_,Verb $m
+			catch { Note "Query: [ShowValue $Query]" } _
+			catch { Note "Form: [ShowValue $Form]" } _
+			catch { Note "Level: [level]" } _
+			catch { Note "Host: [host]" } _
+			catch { Note "Site: [site]" } _
+			catch { Note "User: [user]" } _
+			catch { Note "Vol: $Volume" } _
+			catch { Note "Page: $Page" } _
+			catch { Note "Verb: $Verb" } _
+			Note [tag a href /Main/HomePage.list LIST]
+			Note [tag a href /Main/HomePage.view HomePage]
 
 			Verb/$Verb
 		} else {
@@ -72,22 +110,27 @@ proc Route { path query } {
 }
 
 proc Verb/view {} {
-	set c [ReadFile [site] $Volume $Page wiki]
+	Puts [HtmlOutput]
+}
 
-	Puts $c
+proc DoVerbList {} {
+	set zz {}
+	foreach p [ListPages [site] $Volume] {
+		set m [send $WikiPage_rx FindStringSubmatch $p]
+		if {[notnull $m]} {
+			set _,page $m
+			lappend zz [tag li [tag a href $page.view $page]]
+		}
+	}
+	tag ul [eval ht $zz]
 }
 
 proc Verb/list {} {
-	Puts "<ul>"
-	set pages [ListPages [site] $Volume]
-	foreach p $pages {
-		set m [send $WikiPage_rx FindStringSubmatch $p]
-		if {[notnull $m]} {
-			set page [lat $m 1]
-			Puts "<li><a href=$page.view>$page</a></li>"
-		}
+	proc WikiMiddle {} {
+		DoVerbList
 	}
-	Puts "</ul>"
+
+	Puts [HtmlOutput]
 }
 
 proc Verb/edit {} {
