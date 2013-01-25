@@ -59,7 +59,7 @@ type Global struct {
 	MixinSerial         int    // Increment before defining Mixin.
 	MixinNumberDefining int    // Set nonzero while defining Mixin.
 	MixinNameDefining   string // Set nonzero while defining Mixin.
-	isSafe	bool               // Set true for safe subinterpreter.
+	isSafe              bool   // Set true for safe subinterpreter.
 
 	Mu sync.Mutex
 }
@@ -100,6 +100,12 @@ const (
 type Jump struct {
 	Status StatusCode
 	Result T
+}
+
+// Either Bad or Good value.
+type Either struct {
+	Bad  interface{}
+	Good T
 }
 
 // Loc is protocol for a variable location.
@@ -145,7 +151,7 @@ func New() *Frame {
 
 	// Copy Builtins to commands.
 	for k, v := range Builtins {
-		node := CmdNode{ Fn: v }
+		node := CmdNode{Fn: v}
 		g.Cmds[k] = &node
 	}
 	return &g.Fr
@@ -226,7 +232,7 @@ func (fr *Frame) SetVar(name string, x T) {
 				if i < len(xs) {
 					fr.SetVar(n, xs[i])
 				} else {
-					fr.SetVar(n, Empty)  // Missing values become empty.
+					fr.SetVar(n, Empty) // Missing values become empty.
 				}
 			}
 		}
@@ -371,7 +377,7 @@ type T interface {
 	Int() int64
 	Uint() uint64
 	ListElementString() string
-	Bool() bool   // Like Python, empty values and 0 values are false.
+	Bool() bool    // Like Python, empty values and 0 values are false.
 	IsEmpty() bool // Would String() return ""?
 	List() []T
 	IsPreservedByList() bool
@@ -623,7 +629,7 @@ func SortedKeysOfHash(h Hash) []string {
 }
 
 func (t terpHash) IsPreservedByList() bool { return true }
-func (t terpHash) IsQuickNumber() bool { return false }
+func (t terpHash) IsQuickNumber() bool     { return false }
 func (t terpHash) List() []T {
 	keys := SortedKeysOfHash(t.h)
 	z := make([]T, 0, 2*len(keys))
@@ -679,7 +685,7 @@ func (t terpGenerator) IsEmpty() bool {
 	return hd == nil
 }
 func (t terpGenerator) IsPreservedByList() bool { return true }
-func (t terpGenerator) IsQuickNumber() bool { return false }
+func (t terpGenerator) IsQuickNumber() bool     { return false }
 func (t terpGenerator) List() []T {
 	z := make([]T, 0, 4)
 	for {
@@ -742,7 +748,7 @@ func (t terpFloat) Uint() uint64 {
 	return uint64(t.f)
 }
 func (t terpFloat) IsPreservedByList() bool { return true }
-func (t terpFloat) IsQuickNumber() bool { return true }
+func (t terpFloat) IsQuickNumber() bool     { return true }
 func (t terpFloat) List() []T {
 	return []T{t}
 }
