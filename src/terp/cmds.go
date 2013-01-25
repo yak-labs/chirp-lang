@@ -311,36 +311,42 @@ func procOrYProc(fr *Frame, argv []T, generating bool) T {
 		}
 
 		// Case "yproc":
-		ch := make(chan T, 0)
-		fr3.Chan = ch
+		ch := make(chan Either, 0)
+		z := MkGenerator(ch)  // Save reader half in z.
+		fr3.WriterChan = ch         // Save writer half in frame.
+		ch = nil
 
 		go func() {
-			defer close(ch)
+			defer close(fr3.WriterChan)
 			defer func() {
 				if r := recover(); r != nil {
+					var ei Either
+					ei.Bad = Sprintf("%v", r)
 					if j, ok := r.(Jump); ok {
 						switch j.Status {
 						case RETURN:
 							if !j.Result.IsEmpty() {
-								panic("cannot return a value inside a yproc command")
+								ei.Bad = "yproc command: cannot return a value"
 							}
 							return
 						case BREAK:
-							panic("break command was not inside a loop")
+							ei.Bad = "yproc command: break command was not inside a loop"
 						case CONTINUE:
-							panic("continue command was not inside a loop")
+							ei.Bad = "yproc command: continue command was not inside a loop"
+						default:
+							ei.Bad = "yproc command: unknown Jump Status"
 						}
 					}
 					if rs, ok := r.(string); ok {
 						r = rs + "\n\tin yproc " + argv[0].String()
 					}
-					panic(r) // Rethrow errors and unknown Status.
+					fr3.WriterChan <- ei
 				}
 			}()
 			fr3.Eval(body)
 		}()
 
-		return MkGenerator(ch)
+		return z
 	}
 
 	builtin := Builtins[nameStr]
@@ -437,13 +443,13 @@ func cmdSuper(fr *Frame, argv []T) T {
 func cmdYield(fr *Frame, argv []T) T {
 	if len(argv) == 2 {
 		// Write exactly 1 arg on the channel.
-		fr.Chan <- argv[1]
+		fr.WriterChan <- Either{Good: argv[1]}
 		return argv[1]
 	}
 
 	// Write more than 1 arg in a list.
 	z := MkList(argv[1:])
-	fr.Chan <- z
+	fr.WriterChan <- Either{Good: z}
 	return z
 }
 

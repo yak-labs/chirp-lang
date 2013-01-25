@@ -40,7 +40,7 @@ type Frame struct {
 	Prev *Frame
 	G    *Global
 
-	Chan       chan<- T // for yproc & yield
+	WriterChan chan<- Either // for yproc & yield
 	MixinLevel int
 	MixinName  string
 }
@@ -412,7 +412,7 @@ type terpValue struct { // Implements T.
 
 // terpGenerator holds a channel for reading from a generator (yproc command).
 type terpGeneratorGuts struct { // Mutable.
-	ch <-chan T
+	readerChan <-chan Either
 	hd T
 	tl T
 }
@@ -428,8 +428,8 @@ type terpHash struct { // Imlements T.
 func MkHash() terpHash {
 	return terpHash{h: make(Hash, 4)}
 }
-func MkGenerator(ch <-chan T) terpGenerator {
-	return terpGenerator{guts: &terpGeneratorGuts{ch: ch}}
+func MkGenerator(readerChan <-chan Either) terpGenerator {
+	return terpGenerator{guts: &terpGeneratorGuts{readerChan: readerChan}}
 }
 func MkBool(a bool) terpFloat {
 	if a {
@@ -689,25 +689,34 @@ func (t terpGenerator) IsQuickNumber() bool     { return false }
 func (t terpGenerator) List() []T {
 	z := make([]T, 0, 4)
 	for {
-		t := <-t.guts.ch
-		if t == nil {
+		ei := <-t.guts.readerChan
+		if ei.Bad != nil {
+			panic(ei.Bad)
+		}
+		if ei.Good == nil {
 			break
 		}
-		z = append(z, t)
+		z = append(z, ei.Good)
 	}
 	return z
 }
 func (t terpGenerator) HeadTail() (hd, tl T) {
 	g := t.guts
-	if g.ch == nil {
+	if g.readerChan == nil {
 		return g.hd, g.tl
 	}
-	g.hd = <-g.ch
+
+	ei := <-g.readerChan
+	if ei.Bad != nil {
+		panic(ei.Bad)
+	}
+
+	g.hd = ei.Good
 	if g.hd == nil {
-		g.ch = nil
+		g.readerChan = nil
 		return nil, nil
 	}
-	g.tl = terpGenerator{guts: &terpGeneratorGuts{ch: g.ch}}
+	g.tl = terpGenerator{guts: &terpGeneratorGuts{readerChan: g.readerChan}}
 	return g.hd, g.tl
 }
 func (t terpGenerator) Hash() Hash {
