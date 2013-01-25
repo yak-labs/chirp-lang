@@ -324,6 +324,13 @@ var cmdTests = `
 		must $2 [expr $1 * 10]
 	}
 
+	# Propagation of error from yproc to consumer.
+	yproc barfer {} {error BARF}
+	must 1 [catch {concat [barfer]} what]
+	must BARF $what
+	must 1 [catch {foreach x [barfer] {error NOTREACHED}} what]
+	must BARF $what
+
 `
 
 func TestFoo(a *testing.T) {
