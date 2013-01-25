@@ -165,35 +165,35 @@ proc Verb/db {} {
 
 This is the larp HomePage.
 
-/TEXT /larp/Characters/OlSmithy/data/0
+/TEXT /larp/Characters/TableCharacters_OlSmithy/db/0
 
-/set player_name:*     {John Henry}
-/set character_name:*  {Ol Smithy}
-/set points:total      317
-/set points:spent      315
-/set points:unspent    2
-/set home_world:*      {Empire of Perfect Unity}
-/set prowess:*         4
-/set mastery:*         0
+/set player_name:    {John Henry}
+/set character_name: {Ol Smithy}
+/set points:total    317
+/set points:spent    315
+/set points:unspent  2
+/set home_world:     {Empire of Perfect Unity}
+/set prowess:        4
+/set mastery:        0
 
-# Should I do skills and traits like this?
-/set traits:*          Tough 1 Learned 1 Perceptive 1 Strong 1
-/set skill:levels      Craft 8 Scholarship 7 Mercantile 1 Sword 3
-/set skill:specialties Craft {{Weaponcraft x3}} Scholarship {Swords {World Striders}}
-/set skill:abilities   Craft {{Spark of Creation} {Signature Work: Longsword}} Scholarship {Epiphany}
+# Traits
+/set trait_level:tough      1
+/set trait_level:learned    1
+/set trait_level:perceptive 1
+/set trait_level:strong     1
 
-# ...or like this?
-/set tough:level       1
-/set learned:level     1
-/set perceptive:level  1
-/set strong:level      1
-/set craft:level       8
-/set craft:specialties {Weaponcraft x3}
-/set craft:abilities   {Spark of Creation} {Signature Work: Longsword}
-/set scholarship:level       7
-/set scholarship:specialties Swords {World Striders}
-/set scholarship:abilities   Epiphany
-/set sword:level       3
+# Skill: Craft
+/set skill_level:craft       8
+/set skill_specialties:craft {Weaponcraft x3}
+/set skill_abilities:craft   {Spark of Creation} {Signature Work: Longsword}
+
+# Skill: Scholarship
+/set skill_level:scholarship       7
+/set skill_specialties:scholarship Swords {World Striders}
+/set skill_abilities:scholarship   Epiphany
+
+# Skill: Sword
+/set skill_level:sword 3
 
 # Here's how I imagine the data for this character would be represented in JSON
 
@@ -232,40 +232,39 @@ This is the larp HomePage.
   ]
 }
 
-/TEXT /larp/Characters/Marina/data/0
+/TEXT /larp/Characters/TableCharacters_Marina/db/0
 
-/set player_name:*     {Janet Snufflepuff}
-/set character_name:*  {Marina}
-/set points:total      255
-/set points:spent      230
-/set points:unspent    25
-/set home_world:*      {Enchanted Glade}
-/set prowess:*         0
-/set mastery:*         11
+/set player_name:    {Janet Snufflepuff}
+/set character_name: {Marina}
+/set points:total    255
+/set points:spent    230
+/set points:unspent  25
+/set home_world:     {Enchanted Glade}
+/set prowess:        0
+/set mastery:        11
 
 # Traits
-/set willful:level     1
-/set attuned:level     2
-/set empathic:level    1
+/set trait_level:willful  1
+/set trait_level:attuned  2
+/set trait_level:empathic 1
 
 # Skills
-/set occult:level      3
-/set healing:level     1
-/set performance:level 1
+/set skill_level:occult      3
+/set skill_level:healing     1
+/set skill_level:performance 1
 
-# Magic Schools
-/set woodsong_and_moonsecret:level     8
-/set woodsong_and_moonsecret:abilities {Empowered Spell} {Greater Working}
-/set woodsong_and_moonsecret:greater_workings {Marina Steals the Weight of Years}
-/set woodsong_and_moonsecret:spells    {Ring of the Fair Ones} {Glasswing's Gentle Mien} {Secrets Under Toadstools} {Call the Clutching Weeds} {Stillthorn Curse} {Joy Takes Flight}
-/set woodsong_and_moonsecret:rituals   {Feet of the Greenwise} {Sleep of the Ageless} {Name the Little One} {Likeness in Clay} {Cleansing Sunlit Waters} {Ply the Stones}
-# Will this work?
-/set Glasswing's Gentle Mien:empowered 1
+# Magic School: Woodsong and Moonsecret
+/set school_level:woodsong_and_moonsecret            8
+/set school_abilities:woodsong_and_moonsecret        {Empowered Spell} {Greater Working}
+/set school_greater_workings:woodsong_and_moonsecret {Marina Steals the Weight of Years}
+/set school_spells:woodsong_and_moonsecret           {Ring of the Fair Ones} {Glasswing's Gentle Mien} {Secrets Under Toadstools} {Call the Clutching Weeds} {Stillthorn Curse} {Joy Takes Flight}
+/set school_empowered_spells:woodsong_and_moonsecret {Glasswing's Gentle Mien}
+/set school_rituals:woodsong_and_moonsecret          {Feet of the Greenwise} {Sleep of the Ageless} {Name the Little One} {Likeness in Clay} {Cleansing Sunlit Waters} {Ply the Stones}
 
-/set currents_of_deepspirit:level     3
-/set currents_of_deepspirit:spells    {Bearing Unseen Gifts} {Balance, in All Things} {Know The Spirit Ways}
-/set currents_of_deepspirit:abilities {The City is Life} {Drawing the Third Eye} {The Sound that Pleases}
-
+# Magic School: Currents of Deepspirit
+/set school_level:currents_of_deepspirit   3
+/set school_spells:currents_of_deepspirit  {Bearing Unseen Gifts} {Balance, in All Things} {Know The Spirit Ways}
+/set school_rituals:currents_of_deepspirit {The City is Life} {Drawing the Third Eye} {The Sound that Pleases}
 
 # Here's how I imagine the data for this character would be represented in JSON
 
