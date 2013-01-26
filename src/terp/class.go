@@ -8,7 +8,7 @@ import (
 type Obj struct {
 	Class	*Obj
 	Super	*Obj
-	Slots	Hash
+	Slots	Scope
 }
 
 func cmdSubclass(fr *Frame, argv []T) T {
@@ -19,7 +19,7 @@ func cmdSubclass(fr *Frame, argv []T) T {
 	}
 	z := &Obj{
 		Super: sup,
-		Slots: make(Hash),
+		Slots: make(Scope),
 	}
 	return MkValue(R.ValueOf(z))
 }
@@ -36,7 +36,9 @@ func cmdMeth(fr *Frame, argv []T) T {
 
 	procOrYProc(fr, procArgs, false, super)
 	node := fr.G.Cmds[tmpName]
-	slots[name.String()] = MkValue(R.ValueOf(node.Fn))
+	slot := new(Slot)
+	slot.Set(MkValue(R.ValueOf(node.Fn)))
+	slots[name.String()] = slot
 	return Empty
 }
 
@@ -45,7 +47,7 @@ func cmdNew(fr *Frame, argv []T) T {
 	cls := class.Raw().(*Obj)
 	z := &Obj{
 		Class: cls,
-		Slots: make(Hash),
+		Slots: make(Scope),
 	}
 	return MkValue(R.ValueOf(z))
 }
@@ -57,7 +59,7 @@ func cmdOn(fr *Frame, argv []T) T {
 	if !ok {
 		panic(Sprintf("Cannot find message: %q", msg.String()))
 	}
-	cmd := cmdT.Raw().(Command)
+	cmd := cmdT.Get().Raw().(Command)
 	return cmd(fr, argv[1:])
 }
 

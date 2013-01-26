@@ -200,6 +200,10 @@ func (fr *Frame) GetVarScope(name string) Scope {
 		panic("Empty variable name")
 	}
 
+	if name[0] == '_' && fr.Self != nil {
+		return fr.Self.Slots
+	}
+
 	if IsGlobal(name) {
 		return fr.G.Fr.Vars
 	}
