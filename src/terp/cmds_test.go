@@ -331,6 +331,12 @@ var cmdTests = `
 	must 1 [catch {foreach x [barfer] {error NOTREACHED}} what]
 	must BARF $what
 
+	set Obj [subclass ""]
+	set A [subclass $Obj]
+	set a [new $A]
+	meth $A foo x {expr 3*$x}
+	on $a foo 999
+
 `
 
 func TestFoo(a *testing.T) {

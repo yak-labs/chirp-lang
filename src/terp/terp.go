@@ -43,6 +43,9 @@ type Frame struct {
 	WriterChan chan<- Either // for yproc & yield
 	MixinLevel int
 	MixinName  string
+
+	Self	*Obj
+	Super	*Obj
 }
 
 // Global holds the global state of an interpreter,
@@ -147,6 +150,7 @@ func New() *Frame {
 		g.Fr.initExpr()
 		g.Fr.initDbCmds()
 		g.Fr.initHt()
+		g.Fr.initClass()
 	}
 
 	// Copy Builtins to commands.

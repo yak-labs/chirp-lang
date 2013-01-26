@@ -151,6 +151,13 @@ func Arg3v(argv []T) (T, T, T, []T) {
 	return argv[1], argv[2], argv[3], argv[4:]
 }
 
+func Arg4(argv []T) (T, T, T, T) {
+	if len(argv) != 4+1 {
+		panic(Sprintf("Expected 4 arguments, but got argv=%s", Showv(argv)))
+	}
+	return argv[1], argv[2], argv[3], argv[4]
+}
+
 func Arg7(argv []T) (T, T, T, T, T, T, T) {
 	if len(argv) != 7+1 {
 		panic(Sprintf("Expected 7 arguments, but got argv=%s", Showv(argv)))
@@ -206,14 +213,14 @@ func cmdPuts(fr *Frame, argv []T) T {
 }
 
 func cmdProc(fr *Frame, argv []T) T {
-	return procOrYProc(fr, argv, false)
+	return procOrYProc(fr, argv, false, nil)
 }
 
 func cmdYProc(fr *Frame, argv []T) T {
-	return procOrYProc(fr, argv, true)
+	return procOrYProc(fr, argv, true, nil)
 }
 
-func procOrYProc(fr *Frame, argv []T, generating bool) T {
+func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 	name, aa, body := Arg3(argv)
 	nameStr := name.String()
 	alist := aa.List()
@@ -241,6 +248,14 @@ func procOrYProc(fr *Frame, argv []T, generating bool) T {
 	}
 
 	cmd := func(fr2 *Frame, argv2 []T) (result T) {
+	    var self *Obj
+		if super != nil {
+			// Argv2 is [ Receiver, Message, args... ].
+			// Remove Receiver, defining self.
+			// Leave message to be argv[0] for the command.
+			self = argv2[0].Raw().(*Obj)
+			argv2 = argv2[1:]
+		}
 		if captureMixinNumberDefining > 0 {
 			argv2[0] = MkString(longMixinName)
 		}
@@ -289,6 +304,8 @@ func procOrYProc(fr *Frame, argv []T, generating bool) T {
 		fr3 := fr2.NewFrame()
 		fr3.MixinLevel = captureMixinNumberDefining
 		fr3.MixinName = captureMixinNameDefining
+		fr3.Self = self
+		fr3.Super = super
 
 		if varargs {
 			for i, arg := range astrs[:len(astrs)-1] {
