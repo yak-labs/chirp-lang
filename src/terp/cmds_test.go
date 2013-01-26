@@ -345,6 +345,8 @@ var cmdTests = `
 	on $a setx 100
 	must 100 [on $a getx]
 	must 400 [on $a mulx 4]
+	# TODO: inheritance.
+	# TODO: super.
 
 `
 

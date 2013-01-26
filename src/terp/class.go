@@ -55,11 +55,17 @@ func cmdNew(fr *Frame, argv []T) T {
 func cmdOn(fr *Frame, argv []T) T {
 	rcvr, msg, _ := Arg2v(argv)
 	cls := rcvr.Raw().(*Obj).Class
-	cmdT, ok := cls.Slots[msg.String()]
+	var loc Loc
+	var ok bool
+	for cls != nil {
+		loc, ok = cls.Slots[msg.String()]
+		if ok {break}
+		cls = cls.Super
+	}
 	if !ok {
 		panic(Sprintf("Cannot find message: %q", msg.String()))
 	}
-	cmd := cmdT.Get().Raw().(Command)
+	cmd := loc.Get().Raw().(Command)
 	return cmd(fr, argv[1:])
 }
 
