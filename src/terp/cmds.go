@@ -67,6 +67,7 @@ func (fr *Frame) initBuiltins() {
 	Builtins["split"] = cmdSplit
 	Builtins["join"] = cmdJoin
 	Builtins["dropnull"] = cmdDropNull
+	Builtins["subst"] = cmdSubst
 }
 
 type BinaryFlop func(a, b float64) float64
@@ -1173,4 +1174,30 @@ func cmdDropNull(fr *Frame, argv []T) T {
 		}
 	}
 	return MkList(z)
+}
+
+func cmdSubst(fr *Frame, argv []T) T {
+	args := Arg0v(argv)
+
+	if len(args) == 0 {
+		panic("'subst' commmand needs an argument")
+	}
+
+	var flags SubstFlags
+	for len(args) > 1 {
+		a := args[0].String()
+		switch (true) {
+		case MatchTailStar("-nob*", a):
+			flags |= NoBackslash
+		case MatchTailStar("-noc*", a):
+			flags |= NoSquare
+		case MatchTailStar("-nov*", a):
+			flags |= NoDollar
+		default:
+			panic(Sprintf("Bad flag for 'subst' commmand: %q", a))
+		}
+		args = args[1:]
+	}
+
+	return MkString(fr.SubstString(args[0].String(), flags))
 }

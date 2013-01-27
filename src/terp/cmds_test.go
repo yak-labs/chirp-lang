@@ -348,6 +348,19 @@ var cmdTests = `
 	# TODO: inheritance.
 	# TODO: super.
 
+	set a 111; set B 222 
+
+	must {aaa$a foo[expr 3*8]bar$B.zzz\\0105} [
+		subst -noback -nocommand -novar {aaa$a foo[expr 3*8]bar$B.zzz\0105}]
+
+	must "aaa\$a foo\[expr 3*8\]bar\$B.zzz\b5" [
+		subst -noc -nov {aaa$a foo[expr 3*8]bar$B.zzz\0105}]
+
+	must "aaa111 foo\[expr 3*8\]bar222.zzz\b5" [
+		subst -noc {aaa$a foo[expr 3*8]bar$B.zzz\0105}]
+
+	must "aaa111 foo24bar222.zzz\b5" [
+		subst {aaa$a foo[expr 3*8]bar$B.zzz\0105}]
 `
 
 func TestFoo(a *testing.T) {

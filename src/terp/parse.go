@@ -16,7 +16,7 @@ func WhiteOrSemi(ch uint8) bool {
 }
 
 func (fr *Frame) Eval(a T) (result T) {
-	result = MkString("") // In case of empty eval.
+	result = Empty // In case of empty eval.
 	log.Printf("< Eval < (%T) ## %#v ## %q\n", a, a, a.String())
 
 	if a.IsPreservedByList() {
@@ -59,6 +59,22 @@ Loop:
 			b++
 		case '}':
 			b--
+		case '\\':
+			// In curly braces, only 3 specific things can be backslash-escaped.
+			// Followed by anything else, no escaping happens.
+			switch s[i+1] {
+			case '\\':
+				c = '\\'
+				i ++
+			case '{':
+				c = '{'
+				i ++
+			case '}':
+				c = '}'
+				i ++
+			default:
+				// Keep that backslash, it's real.
+			}
 		}
 		if b == 0 {
 			break Loop
@@ -405,6 +421,70 @@ func consumeBackslashEscaped(s string, i int) (byte, int) {
 	b := s[i+2] - '0'
 	c := s[i+3] - '0'
 	return byte(a*64 + b*8 + c), i + 4
+}
+
+type SubstFlags int
+const (
+	NoDollar SubstFlags = 1 << iota
+	NoSquare
+	NoBackslash
+)
+
+// SubstString does Square, Dollar, and Backslash substitutions on a string.
+func (fr *Frame) SubstString(s string, flags SubstFlags) string {
+	log.Printf("< SubstString < %d < %q\n", flags, s)
+	i := 0
+	n := len(s)
+	buf := bytes.NewBuffer(nil)
+
+Loop:
+	for i < n {
+		c := s[i]
+		switch c {
+		case '[':
+			if (flags & NoSquare) == NoSquare {
+				goto Default
+			}
+			// Mid-word, squares should return stringlike result.
+			newresult2, rest2 := fr.ParseSquare(s[i:])
+			buf.WriteString(newresult2.String())
+			s = rest2
+			n = len(s)
+			i = 0
+			continue Loop
+		case ']':
+			if (flags & NoSquare) == NoSquare {
+				goto Default
+			}
+			break Loop
+		case '$':
+			if (flags & NoDollar) == NoDollar {
+				goto Default
+			}
+			newresult3, rest3 := fr.ParseDollar(s[i:])
+			buf.WriteString(newresult3.String())
+			s = rest3
+			n = len(s)
+			i = 0
+			continue Loop
+		case '\\':
+			if (flags & NoBackslash) == NoBackslash {
+				goto Default
+			}
+			c, i = consumeBackslashEscaped(s, i)
+			buf.WriteByte(c)
+			continue Loop
+		}
+Default:
+		buf.WriteByte(c)
+		i++
+	}
+	if i != n {
+		panic(Sprintf("Syntax error in subst: %q", s))
+	}
+	z := buf.String()
+	log.Printf("> SubstString > %q\n", z)
+	return z
 }
 
 func ParseList(s string) []T {
