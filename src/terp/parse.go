@@ -375,17 +375,25 @@ Loop:
 
 func consumeBackslashEscaped(s string, i int) (byte, int) {
 	switch s[i+1] {
+	case 'a':
+		return '\a', i + 2
+	case 'b':
+		return '\b', i + 2
+	case 'f':
+		return '\f', i + 2
 	case 'n':
 		return '\n', i + 2
 	case 'r':
 		return '\r', i + 2
 	case 't':
 		return '\t', i + 2
-	case '"', '\\', '{', '}', ';', ' ', '\t', '\r', '\n':
-		return s[i+1], i + 2
+	case 'v':
+		return '\v', i + 2
+	case 'x':
+		panic("Hexadecimal Backslash Escapes not supported (yet)")
 	}
 	if s[i+1] < '0' || s[i+1] > '7' {
-		return s[i+1], i + 2
+		return s[i+1], i + 2  // Default for all other cases is the escaped char.
 	}
 	if s[i+2] < '0' || s[i+2] > '7' {
 		panic(Sprintf("Second character after backslash is not octal %q.", s[i:i+3]))
