@@ -20,11 +20,15 @@ proc HtmlOutput {} { tag html [ht [HtmlHead] [HtmlBody] [WikiTail]] }
 proc HtmlHead {} { tag head [ht [HtmlTitle] [HtmlCss]] }
 proc HtmlTitle {} { tag title [ht $Volume -- $Page -- $Verb] }
 proc HtmlCss {} { ht }
-proc HtmlBody {} { tag body [ht [WikiTop] [WikiMiddle] [WikiBottom]] }
+proc HtmlBody {} { tag body class HtmlBody [ht [
+	tag div class WikiTop [WikiTop]] [
+	tag div class WikiMiddle [WikiMiddle]] [
+	tag div class WikiBottom [WikiBottom]]
+]}
 
-proc WikiTop {} { tag div class WikiTop [WideTable [list [list "TOP"]]] }
-proc WikiMiddle {} { tag div class WikiMiddle [WikiText] }
-proc WikiBottom {} { tag div class WikiBottom [WideTable [list [list "BOTTOM"]]] }
+proc WikiTop {} { ht [WideTable [list [list "TOP"]]] [tag br] [tag br] }
+proc WikiMiddle {} { WikiText }
+proc WikiBottom {} { ht [tag br] [tag br] [WideTable [list [list "BOTTOM"]]] }
 proc WikiTail {} { tag div class WikiTail [WikiNotes] }
 
 proc WikiText {} { ReadFile [site] $Volume $Page @wiki }
@@ -87,6 +91,7 @@ proc Route { path query } {
 		set m [send $rx FindStringSubmatch $path]
 		if {[notnull $m]} {
 			set _,Volume,Page,_,Verb $m
+			catch { Note "Method: [getf $R Method]" } _
 			catch { Note "Query: [ShowValue $Query]" } _
 			catch { Note "Form: [ShowValue $Form]" } _
 			catch { Note "Level: [level]" } _
@@ -134,25 +139,30 @@ proc Verb/list {} {
 }
 
 proc Verb/edit {} {
-	Puts "Method: [getf $R Method] <br>"
-	if 0 {
-		Puts "Content len: [slen $content] <br>"
-		Puts "Content value: $content <br>"
-		Puts "Content2 len: [slen $content2] <br>"
-		Puts "Content2 value: $content2 <br>"
+	proc WikiMiddle {} {
+		set c [ReadFile [site] $Volume $Page @wiki]
 
-		#if {[set content]} {
-		#	WriteFile [site] $Volume $Page @wiki $content
-		#}
+		tag form method POST action /$Volume/$Page.edit [
+			ht [
+				tag textarea name text wrap virtual rows 40 cols 100 style "width: 95%; height: 80%;" $c
+			] [
+				tag br
+			] [
+				tag input type submit value Save
+			] [
+				tag input type reset
+			] [
+				tag a href /$Volume/$Page.view Cancel
+			]
+        ]
 	}
+	Puts [HtmlOutput]
 
-	set c [ReadFile [site] $Volume $Page @wiki]
 
-	Puts "<form method=POST action=/$Volume/$Page.edit>"
-	Puts "<textarea name=text>$c</textarea>"
-	Puts "<br>"
-	Puts "<input type=submit value=Submit>"
-	Puts "</form>"
+	#if {[set content]} {
+	#	WriteFile [site] $Volume $Page @wiki $content
+	#}
+
 }
 
 proc Verb/db {} {

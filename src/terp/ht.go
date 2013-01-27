@@ -73,7 +73,11 @@ func Tag(tag T, attrs []T, body T) HTML {
 		// Must escape body.
 		x = esc(body.String())
 	}
-	buf.WriteString(Sprintf(">%s</%s\n>", x, esc(tg)))
+	if len(x) == 0 {
+		buf.WriteString("/\n>")
+	} else {
+		buf.WriteString(Sprintf(">%s</%s\n>", x, esc(tg)))
+	}
 	return HTML(buf.String())
 }
 
