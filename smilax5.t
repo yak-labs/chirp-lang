@@ -4,7 +4,7 @@
 # s: site (old bundle)
 # v: volume (old dir)
 # p: page (old file)
-# f: file.  Special files: "wiki", "src", "db".
+# f: file.  Special files: "@wiki".
 # r: revision; also v: varient.
 
 set SiteNameRx     [/regexp/MustCompile {^[a-z][a-z0-9_]*$}]
@@ -134,7 +134,7 @@ send $Zygote Alias - DB "set DB"
 # -- Load our mixins into our sub-interpreter
 set mixins [@ListPages root Mixin]
 foreach m $mixins {
-	send $Zygote Eval [list mixin $m [@ReadFile root Mixin $m src]]
+	send $Zygote Eval [list mixin $m [@ReadFile root Mixin $m @wiki]]
 }
 
 proc gold-level {user pw} {

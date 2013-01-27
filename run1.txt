@@ -1,20 +1,20 @@
-/TEXT /local/Sys/PassWord/db/0
+/TEXT /local/Sys/PassWord/@wiki/0
 
 /set pw:super:super gold 90
 /set pw:foo:bar gold 70
 /set pw:*:xyzzy gold 30
 /set pw:*:* gold 10
 
-/TEXT /root/Sys/ServeSite/db/0
+/TEXT /root/Sys/ServeSite/@wiki/0
 
 /set serve:localhost:8080 site local
 /set serve:localhost:8081 site larp
 
-/TEXT /local/Main/HomePage/wiki/0
+/TEXT /local/Main/HomePage/@wiki/0
 
 This is the HomePage.
 
-/TEXT /root/Mixin/MixinFirst/src/0
+/TEXT /root/Mixin/MixinFirst/@wiki/0
 
 proc HtmlOutput {} { tag html [ht [HtmlHead] [HtmlBody] [WikiTail]] }
 proc HtmlHead {} { tag head [ht [HtmlTitle] [HtmlCss]] }
@@ -27,7 +27,7 @@ proc WikiMiddle {} { tag div class WikiMiddle [WikiText] }
 proc WikiBottom {} { tag div class WikiBottom [WideTable [list [list "BOTTOM"]]] }
 proc WikiTail {} { tag div class WikiTail [WikiNotes] }
 
-proc WikiText {} { ReadFile [site] $Volume $Page wiki }
+proc WikiText {} { ReadFile [site] $Volume $Page @wiki }
 
 proc WideTable rows {
 	set rr {}
@@ -142,11 +142,11 @@ proc Verb/edit {} {
 		Puts "Content2 value: $content2 <br>"
 
 		#if {[set content]} {
-		#	WriteFile [site] $Volume $Page wiki $content
+		#	WriteFile [site] $Volume $Page @wiki $content
 		#}
 	}
 
-	set c [ReadFile [site] $Volume $Page wiki]
+	set c [ReadFile [site] $Volume $Page @wiki]
 
 	Puts "<form method=POST action=/$Volume/$Page.edit>"
 	Puts "<textarea name=text>$c</textarea>"
@@ -161,11 +161,11 @@ proc Verb/db {} {
 }
 
 
-/TEXT /larp/Main/HomePage/wiki/0
+/TEXT /larp/Main/HomePage/@wiki/0
 
 This is the larp HomePage.
 
-/TEXT /larp/Characters/TableCharacters_OlSmithy/db/0
+/TEXT /larp/Characters/TableCharacters_OlSmithy/@wiki/0
 
 /set player_name:    {John Henry}
 /set character_name: {Ol Smithy}
@@ -232,7 +232,7 @@ This is the larp HomePage.
   ]
 }
 
-/TEXT /larp/Characters/TableCharacters_Marina/db/0
+/TEXT /larp/Characters/TableCharacters_Marina/@wiki/0
 
 /set player_name:    {Janet Snufflepuff}
 /set character_name: {Marina}

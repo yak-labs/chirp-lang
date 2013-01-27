@@ -109,7 +109,7 @@ func ScanPages(volumeDir string, site, volume string, z []Record) []Record {
 	for _, p := range pages {
 		m := InternalFileName_rx.FindStringSubmatch(p.Name())
 		if p.IsDir() && len(m) > 0 {
-			fname := filepath.Join(volumeDir, p.Name(), "f.db", "r.0")
+			fname := filepath.Join(volumeDir, p.Name(), "f.@wiki", "r.0")
 			page := m[1]
 
 			// Test whether a db file exists.
