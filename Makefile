@@ -26,10 +26,10 @@ run1: all
 
 demos: goterp
 	sh demo/all.sh
-web: goterp
+demoweb: goterp
 	./goterp demo/hello_web.t
-wiki: goterp
-	( cd demo ; ../goterp demo/wiki.t )
+demowiki: goterp
+	( cd demo ; ../goterp wiki.t )
 
 clean:
 	rm -rf ./goterp src/generated/reflections.go pkg/* demo/_*.err ./data
