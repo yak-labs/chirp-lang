@@ -5,6 +5,7 @@ import (
 	. "fmt"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 )
 
@@ -40,6 +41,7 @@ func (fr *Frame) initBuiltins() {
 	Builtins["sat"] = cmdSAt // a.k.a. string index
 	Builtins["lat"] = cmdLAt // a.k.a. lindex
 	Builtins["lindex"] = cmdLAt
+	Builtins["lsort"] = cmdLSort
 	Builtins["http_handler"] = cmdHttpHandler
 	Builtins["foreach"] = cmdForEach
 	Builtins["while"] = cmdWhile
@@ -507,6 +509,35 @@ func cmdLAt(fr *Frame, argv []T) T {
 		panic(Sprintf("lat: bad index: len(list)=%d but i=%d", len(list), i))
 	}
 	return list[i]
+}
+
+func cmdLSort(fr *Frame, argv []T) T {
+	tlist := Arg1(argv)
+	list := tlist.List()
+	n := len(list)
+
+	// Consider a list with 1 or less elements already sorted.
+	if n <= 1 {
+		return tlist
+	}
+
+	strs := make([]string, n)
+
+	// Convert our list to a slice of strings.
+	for i, t := range list {
+		strs[i] = t.String()
+	}
+
+	// Sort our strings.
+	sort.Strings(strs)
+
+	// Put our sorted strings back into the list.
+	for i, s := range strs {
+		list[i] = MkString(s)
+	}
+
+	// Return the sorted list.
+	return MkList(list)
 }
 
 func cmdSAt(fr *Frame, argv []T) T {
