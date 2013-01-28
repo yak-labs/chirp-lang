@@ -50,6 +50,8 @@ var cmdTests = `
   must 2 [slen [llen [list aa bb cc dd ee 1 2 3 4 5] ]]
   must 0 [slen ""]
 
+  must {B2 a1 a10 a2 b1} [lsort {a10 B2 b1 a1 a2}]
+
   # dumbCompileSequence can compile this:
   proc double {x} {+ $x $x}
   # dumbCompileSequence can compile this:
