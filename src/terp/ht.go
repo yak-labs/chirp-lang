@@ -24,7 +24,7 @@ func nice(s string) string {
 // HTML contains properly formatted & escaped HTML
 type HTML string
 
-// In script:  puts [send $ht Html]
+// In script:  puts [go-send $ht Html]
 func (p HTML) Html() string {
 	return string(p)
 }
@@ -104,8 +104,12 @@ func cmdTag(fr *Frame, argv []T) T {
 	return MkValue(R.ValueOf(Tag(tag, args, body)))
 }
 
-func (fr *Frame) initHt() {
-	Builtins["ht"] = cmdHt
-	Builtins["ht-raw"] = cmdRawHtml
-	Builtins["tag"] = cmdTag
+func init() {
+	if Safes == nil {
+	    Safes = make(map[string]Command, 333)
+	}
+
+	Safes["ht"] = cmdHt
+	Safes["htraw"] = cmdRawHtml
+	Safes["tag"] = cmdTag
 }

@@ -69,9 +69,13 @@ func cmdOn(fr *Frame, argv []T) T {
 	return cmd(fr, argv[1:])
 }
 
-func (fr *Frame) initClass() {
-	Builtins["subclass"] = cmdSubclass
-	Builtins["meth"] = cmdMeth
-	Builtins["new"] = cmdNew
-	Builtins["on"] = cmdOn
+func init() {
+	if Safes == nil {
+	    Safes = make(map[string]Command, 333)
+	}
+
+	Safes["subclass"] = cmdSubclass
+	Safes["meth"] = cmdMeth
+	Safes["new"] = cmdNew
+	Safes["on"] = cmdOn
 }

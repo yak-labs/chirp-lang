@@ -23,10 +23,10 @@ proc factorial n {
 list -- Factorial function using /math/big numbers.
 proc big_factorial n {
   if {[< $n 1]} {
-    return [/math/big/NewInt 1]
+    return [go-call /math/big/NewInt 1]
   }
-  set z [/math/big/NewInt 0]
-  send $z Mul [/math/big/NewInt $n] [big_factorial [- $n 1]]
+  set z [go-call /math/big/NewInt 0]
+  go-send $z Mul [go-call /math/big/NewInt $n] [big_factorial [- $n 1]]
   set z
 }
 
@@ -72,7 +72,7 @@ foreach i [range 10] {
 
 foreach i [yrange 11] {
 	set n [* 10 $i]
-	puts "The big_factorial of $n is [send [big_factorial $n] String]"
+	puts "The big_factorial of $n is [go-send [big_factorial $n] String]"
 }
 
 foreach t [ytriangs [yrange 10]] {

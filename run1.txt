@@ -56,30 +56,18 @@ proc WikiNotes {} {
 	tag ul class WikiNotes [eval ht $nn]
 }
 			
-proc ShowValue v {
-	/fmt/Sprintf %v $v
-}
-
-proc Puts {str} {
-	/fmt/Fprintf $W %s $str
-}
-
-proc ModeHtml {} {
-	send [send $W Header] Set "Content-Type" "text/html"
-}
-
 set WikiPage_rx [RxCompile {^([A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*)$}]
 
 proc Route { path query } {
-	send $R ParseForm
+	ParseForm $R
 
-	set Query [send [getf $R URL] Query]
-	set Form [getf $R Form]
+	set Query [GetQuery $R]
+	set Form [GetForm $R]
 
-	set content [send $R FormValue text]
-	set content2 [send [send [getf $R URL] Query] Get text]
+	#set content [go-send $R FormValue text]
+	#set content2 [go-send [go-send [go-getf $R URL] Query] Get text]
 
-	ModeHtml
+	ModeHtml $W
 
 	if {$path eq "/"} {
 		set path "/Main/HomePage.view"
@@ -88,7 +76,7 @@ proc Route { path query } {
 	if {[catch {
 
 		set rx [RxCompile {^/([A-Z][a-z]+)/([A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*)([.]([a-z]+))?$}]
-		set m [send $rx FindStringSubmatch $path]
+		set m [FindStringSubmatch $rx $path]
 		if {[notnull $m]} {
 			set _,Volume,Page,_,Verb $m
 			catch { Note "Method: [getf $R Method]" } _
@@ -121,7 +109,7 @@ proc Verb/view {} {
 proc DoVerbList {} {
 	set zz {}
 	foreach p [ListPages [site] $Volume] {
-		set m [send $WikiPage_rx FindStringSubmatch $p]
+		set m [FindStringSubmatch $WikiPage_rx $p]
 		if {[notnull $m]} {
 			set _,page $m
 			lappend zz [tag li [tag a href $page.view $page]]
@@ -166,7 +154,10 @@ proc Verb/edit {} {
 }
 
 proc Verb/db {} {
-	/fmt/Fprintf $W %v [db-select-like * * * * * *]
+	foreach record [UNSAFEDbSelectAll] {  # TODO
+		Puts $record
+		Puts <br>
+	}
 }
 
 

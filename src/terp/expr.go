@@ -11,10 +11,6 @@ import (
 var False = MkInt(0)
 var True = MkInt(1)
 
-func (fr *Frame) initExpr() {
-	Builtins["expr"] = cmdExpr
-}
-
 // Concatenate the arguments, adding a space separator, before evaluating the
 // expression.
 func cmdExpr(fr *Frame, argv []T) T {
@@ -552,4 +548,12 @@ Loop:
 	}
 
 	panic(Sprintf("ParseNumber: Could not parse float from: %s", vstr))
+}
+
+func init() {
+	if Safes == nil {
+	    Safes = make(map[string]Command, 333)
+	}
+
+	Safes["expr"] = cmdExpr
 }

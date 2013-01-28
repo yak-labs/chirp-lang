@@ -28,16 +28,6 @@ func findExternalGoFunctionAsValue(name string) R.Value {
 	return z
 }
 
-func (fr *Frame) initReflect() {
-	Builtins["call"] = cmdCall
-	Builtins["send"] = cmdSend
-	Builtins["getf"] = cmdGetf
-	Builtins["setf"] = cmdSetf
-	Builtins["goget"] = cmdGoGet
-
-	Builtins["goelem"] = cmdElem
-	Builtins["goindex"] = cmdIndex
-}
 
 func (fr *Frame) AdaptToValue(a T, ty R.Type) R.Value {
 	switch ty.Kind() {
@@ -209,14 +199,14 @@ func cmdSend(fr *Frame, argv []T) T {
 
 	rv := r.QuickReflectValue()
 	if !rv.IsValid() {
-		panic("cannot 'send' to non-reflect-value")
+		panic("cannot 'go-send' to non-reflect-value")
 	}
 
 	fn := rv.MethodByName(methName)
 	return commonCall(fr, "Method:"+methName+":"+rv.Type().String(), fn, args)
 }
 
-// commonCall is common to both "call" and "send".
+// commonCall is common to both "go-call" and "go-send".
 // args already has function name or receiver and message name stripped; it's just the args.
 func commonCall(fr *Frame, funcName string, fn R.Value, args []T) T {
 	ty := fn.Type()
@@ -339,8 +329,20 @@ func cmdSetf(fr *Frame, argv []T) T {
 
 func cmdGoGet(fr *Frame, argv []T) T {
 	varT := Arg1(argv)
-	if fr.G.isSafe {
-		panic("cannot use 'goget' from safe interp")
-	}    
 	return MkT(generated.Vars[varT.String()])
+}
+
+func init() {
+	if Unsafes == nil {
+	    Unsafes = make(map[string]Command, 333)
+	}
+
+	Unsafes["go-call"] = cmdCall
+	Unsafes["go-send"] = cmdSend
+	Unsafes["go-getf"] = cmdGetf
+	Unsafes["go-setf"] = cmdSetf
+	Unsafes["go-get"] = cmdGoGet
+
+	Unsafes["go-elem"] = cmdElem
+	Unsafes["go-index"] = cmdIndex
 }

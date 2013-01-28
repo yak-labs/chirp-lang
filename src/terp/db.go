@@ -188,7 +188,11 @@ func cmdDbSelectLike(fr *Frame, argv []T) T {
 		value.String()))
 }
 
-func (fr *Frame) initDbCmds() {
-	Builtins["db-select-like"] = cmdDbSelectLike
-	Builtins["db-rebuild"] = cmdRebuild
+func init() {
+	if Unsafes == nil {
+	    Unsafes = make(map[string]Command, 333)
+	}
+
+	Unsafes["db-select-like"] = cmdDbSelectLike
+	Unsafes["db-rebuild"] = cmdRebuild
 }

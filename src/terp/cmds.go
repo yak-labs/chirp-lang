@@ -8,86 +8,32 @@ import (
 	"strings"
 )
 
-var Builtins map[string]Command = make(map[string]Command, 0)
+// Safes are builtin commands that safe subinterps can call.
+// Conventionally these contain no hyphen.
+var Safes   map[string]Command
 
-func (fr *Frame) initBuiltins() {
-	Builtins["+"] = MkChainingBinaryFlopCmd(fr, 0.0, func(a, b float64) float64 { return a + b })
-	Builtins["*"] = MkChainingBinaryFlopCmd(fr, 1.0, func(a, b float64) float64 { return a * b })
-	Builtins["-"] = MkBinaryFlopCmd(fr, func(a, b float64) float64 { return a - b })
-	Builtins["/"] = MkBinaryFlopCmd(fr, func(a, b float64) float64 { return a / b })
+// Unsafes are commands that only the trusted, toplevel terp can call.
+// Conventionally these contain a hyphen.
+var Unsafes map[string]Command
 
-	Builtins["=="] = MkBinaryFlopBoolCmd(fr, func(a, b float64) bool { return (a == b) })
-	Builtins["!="] = MkBinaryFlopBoolCmd(fr, func(a, b float64) bool { return (a != b) })
-	Builtins["<"] = MkBinaryFlopBoolCmd(fr, func(a, b float64) bool { return (a < b) })
-	Builtins["<="] = MkBinaryFlopBoolCmd(fr, func(a, b float64) bool { return (a <= b) })
-	Builtins[">"] = MkBinaryFlopBoolCmd(fr, func(a, b float64) bool { return (a > b) })
-	Builtins[">="] = MkBinaryFlopBoolCmd(fr, func(a, b float64) bool { return (a >= b) })
-	Builtins["must"] = cmdMust
+type binaryFlop func(a, b float64) float64
+type binaryFlopBool func(a, b float64) bool
 
-	Builtins["if"] = cmdIf
-	Builtins["puts"] = cmdPuts
-	Builtins["proc"] = cmdProc
-	Builtins["yproc"] = cmdYProc
-	Builtins["mixin"] = cmdMixin
-	Builtins["super"] = cmdSuper
-	Builtins["yield"] = cmdYield
-	Builtins["ls"] = cmdLs
-	Builtins["slen"] = cmdSLen
-	Builtins["llen"] = cmdLLen
-	Builtins["null"] = cmdNull
-	Builtins["notnull"] = cmdNotNull
-	Builtins["list"] = cmdList
-	Builtins["sat"] = cmdSAt // a.k.a. string index
-	Builtins["lat"] = cmdLAt // a.k.a. lindex
-	Builtins["lindex"] = cmdLAt
-	Builtins["http_handler"] = cmdHttpHandler
-	Builtins["foreach"] = cmdForEach
-	Builtins["while"] = cmdWhile
-	Builtins["catch"] = cmdCatch
-	Builtins["eval"] = cmdEval
-	Builtins["uplevel"] = cmdUplevel
-	Builtins["concat"] = cmdConcat
-	Builtins["set"] = cmdSet
-	Builtins["upvar"] = cmdUpVar
-	Builtins["return"] = cmdReturn
-	Builtins["break"] = cmdBreak
-	Builtins["continue"] = cmdContinue
-	Builtins["hash"] = cmdHash
-	Builtins["hget"] = cmdHGet   // FIXME: temporary: Use getf
-	Builtins["hset"] = cmdHSet   // FIXME: temporary: Use setf
-	Builtins["hdel"] = cmdHDel   // FIXME: temporary: Use delf
-	Builtins["hkeys"] = cmdHKeys // FIXME: temporary: use keys
-	Builtins["interp"] = cmdInterp
-	Builtins["incr"] = cmdIncr
-	Builtins["append"] = cmdAppend
-	Builtins["lappend"] = cmdLAppend
-	Builtins["error"] = cmdError
-	Builtins["string"] = MkEnsemble(stringEnsemble)
-	Builtins["info"] = MkEnsemble(infoEnsemble)
-	Builtins["split"] = cmdSplit
-	Builtins["join"] = cmdJoin
-	Builtins["dropnull"] = cmdDropNull
-	Builtins["subst"] = cmdSubst
-}
-
-type BinaryFlop func(a, b float64) float64
-type BinaryFlopBool func(a, b float64) bool
-
-func MkBinaryFlopCmd(fr *Frame, flop BinaryFlop) Command {
+func MkBinaryFlopCmd(flop binaryFlop) Command {
 	return func(fr *Frame, argv []T) T {
 		a, b := Arg2(argv)
 		return MkFloat(flop(a.Float(), b.Float()))
 	}
 }
 
-func MkBinaryFlopBoolCmd(fr *Frame, flop BinaryFlopBool) Command {
+func MkBinaryFlopBoolCmd(flop binaryFlopBool) Command {
 	return func(fr *Frame, argv []T) T {
 		a, b := Arg2(argv)
 		return MkBool(flop(a.Float(), b.Float()))
 	}
 }
 
-func MkChainingBinaryFlopCmd(fr *Frame, starter float64, flop BinaryFlop) Command {
+func MkChainingBinaryFlopCmd(starter float64, flop binaryFlop) Command {
 	return func(fr *Frame, argv []T) T {
 		z := starter // Be sure not to modify starter!  It is captured.
 		for _, a := range argv[1:] {
@@ -285,7 +231,7 @@ func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 						}
 					}
 					if rs, ok := r.(string); ok {
-						r = rs + "\n\tin proc " + argv[0].String()
+						r = rs + "\n\tin proc " + argv2[0].String() // + " a.k.a. " + argv[1].String()
 					}
 					panic(r) // Rethrow errors and unknown Status.
 				}
@@ -374,7 +320,7 @@ func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 		return z
 	}
 
-	builtin := Builtins[nameStr]
+	builtin := Safes[nameStr]
 	if builtin != nil {
 		panic(Sprintf("cannot redefine a builtin: %q", nameStr))
 	}
@@ -1207,4 +1153,67 @@ func cmdSubst(fr *Frame, argv []T) T {
 	}
 
 	return MkString(fr.SubstString(args[0].String(), flags))
+}
+
+func init() {
+	if Safes == nil {
+		Safes = make(map[string]Command, 333)
+	}
+	Safes["+"] = MkChainingBinaryFlopCmd(0.0, func(a, b float64) float64 { return a + b })
+	Safes["*"] = MkChainingBinaryFlopCmd(1.0, func(a, b float64) float64 { return a * b })
+	Safes["-"] = MkBinaryFlopCmd(func(a, b float64) float64 { return a - b })
+	Safes["/"] = MkBinaryFlopCmd(func(a, b float64) float64 { return a / b })
+
+	Safes["=="] = MkBinaryFlopBoolCmd(func(a, b float64) bool { return (a == b) })
+	Safes["!="] = MkBinaryFlopBoolCmd(func(a, b float64) bool { return (a != b) })
+	Safes["<"] = MkBinaryFlopBoolCmd(func(a, b float64) bool { return (a < b) })
+	Safes["<="] = MkBinaryFlopBoolCmd(func(a, b float64) bool { return (a <= b) })
+	Safes[">"] = MkBinaryFlopBoolCmd(func(a, b float64) bool { return (a > b) })
+	Safes[">="] = MkBinaryFlopBoolCmd(func(a, b float64) bool { return (a >= b) })
+
+	Safes["must"] = cmdMust
+	Safes["if"] = cmdIf
+	Safes["puts"] = cmdPuts
+	Safes["proc"] = cmdProc
+	Safes["yproc"] = cmdYProc
+	Safes["mixin"] = cmdMixin
+	Safes["super"] = cmdSuper
+	Safes["yield"] = cmdYield
+	Safes["ls"] = cmdLs
+	Safes["slen"] = cmdSLen
+	Safes["llen"] = cmdLLen
+	Safes["null"] = cmdNull
+	Safes["notnull"] = cmdNotNull
+	Safes["list"] = cmdList
+	Safes["sat"] = cmdSAt // a.k.a. string index
+	Safes["lat"] = cmdLAt // a.k.a. lindex
+	Safes["lindex"] = cmdLAt
+	Safes["http_handler"] = cmdHttpHandler
+	Safes["foreach"] = cmdForEach
+	Safes["while"] = cmdWhile
+	Safes["catch"] = cmdCatch
+	Safes["eval"] = cmdEval
+	Safes["uplevel"] = cmdUplevel
+	Safes["concat"] = cmdConcat
+	Safes["set"] = cmdSet
+	Safes["upvar"] = cmdUpVar
+	Safes["return"] = cmdReturn
+	Safes["break"] = cmdBreak
+	Safes["continue"] = cmdContinue
+	Safes["hash"] = cmdHash
+	Safes["hget"] = cmdHGet   // FIXME: temporary: Use getf
+	Safes["hset"] = cmdHSet   // FIXME: temporary: Use setf
+	Safes["hdel"] = cmdHDel   // FIXME: temporary: Use delf
+	Safes["hkeys"] = cmdHKeys // FIXME: temporary: use keys
+	Safes["interp"] = cmdInterp
+	Safes["incr"] = cmdIncr
+	Safes["append"] = cmdAppend
+	Safes["lappend"] = cmdLAppend
+	Safes["error"] = cmdError
+	Safes["string"] = MkEnsemble(stringEnsemble)
+	Safes["info"] = MkEnsemble(infoEnsemble)
+	Safes["split"] = cmdSplit
+	Safes["join"] = cmdJoin
+	Safes["dropnull"] = cmdDropNull
+	Safes["subst"] = cmdSubst
 }

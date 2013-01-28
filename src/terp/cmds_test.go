@@ -226,13 +226,13 @@ var cmdTests = `
   proc demo1 { a b c d e } { list $a $b $c $d $e }
 
   set sub [interp]
-  send $sub Alias - demo2 "demo1 1 2 3"
-  must [list 1 2 3 x y] [send $sub Eval {demo2 x y}]
+  go-send $sub Alias - demo2 "demo1 1 2 3"
+  must [list 1 2 3 x y] [go-send $sub Eval {demo2 x y}]
 
-  must 5 [send $sub Eval {set x 5}]
-  set clone [send $sub Clone]
-  must 9 [send $clone Eval {set x 9; set x}]
-  must 5 [send $sub Eval {set x}]
+  must 5 [go-send $sub Eval {set x 5}]
+  set clone [go-send $sub Clone]
+  must 9 [go-send $clone Eval {set x 9; set x}]
+  must 5 [go-send $sub Eval {set x}]
 
   proc helloArgs { x args } {
   	return [llen $args]
@@ -308,10 +308,10 @@ var cmdTests = `
 	must 1 [catch {list $arr(aaa$arr(z)zzz) } what]
 
 	set link [ tag a  href http://www.foo.com/bar  alt FooBar  click ]
-	set ht [ ht [ht-raw "&lt;"] <One> \040 Two&Three \  $link ]
+	set ht [ ht [htraw "&lt;"] <One> \040 Two&Three \  $link ]
 	set expect {&lt;&lt;One&gt; Two&amp;Three <a href="http://www.foo.com/bar" alt="FooBar">click</a
 >}
-	must $expect [send $ht Html]
+	must $expect [go-send $ht Html]
 
 	# destructuring list assignment:
 	set nada,uno,dos,tres [yrange 10]

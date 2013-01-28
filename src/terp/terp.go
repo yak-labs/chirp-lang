@@ -57,7 +57,6 @@ type Frame struct {
 type Global struct {
 	Cmds     CmdScope
 	Fr       Frame // global scope
-	SubTerps map[string]*Global
 
 	MixinSerial         int    // Increment before defining Mixin.
 	MixinNumberDefining int    // Set nonzero while defining Mixin.
@@ -74,7 +73,6 @@ func (g *Global) Clone() *Global {
 		Fr: Frame{
 			Vars: make(Scope),
 		},
-		SubTerps: make(map[string]*Global),
 	}
 
 	z.Fr.G = z
@@ -133,38 +131,40 @@ var Empty = MkString("")
 var InvalidValue = *new(R.Value)
 
 // Create a new interpreter, and return the global frame pointer.
-func New() *Frame {
+func New1(isSafe bool) *Frame {
 	g := &Global{
 		Cmds: make(CmdScope),
 		Fr: Frame{
 			Vars: make(Scope),
 		},
-		SubTerps: make(map[string]*Global),
+		isSafe: isSafe,
 	}
 
 	g.Fr.G = g
 
-	if len(Builtins) == 0 {
-		g.Fr.initBuiltins()
-		g.Fr.initReflect()
-		g.Fr.initExpr()
-		g.Fr.initDbCmds()
-		g.Fr.initHt()
-		g.Fr.initClass()
-	}
-
-	// Copy Builtins to commands.
-	for k, v := range Builtins {
+	// Copy Safes to commands.
+	for k, v := range Safes {
 		node := CmdNode{Fn: v}
 		g.Cmds[k] = &node
 	}
+
+	if !isSafe {
+		// In unsafe terp, copy Unsafes to commands.
+		for k, v := range Unsafes {
+			node := CmdNode{Fn: v}
+			g.Cmds[k] = &node
+		}
+	}
+
 	return &g.Fr
 }
 
+func New() *Frame {
+	return New1(false)
+}
+
 func NewSafe() *Frame {
-	fr := New()
-	fr.G.isSafe = true
-	return fr
+	return New1(true)
 }
 
 func (fr *Frame) NewFrame() *Frame {
@@ -318,18 +318,6 @@ func (fr *Frame) Apply(argv []T) T {
 	for ai, av := range argv[1:] {
 		_, _ = ai, av
 		log.Printf("< ...... < [%d] (%T) ## %#v ## %q", ai, av, av, av.String())
-	}
-
-	// Some day we will not require terpString; for now, it helps debug.
-	cmdName, ok := head.(terpString)
-	if !ok {
-		panic(Sprintf("Command must be a string: %s", Show(head)))
-	}
-
-	if !fr.G.isSafe && len(cmdName.s) > 1 && cmdName.s[0] == '/' {
-		call := []T{MkString("call"), head}
-		call = append(call, argv[1:]...) // Append all but first of argv.
-		return fr.Apply(call)            // Recurse.
 	}
 
 	fn := fr.FindCommand(head, false) // false: Don't call super.
