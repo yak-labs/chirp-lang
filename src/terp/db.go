@@ -18,10 +18,7 @@ type Record struct {
 	Values	[]T
 }
 
-func (fr *Frame) initDbCmds() {
-	Builtins["db-select-like"] = cmdDbSelectLike
-	Builtins["db-scan"] = cmdDbScan
-}
+var Records []Record
 
 var ColumnSplit_rx = regexp.MustCompile("^([A-Za-z0-9_]+)([:](.*))$")
 
@@ -171,28 +168,27 @@ func MatchTailStar(pattern, str string) bool {
 	return pattern == str
 }
 
-func cmdDbScan(fr *Frame, argv []T) T {
+func cmdRebuild(fr *Frame, argv []T) T {
 	dataDir := Arg1(argv)
 	
-	return MkT(ScanSites(dataDir.String()))
+	Records = ScanSites(dataDir.String())
+	return Empty
 }
 
 func cmdDbSelectLike(fr *Frame, argv []T) T {
-	database, site, field, volume, page, suffix, value := Arg7(argv)
+	site, field, volume, page, suffix, value := Arg6(argv)
 
-	//var db []Record = make([]Record, 0, 4)
-	//for _, r := range database.List() {
-	//	db = append(db, r.Raw().(Record))
-	//}
-
-	db := database.Raw().([]Record)
-	
 	return MkT(SelectLike(
-		db,
+		Records,
 		site.String(),
 		field.String(),
 		volume.String(),
 		page.String(),
 		suffix.String(),
 		value.String()))
+}
+
+func (fr *Frame) initDbCmds() {
+	Builtins["db-select-like"] = cmdDbSelectLike
+	Builtins["db-rebuild"] = cmdRebuild
 }

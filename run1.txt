@@ -166,8 +166,7 @@ proc Verb/edit {} {
 }
 
 proc Verb/db {} {
-	/fmt/Fprintf $W %v [DB]
-	/fmt/Fprintf $W %v [db-select-like [DB] * * * * * *]
+	/fmt/Fprintf $W %v [db-select-like * * * * * *]
 }
 
 

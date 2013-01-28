@@ -116,7 +116,8 @@ proc @site {} {
 	return $SITE
 }
 
-set DB [db-scan data]
+# Dir name is "data"
+db-rebuild "data"
 
 ######  DEFINE @-procs ABOVE.
 
@@ -138,14 +139,14 @@ foreach m $mixins {
 }
 
 proc gold-level {user pw} {
-	foreach r [db-select-like $DB $SITE pw Sys PassWord "$user:$pw" *] {
+	foreach r [db-select-like $SITE pw Sys PassWord "$user:$pw" *] {
 		return [lindex [getf $r Values] 1]
 	}
 	return 0
 }
 
 proc lookup-site {} {
-	foreach r [db-select-like $DB root serve Sys ServeSite $HOST *] {
+	foreach r [db-select-like root serve Sys ServeSite $HOST *] {
 		return [lindex [getf $r Values] 1]
 	}
 	error "Unknown Site for HOST=$HOST"
