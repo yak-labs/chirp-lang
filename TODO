@@ -9,55 +9,21 @@ make web ( demo/hello_web.t ) TODO:
 Garbage Producers?
   ./goterp -c 'yproc yes {} { while 1 { yield yes } } ; proc first g { foreach x $g { return $x } } ; while 1 { puts [first [yes]] } '
 
-=======================
-http://www.ietf.org/rfc/rfc2617.txt
 
-The 401 (Unauthorized) response message is used by an origin server
-   to challenge the authorization of a user agent. This response MUST
-   include a WWW-Authenticate header field containing at least one
-   challenge applicable to the requested resource. 
+ENTITIES
+--------
 
-2 Basic Authentication Scheme
+  fixed:
+	volume = Entity
+	page = TableT_I  (for table T & id I)
 
-For Basic, the framework above is utilized as follows:
+  api:
 
-      challenge   = "Basic" realm
-      credentials = "Basic" basic-credentials
+	eget table id field tag -> value
 
-   Upon receipt of an unauthorized request for a URI within the
-   protection space, the origin server MAY respond with a challenge like
-   the following:
+	eput table id field tag value
 
-      WWW-Authenticate: Basic realm="WallyWorld"
+	elike table fieldPattern tagPattern valuePattern -> list(id)
 
-   where "WallyWorld" is the string assigned by the server to identify
-   the protection space of the Request-URI. A proxy may respond with the
-   same challenge using the Proxy-Authenticate header field.
+	etriples table id fieldPattern tagPattern valuePattern -> list(field tag value)
 
-   To receive authorization, the client sends the userid and password,
-   separated by a single colon (":") character, within a base64 [7]
-   encoded string in the credentials.
-
-      basic-credentials = base64-user-pass
-      base64-user-pass  = <base64 [4] encoding of user-pass,
-
-
-
-Franks, et al.              Standards Track                     [Page 5]
-
-RFC 2617                  HTTP Authentication                  June 1999
-
-
-                       except not limited to 76 char/line>
-      user-pass   = userid ":" password
-      userid      = *<TEXT excluding ":">
-      password    = *TEXT
-
-   Userids might be case sensitive.
-
-   If the user agent wishes to send the userid "Aladdin" and password
-   "open sesame", it would use the following header field:
-
-      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
-
-=======================
