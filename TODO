@@ -12,18 +12,30 @@ Garbage Producers?
 
 ENTITIES
 --------
+  Database records are stored in "Entities".
+  Entities have an alphanumeric id, and are a member of a "Table".
+  Entities have fields, which are "fieldname tag values" triples,
+  where "fieldname tag" are unique within the Entity.
+  Values are Tcl lists.
 
-  fixed:
+  Given an Entity (table & id), to save a triple, use "entity-put".
+  Given an Entity (table & id), to look up the values for a "fieldname tag", use "entity-get".
+  Given an table, to search for Entities with triples matching a pattern, use "entity-like".
+  Given an Entity (table & id), to search for triples matching a pattern, use "entity-triples".
+
+  Mapping to lower-level db:
+
 	volume = Entity
 	page = TableT_I  (for table T & id I)
+	suffix = tag
 
-  api:
+  Commands:
 
-	eget table id field tag -> value
+	entity-get [site] table id field tag -> values
 
-	eput table id field tag value
+	entity-put [site] table id field tag values
 
-	elike table fieldPattern tagPattern valuePattern -> list(id)
+	entity-like [site] table fieldPattern tagPattern valuePattern -> list(id)
 
-	etriples table id fieldPattern tagPattern valuePattern -> list(field tag value)
+	entity-triples [site] table id fieldPattern tagPattern valuePattern -> list(field tag value)
 

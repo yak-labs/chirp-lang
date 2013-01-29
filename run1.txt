@@ -8,7 +8,7 @@
 /TEXT /root/Sys/ServeSite/@wiki/0
 
 /set serve:localhost:8080 site local
-/set serve:localhost:8081 site larp
+#future# /set serve:localhost:8081 site larp
 
 /TEXT /local/Main/HomePage/@wiki/0
 
@@ -91,6 +91,7 @@ proc Route { path query } {
 			catch { Note "Verb: $Verb" } _
 			Note [tag a href /Main/HomePage.list LIST]
 			Note [tag a href /Main/HomePage.view HomePage]
+			Note [tag a href /Main/HomePage.e "Database Demo"]
 
 			Verb/$Verb
 		} else {
@@ -146,11 +147,9 @@ proc Verb/edit {} {
 	}
 	Puts [HtmlOutput]
 
-
 	#if {[set content]} {
 	#	WriteFile [site] $Volume $Page @wiki $content
 	#}
-
 }
 
 proc Verb/db {} {
@@ -160,12 +159,87 @@ proc Verb/db {} {
 	}
 }
 
+proc HtList list { # Make HTML Unordered Lists from Tcl list
+	set z {}
+	foreach item $list {
+		lappend z [tag li $item]
+	}
+	tag ul [eval ht $z]
+}
 
-/TEXT /larp/Main/HomePage/@wiki/0
+proc Verb/e {} {
+	proc WikiMiddle {} {
+		ht [
+			tag h3 "All Entities:"
+		] [
+			HtList [EntityLike [site] Characters * * *]
+		] [
+			tag h3 "Their Player Names:"
+		] [
+			set ents [EntityLike [site] Characters * * *]
+			set lines {}
+			foreach e $ents {
+				set name [join [EntityGet [site] Characters $e player_name ""] "; "]
+				lappend lines "Entity <$e> has player name <$name>"
+			}
+			HtList $lines
+		] [
+			tag h3 "Changing Their Names (broken still):"
+		] [
+			set ents [EntityLike [site] Characters * * *]
+			set lines {}
+			foreach e $ents {
+				EntityPut [site] Characters $e player_name "" "Cedric Diggery"
+				set name [join [EntityGet [site] Characters $e player_name ""] "; "]
+				lappend lines "Entity <$e> has player name <$name>"
+			}
+			HtList $lines
+		] [
+			tag h3 "Characters of Definite Value (i.e. value begins with word 'The')"
+		] [
+			set ents [EntityLike [site] Characters * * The*]
+			set lines {}
+			foreach e $ents {
+				foreach triple [EntityTriples [site] Characters $e * * The*] {
+					set field,tag,values $triple
 
-This is the larp HomePage.
+					set name [join [EntityGet [site] Characters $e player_name ""] "; "]
 
-/TEXT /larp/Characters/TableCharacters_OlSmithy/@wiki/0
+					lappend lines "ID: $e -- Name: $name -- Field: $field -- Tag: $tag -- Values: [join $values ", "]"
+				}
+			}
+			HtList $lines
+		] [
+			tag h3 "Characters of Unity (i.e. value is 1)"
+		] [
+			set ents [EntityLike [site] Characters * * 1]
+			set lines {}
+			foreach e $ents {
+				foreach triple [EntityTriples [site] Characters $e * * 1] {
+					set field,tag,values $triple
+
+					set name [join [EntityGet [site] Characters $e player_name ""] "; "]
+
+					lappend lines "ID: $e -- Name: $name -- Field: $field -- Tag: $tag -- Values: [join $values ", "]"
+				}
+			}
+			HtList $lines
+		]
+
+
+	}
+	Puts [HtmlOutput]
+
+	Puts "<br><h3>All Database Records:</h3><br>"
+	Verb/db
+}
+
+
+#future# /TEXT /larp/Main/HomePage/@wiki/0
+
+#future# This is the larp HomePage.
+
+/TEXT /local/Entity/TableCharacters_OlSmithy/@wiki/0
 
 /set player_name:    {John Henry}
 /set character_name: {Ol Smithy}
@@ -232,7 +306,7 @@ This is the larp HomePage.
   ]
 }
 
-/TEXT /larp/Characters/TableCharacters_Marina/@wiki/0
+/TEXT /local/Entity/TableCharacters_Marina/@wiki/0
 
 /set player_name:    {Janet Snufflepuff}
 /set character_name: {Marina}

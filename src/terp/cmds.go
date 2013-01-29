@@ -106,6 +106,13 @@ func Arg4(argv []T) (T, T, T, T) {
 	return argv[1], argv[2], argv[3], argv[4]
 }
 
+func Arg5(argv []T) (T, T, T, T, T) {
+	if len(argv) != 5+1 {
+		panic(Sprintf("Expected 5 arguments, but got argv=%s", Showv(argv)))
+	}
+	return argv[1], argv[2], argv[3], argv[4], argv[5]
+}
+
 func Arg6(argv []T) (T, T, T, T, T, T) {
 	if len(argv) != 6+1 {
 		panic(Sprintf("Expected 6 arguments, but got argv=%s", Showv(argv)))

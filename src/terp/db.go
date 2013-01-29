@@ -1,11 +1,13 @@
 package terp
 
 import (
+	. "fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -18,13 +20,13 @@ type Record struct {
 	Values	[]T
 }
 
-var Records []Record
+var Records []*Record
 
 var ColumnSplit_rx = regexp.MustCompile("^([A-Za-z0-9_]+)([:](.*))$")
 
 var InternalFileName_rx = regexp.MustCompile("^[a-z][.]([-A-Za-z0-9_.]+)$")
 
-func ParseFileToRecords(fname string, site, volume, page string, z []Record) []Record {
+func ParseFileToRecords(fname string, site, volume, page string, z []*Record) []*Record {
 	log.Printf("ParseFile %s", fname)
 	all, err := ioutil.ReadFile(fname)
 	if err != nil {
@@ -43,7 +45,7 @@ func ParseFileToRecords(fname string, site, volume, page string, z []Record) []R
 			}
 			m := ColumnSplit_rx.FindStringSubmatch(words[1].String())
 			if len(m) > 0 {
-				r := Record{
+				r := &Record{
 					Site: site,
 					Field: m[1],
 					Volume: volume,
@@ -59,9 +61,9 @@ func ParseFileToRecords(fname string, site, volume, page string, z []Record) []R
 	return z
 }
 
-func ScanSites(dataDir string) []Record {
+func ScanSites(dataDir string) []*Record {
 	log.Printf("ScanSites %s", dataDir)
-	var z []Record = make([]Record, 0, 4)
+	var z []*Record = make([]*Record, 0, 4)
 
 	sites, err := ioutil.ReadDir(dataDir) 
 	if err != nil {
@@ -79,7 +81,7 @@ func ScanSites(dataDir string) []Record {
 	return z
 }
 
-func ScanVolumes(siteDir string, site string, z []Record) []Record {
+func ScanVolumes(siteDir string, site string, z []*Record) []*Record {
 	log.Printf("ScanVolumes %s %s", siteDir, site)
 	volumes, err := ioutil.ReadDir(siteDir)
 	if err != nil {
@@ -96,7 +98,7 @@ func ScanVolumes(siteDir string, site string, z []Record) []Record {
 	return z
 }
 
-func ScanPages(volumeDir string, site, volume string, z []Record) []Record {
+func ScanPages(volumeDir string, site, volume string, z []*Record) []*Record {
 	log.Printf("ScanPages %s %s %s", volumeDir, site, volume)
 	pages, err := ioutil.ReadDir(volumeDir)
 	if err != nil {
@@ -122,8 +124,8 @@ func ScanPages(volumeDir string, site, volume string, z []Record) []Record {
 	return z
 }
 
-func SelectLike(db []Record, site, field, volume, page, suffix, value string) []Record {
-	var z []Record = make([]Record, 0, 4)
+func SelectLike(db []*Record, site, field, volume, page, suffix, value string) []*Record {
+	var z []*Record = make([]*Record, 0, 4)
 
 	for _, r := range db {
 		if !MatchTailStar(site, r.Site) {
@@ -152,6 +154,108 @@ func SelectLike(db []Record, site, field, volume, page, suffix, value string) []
 
 	return z
 }
+
+// eget [site] table id field tag -> values
+
+func EntityGet(db []*Record, site, table, id, field, tag string) []T {
+	volume := "Entity"
+	page := Sprintf("Table%s_%s", table, id) 
+
+	recs := SelectLike(db, site, field, volume, page, tag, "*")
+	vec := make([]T, len(recs))
+	for i, r := range recs {
+		vec[i] = MkList(r.Values)
+	}
+	return vec
+}
+
+func cmdEntityGet(fr *Frame, argv []T) T {
+	site, table, id, field, tag := Arg5(argv)
+	return MkList(EntityGet(Records, site.String(), table.String(), id.String(), field.String(), tag.String()))
+}
+
+// eput [site] table id field tag values
+
+func EntityPut(db []*Record, site, table, id, field, tag string, values []T) *Record {
+	volume := "Entity"
+	page := Sprintf("Table%s_%s", table, id) 
+
+	// TODO: (Re)write page, update Records, (future) update indices.
+	// HACK: For now, assume it's a new record, not an update.
+	r := &Record{
+		Site: site,
+		Field: field,
+		Volume: volume,
+		Page: page,
+		Suffix: tag,
+		Values: values,
+	}
+	Records = append(Records, r)
+	return r
+}
+
+func cmdEntityPut(fr *Frame, argv []T) T {
+	site, table, id, field, tag, values := Arg6(argv)
+	return MkT(EntityPut(Records, site.String(), table.String(), id.String(), field.String(), tag.String(), values.List()))
+}
+
+// elike [site] table fieldPattern tagPattern valuePattern -> list(id)
+
+func EntityLike(db []*Record, site, table, field, tag, value string) []string {
+	volume := "Entity"
+	page := Sprintf("Table%s_*", table) 
+
+	recs := SelectLike(db, site, field, volume, page, tag, value)
+
+	// Collect set of unique ids, using a map ents.
+	ents := make(map[string]bool, 10)
+	for _, r := range recs {
+		i := strings.Index(r.Page, "_")
+		ents[r.Page[i+1:]] = true
+	}
+
+	// Convert to a list of ids.
+	vec := make([]string, 0, len(ents))
+	for id, _ := range ents {
+		vec = append(vec, id)
+	}
+	sort.Strings(vec)
+	return vec
+}
+
+func cmdEntityLike(fr *Frame, argv []T) T {
+	site, table, field, tag, value := Arg5(argv)
+	return MkStringList(EntityLike(Records, site.String(), table.String(), field.String(), tag.String(), value.String()))
+}
+
+// etriples [site] table id fieldPattern tagPattern valuePattern -> list(field tag value)
+
+func EntityTriples(db []*Record, site, table, id, field, tag, value string) []T {
+	volume := "Entity"
+	page := Sprintf("Table%s_%s", table, id) 
+
+	recs := SelectLike(db, site, field, volume, page, tag, value)
+
+	// Convert to a list of ids.
+	vec := make([]T, 0, len(recs))
+	for _, r := range recs {
+		triple := MkList([]T{
+			MkString(r.Field),
+			MkString(r.Suffix),
+			MkList(r.Values),
+		})
+		vec = append(vec, triple)
+	}
+	SortListByString(vec)
+	return vec
+}
+
+func cmdEntityTriples(fr *Frame, argv []T) T {
+	site, table, id, field, tag, value := Arg6(argv)
+	return MkList(EntityTriples(Records, site.String(), table.String(), id.String(), field.String(), tag.String(), value.String()))
+}
+
+//
 
 func MatchTailStar(pattern, str string) bool {
 	println("pattern ", pattern)
@@ -195,4 +299,8 @@ func init() {
 
 	Unsafes["db-select-like"] = cmdDbSelectLike
 	Unsafes["db-rebuild"] = cmdRebuild
+	Unsafes["entity-get"] = cmdEntityGet
+	Unsafes["entity-put"] = cmdEntityPut
+	Unsafes["entity-like"] = cmdEntityLike
+	Unsafes["entity-triples"] = cmdEntityTriples
 }

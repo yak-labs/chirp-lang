@@ -98,6 +98,22 @@ proc @FindStringSubmatch { rx str } {
 	go-send $rx FindStringSubmatch $str
 }
 
+proc @EntityGet {site table id field tag} {
+	entity-get $site $table $id $field $tag
+}
+
+proc @EntityPut {site table id field tag values} {
+	entity-put $site $table $id $field $tag $values
+}
+
+proc @EntityLike {site table field tag value} {
+	entity-like $site $table $field $tag $value
+}
+
+proc @EntityTriples {site table id field tag value} {
+	entity-triples $site $table $id $field $tag $value
+}
+
 proc @ShowValue v { 
     go-call /fmt/Sprintf %v $v
 }
