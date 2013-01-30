@@ -13,30 +13,30 @@ import (
 )
 
 type Record struct {
-	Site	string
-	Field	string
-	Volume	string
-	Page	string
-	Suffix	string
-	Values	[]T
+	Site   string
+	Field  string
+	Volume string
+	Page   string
+	Suffix string
+	Values []T
 }
 
 func (r *Record) String() string {
 	// Stringing the "logical" way, with Field after Page,
 	// instead of the "physical sorting" way, with Field after Site.
 	list := MkList([]T{
-		MkString(r.Site), 
-		MkString(r.Volume), 
-		MkString(r.Page), 
-		MkString(r.Field), 
-		MkString(r.Suffix), 
+		MkString(r.Site),
+		MkString(r.Volume),
+		MkString(r.Page),
+		MkString(r.Field),
+		MkString(r.Suffix),
 		MkList(r.Values),
 	})
-	return list.String()  // Use Tcl list format.
+	return list.String() // Use Tcl list format.
 }
 
 var Records []*Record
-var HackGlobalDataDirectory string  // hack: remember this.
+var HackGlobalDataDirectory string // hack: remember this.
 
 var ColumnSplit_rx = regexp.MustCompile("^([A-Za-z0-9_]+)([:](.*))$")
 
@@ -47,7 +47,7 @@ func cmdSaveRecords(fr *Frame, argv []T) T {
 	recTs := records.List()
 	recs := make([]*Record, len(recTs))
 	for i, r := range recTs {
-		recs[i] = r.Raw().(*Record)  // Get the *Record from the Value.
+		recs[i] = r.Raw().(*Record) // Get the *Record from the Value.
 	}
 	SaveRecords(dataDir.String(), recs)
 	return Empty
@@ -65,8 +65,8 @@ func SaveRecords(dataDir string, newRecs []*Record) {
 	}
 
 	for _, recs := range h {
-		volumeDir := filepath.Join(dataDir, "s." + recs[0].Site, "v." + recs[0].Volume)
-		fname := filepath.Join(volumeDir, "p." + recs[0].Page, "f.@wiki", "r.0")
+		volumeDir := filepath.Join(dataDir, "s."+recs[0].Site, "v."+recs[0].Volume)
+		fname := filepath.Join(volumeDir, "p."+recs[0].Page, "f.@wiki", "r.0")
 		RewriteFileWithRecords(fname, recs[0].Site, recs[0].Volume, recs[0].Page, recs)
 	}
 
@@ -92,7 +92,7 @@ func RewriteFileWithRecords(fname string, site, volume, page string, newRecs []*
 		if oldR.Site != site || oldR.Volume != volume || oldR.Page != page {
 			panic("Wrong oldR in RewriteFileWithRecords")
 		}
-		h[oldR.Field + ":" + oldR.Suffix] = oldR
+		h[oldR.Field+":"+oldR.Suffix] = oldR
 	}
 
 	// Create or Replace new records, by field:suffix as key.
@@ -101,7 +101,7 @@ func RewriteFileWithRecords(fname string, site, volume, page string, newRecs []*
 		if newR.Site != site || newR.Volume != volume || newR.Page != page {
 			panic("Wrong newR in RewriteFileWithRecords")
 		}
-		h[newR.Field + ":" + newR.Suffix] = newR
+		h[newR.Field+":"+newR.Suffix] = newR
 	}
 
 	// sort the keys.
@@ -163,10 +163,10 @@ func ParseFileToRecords(fname string, site, volume, page string, z []*Record) ([
 			m := ColumnSplit_rx.FindStringSubmatch(words[1].String())
 			if len(m) > 0 {
 				r := &Record{
-					Site: site,
-					Field: m[1],
+					Site:   site,
+					Field:  m[1],
 					Volume: volume,
-					Page: page,
+					Page:   page,
 					Suffix: m[3],
 					Values: words[2:],
 				}
@@ -187,7 +187,7 @@ func ScanSites(dataDir string) []*Record {
 	log.Printf("ScanSites %s", dataDir)
 	var z []*Record = make([]*Record, 0, 4)
 
-	sites, err := ioutil.ReadDir(dataDir) 
+	sites, err := ioutil.ReadDir(dataDir)
 	if err != nil {
 		panic(err)
 	}
@@ -236,9 +236,9 @@ func ScanPages(volumeDir string, site, volume string, z []*Record) []*Record {
 			// Test whether a db file exists.
 			fd, fdErr := os.Open(fname)
 			if fdErr != nil {
-				continue  // Skip if cannot open.
+				continue // Skip if cannot open.
 			}
-			fd.Close()  // Close the test.
+			fd.Close() // Close the test.
 
 			z, _ = ParseFileToRecords(fname, site, volume, page, z)
 		}
@@ -281,7 +281,7 @@ func SelectLike(db []*Record, site, field, volume, page, suffix, value string) [
 
 func EntityGet(db []*Record, site, table, id, field, tag string) []T {
 	volume := "Entity"
-	page := Sprintf("Table%s_%s", table, id) 
+	page := Sprintf("Table%s_%s", table, id)
 
 	recs := SelectLike(db, site, field, volume, page, tag, "*")
 	vec := make([]T, len(recs))
@@ -300,15 +300,15 @@ func cmdEntityGet(fr *Frame, argv []T) T {
 
 func EntityPut(db []*Record, site, table, id, field, tag string, values []T) *Record {
 	volume := "Entity"
-	page := Sprintf("Table%s_%s", table, id) 
+	page := Sprintf("Table%s_%s", table, id)
 
 	// TODO: (Re)write page, update Records, (future) update indices.
 	// HACK: For now, assume it's a new record, not an update.
 	r := &Record{
-		Site: site,
-		Field: field,
+		Site:   site,
+		Field:  field,
 		Volume: volume,
-		Page: page,
+		Page:   page,
 		Suffix: tag,
 		Values: values,
 	}
@@ -328,7 +328,7 @@ func cmdEntityPut(fr *Frame, argv []T) T {
 
 func EntityLike(db []*Record, site, table, field, tag, value string) []string {
 	volume := "Entity"
-	page := Sprintf("Table%s_*", table) 
+	page := Sprintf("Table%s_*", table)
 
 	recs := SelectLike(db, site, field, volume, page, tag, value)
 
@@ -357,7 +357,7 @@ func cmdEntityLike(fr *Frame, argv []T) T {
 
 func EntityTriples(db []*Record, site, table, id, field, tag, value string) []T {
 	volume := "Entity"
-	page := Sprintf("Table%s_%s", table, id) 
+	page := Sprintf("Table%s_%s", table, id)
 
 	recs := SelectLike(db, site, field, volume, page, tag, value)
 
@@ -388,7 +388,7 @@ func MatchTailStar(pattern, str string) bool {
 	if len(pattern) >= 1 && pattern[len(pattern)-1] == '*' {
 		println("=1= ", str)
 		if len(str) >= len(pattern)-1 {
-		println("=2= ", str)
+			println("=2= ", str)
 			return pattern[:len(pattern)-1] == str[:len(pattern)-1]
 		}
 	}
@@ -399,7 +399,7 @@ func MatchTailStar(pattern, str string) bool {
 
 func cmdRebuild(fr *Frame, argv []T) T {
 	dataDir := Arg1(argv)
-	
+
 	Records = ScanSites(dataDir.String())
 	return Empty
 }
@@ -419,7 +419,7 @@ func cmdDbSelectLike(fr *Frame, argv []T) T {
 
 func init() {
 	if Unsafes == nil {
-	    Unsafes = make(map[string]Command, 333)
+		Unsafes = make(map[string]Command, 333)
 	}
 
 	Unsafes["db-select-like"] = cmdDbSelectLike
