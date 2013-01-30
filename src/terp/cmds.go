@@ -11,7 +11,7 @@ import (
 
 // Safes are builtin commands that safe subinterps can call.
 // Conventionally these contain no hyphen.
-var Safes   map[string]Command
+var Safes map[string]Command
 
 // Unsafes are commands that only the trusted, toplevel terp can call.
 // Conventionally these contain a hyphen.
@@ -205,12 +205,12 @@ func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 	}
 
 	var compiled Stmt
-	if !body.IsPreservedByList() {  // TODO: reconsider this test.
+	if !body.IsPreservedByList() { // TODO: reconsider this test.
 		compiled = CompileSequence(fr, body.String())
 	}
 
 	cmd := func(fr2 *Frame, argv2 []T) (result T) {
-	    var self *Obj
+		var self *Obj
 		if super != nil {
 			// Argv2 is [ Receiver, Message, args... ].
 			// Remove Receiver, defining self.
@@ -291,8 +291,8 @@ func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 
 		// Case "yproc":
 		ch := make(chan Either, 0)
-		z := MkGenerator(ch)  // Save reader half in z.
-		fr3.WriterChan = ch         // Save writer half in frame.
+		z := MkGenerator(ch) // Save reader half in z.
+		fr3.WriterChan = ch  // Save writer half in frame.
 		ch = nil
 
 		go func() {
@@ -808,12 +808,12 @@ func cmdHKeys(fr *Frame, argv []T) T {
 }
 
 type SafeSubInterp struct {
-	fr	*Frame // Private member.
+	fr *Frame // Private member.
 }
 
 func cmdInterp(fr *Frame, argv []T) T {
 	Arg0(argv)
-	
+
 	z := &SafeSubInterp{
 		fr: NewSafe(),
 	}
@@ -957,7 +957,7 @@ func cmdStringRange(fr *Frame, argv []T) T {
 	n := len(strS)
 	firstI := int(first.Int()) // The index of the first character to include.
 
-	keep := 1 // Tcl's string range includes the character indexed by last
+	keep := 1     // Tcl's string range includes the character indexed by last
 	var lastI int // The index of the last character to include.
 	if last.IsEmpty() || last.String() == "end" {
 		lastI = n - keep
@@ -1033,7 +1033,7 @@ func slicer(length int, first, last int, keep int) (int, int, bool) {
 	}
 
 	// If last is too large, End.
-	if last > length - keep {
+	if last > length-keep {
 		last = length - keep
 	}
 
@@ -1071,7 +1071,7 @@ var infoEnsemble = []EnsembleItem{
 }
 
 func cmdInfoCommands(fr *Frame, argv []T) T {
-	Arg0(argv)  // TODO: optional pattern
+	Arg0(argv) // TODO: optional pattern
 	z := make([]T, 0, 100)
 
 	for k, _ := range fr.G.Cmds {
@@ -1080,7 +1080,7 @@ func cmdInfoCommands(fr *Frame, argv []T) T {
 	return MkList(z)
 }
 func cmdInfoGlobals(fr *Frame, argv []T) T {
-	Arg0(argv)  // TODO: optional pattern
+	Arg0(argv) // TODO: optional pattern
 	z := make([]T, 0, 100)
 
 	for k, _ := range fr.G.Fr.Vars {
@@ -1089,7 +1089,7 @@ func cmdInfoGlobals(fr *Frame, argv []T) T {
 	return MkList(z)
 }
 func cmdInfoLocals(fr *Frame, argv []T) T {
-	Arg0(argv)  // TODO: optional pattern
+	Arg0(argv) // TODO: optional pattern
 	z := make([]T, 0, 100)
 
 	for k, _ := range fr.Vars {
@@ -1102,7 +1102,7 @@ func cmdSplit(fr *Frame, argv []T) T {
 	str, delimV := Arg1v(argv)
 	s := str.String()
 	if s == "" {
-		return Empty  // Special case in Tcl.
+		return Empty // Special case in Tcl.
 	}
 
 	var delim string
@@ -1115,18 +1115,18 @@ func cmdSplit(fr *Frame, argv []T) T {
 		panic("Usage: split str ?delims?")
 	}
 	if delim == "" {
-		delim = " \t\n\r"  // White Space.
+		delim = " \t\n\r" // White Space.
 	}
 
 	z := make([]T, 0, 4)
 	for {
-			i := strings.IndexAny(s, delim)
-			if i == -1 {
-				z = append(z, MkString(s))
-				break
-			}
-			z = append(z, MkString(s[:i]))
-			s = s[i+1:]
+		i := strings.IndexAny(s, delim)
+		if i == -1 {
+			z = append(z, MkString(s))
+			break
+		}
+		z = append(z, MkString(s[:i]))
+		s = s[i+1:]
 	}
 	return MkList(z)
 }
@@ -1143,7 +1143,7 @@ func cmdJoin(fr *Frame, argv []T) T {
 	default:
 		panic("Usage: join list ?joinString?")
 	}
-	
+
 	buf := bytes.NewBuffer(nil)
 	for i, e := range list.List() {
 		if i > 0 {
@@ -1176,7 +1176,7 @@ func cmdSubst(fr *Frame, argv []T) T {
 	var flags SubstFlags
 	for len(args) > 1 {
 		a := args[0].String()
-		switch (true) {
+		switch true {
 		case MatchTailStar("-nob*", a):
 			flags |= NoBackslash
 		case MatchTailStar("-noc*", a):
@@ -1222,7 +1222,7 @@ func init() {
 	Safes["null"] = cmdNull
 	Safes["notnull"] = cmdNotNull
 	Safes["list"] = cmdList
-	Safes["sat"] = cmdSAt // a.k.a. string index
+	Safes["sat"] = cmdSAt    // a.k.a. string index
 	Safes["lat"] = cmdLIndex // a.k.a. lindex
 	Safes["lindex"] = cmdLIndex
 	Safes["lsort"] = cmdLSort
