@@ -44,8 +44,8 @@ type Frame struct {
 	MixinLevel int
 	MixinName  string
 
-	Self	*Obj
-	Super	*Obj
+	Self  *Obj
+	Super *Obj
 }
 
 // Global holds the global state of an interpreter,
@@ -55,8 +55,8 @@ type Frame struct {
 // after all overridable procs are defined,
 // but before other goroutines start.
 type Global struct {
-	Cmds     CmdScope
-	Fr       Frame // global scope
+	Cmds CmdScope
+	Fr   Frame // global scope
 
 	MixinSerial         int    // Increment before defining Mixin.
 	MixinNumberDefining int    // Set nonzero while defining Mixin.
@@ -409,8 +409,8 @@ type terpValue struct { // Implements T.
 // terpGenerator holds a channel for reading from a generator (yproc command).
 type terpGeneratorGuts struct { // Mutable.
 	readerChan <-chan Either
-	hd T
-	tl T
+	hd         T
+	tl         T
 }
 type terpGenerator struct { // Implements T.
 	guts *terpGeneratorGuts // Pointer to mutable.
