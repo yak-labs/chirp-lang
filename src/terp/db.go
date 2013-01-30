@@ -134,7 +134,7 @@ func RewriteFileWithRecords(fname string, site, volume, page string, newRecs []*
 	log.Printf("... buf ... <<<%s>>>", buf.String())
 
 	// TODO: create new rev.  Here we just overwrite it.
-	e := ioutil.WriteFile(fname, buf.Bytes(), 0700)
+	e := ioutil.WriteFile(fname, buf.Bytes(), 0600)
 	log.Printf("... ioutil.WriteFile ... < %q > %v", fname, e)
 	if e != nil {
 		panic(e)
