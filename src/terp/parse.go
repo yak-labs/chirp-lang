@@ -65,13 +65,13 @@ Loop:
 			switch s[i+1] {
 			case '\\':
 				c = '\\'
-				i ++
+				i++
 			case '{':
 				c = '{'
-				i ++
+				i++
 			case '}':
 				c = '}'
-				i ++
+				i++
 			default:
 				// Keep that backslash, it's real.
 			}
@@ -345,7 +345,7 @@ Loop:
 			zwords = append(zwords, newresult)
 			s = rest
 		case '#':
-			if len(zwords)==0 {
+			if len(zwords) == 0 {
 				eol := strings.Index(s, "\n")
 				if eol >= 0 {
 					s = s[eol:]
@@ -409,7 +409,7 @@ func consumeBackslashEscaped(s string, i int) (byte, int) {
 		panic("Hexadecimal Backslash Escapes not supported (yet)")
 	}
 	if s[i+1] < '0' || s[i+1] > '7' {
-		return s[i+1], i + 2  // Default for all other cases is the escaped char.
+		return s[i+1], i + 2 // Default for all other cases is the escaped char.
 	}
 	if s[i+2] < '0' || s[i+2] > '7' {
 		panic(Sprintf("Second character after backslash is not octal %q.", s[i:i+3]))
@@ -424,6 +424,7 @@ func consumeBackslashEscaped(s string, i int) (byte, int) {
 }
 
 type SubstFlags int
+
 const (
 	NoDollar SubstFlags = 1 << iota
 	NoSquare
@@ -475,7 +476,7 @@ Loop:
 			buf.WriteByte(c)
 			continue Loop
 		}
-Default:
+	Default:
 		buf.WriteByte(c)
 		i++
 	}
@@ -485,6 +486,14 @@ Default:
 	z := buf.String()
 	log.Printf("> SubstString > %q\n", z)
 	return z
+}
+
+func ParseListOrRecover(s string) (recs []T, err interface{}) {
+	defer func() {
+		err = recover()
+	}()
+	recs = ParseList(s)
+	return
 }
 
 func ParseList(s string) []T {

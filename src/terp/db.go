@@ -1,6 +1,7 @@
 package terp
 
 import (
+	"bytes"
 	. "fmt"
 	"io/ioutil"
 	"log"
@@ -20,26 +21,142 @@ type Record struct {
 	Values	[]T
 }
 
+func (r *Record) String() string {
+	// Stringing the "logical" way, with Field after Page,
+	// instead of the "physical sorting" way, with Field after Site.
+	list := MkList([]T{
+		MkString(r.Site), 
+		MkString(r.Volume), 
+		MkString(r.Page), 
+		MkString(r.Field), 
+		MkString(r.Suffix), 
+		MkList(r.Values),
+	})
+	return list.String()  // Use Tcl list format.
+}
+
 var Records []*Record
+var HackGlobalDataDirectory string  // hack: remember this.
 
 var ColumnSplit_rx = regexp.MustCompile("^([A-Za-z0-9_]+)([:](.*))$")
 
 var InternalFileName_rx = regexp.MustCompile("^[a-z][.]([-A-Za-z0-9_.]+)$")
 
-func ParseFileToRecords(fname string, site, volume, page string, z []*Record) []*Record {
-	log.Printf("ParseFile %s", fname)
+func cmdSaveRecords(fr *Frame, argv []T) T {
+	dataDir, records := Arg2(argv)
+	recTs := records.List()
+	recs := make([]*Record, len(recTs))
+	for i, r := range recTs {
+		recs[i] = r.Raw().(*Record)  // Get the *Record from the Value.
+	}
+	SaveRecords(dataDir.String(), recs)
+	return Empty
+}
+
+func SaveRecords(dataDir string, newRecs []*Record) {
+	// Gather the records by site:vol:page
+	h := make(map[string][]*Record)
+	for _, r := range newRecs {
+		key := Sprintf("%s:%s:%s", r.Site, r.Volume, r.Page)
+		if _, ok := h[key]; !ok {
+			h[key] = make([]*Record, 0, 4)
+		}
+		h[key] = append(h[key], r)
+	}
+
+	for _, recs := range h {
+		volumeDir := filepath.Join(dataDir, "s." + recs[0].Site, "v." + recs[0].Volume)
+		fname := filepath.Join(volumeDir, "p." + recs[0].Page, "f.@wiki", "r.0")
+		RewriteFileWithRecords(fname, recs[0].Site, recs[0].Volume, recs[0].Page, recs)
+	}
+
+	// The really stupid way to do this.  Reread all files.
+	Records = ScanSites(dataDir)
+}
+
+func RewriteFileWithRecords(fname string, site, volume, page string, newRecs []*Record) {
+	log.Printf("RewriteFileWithRecords < %q %q %q %q %v", fname, site, volume, page, newRecs)
+
+	oldRecs, textlines := []*Record{}, []string{}
+	_, fileErr := os.Stat(fname)
+	if fileErr == nil {
+		// File exists, so read it.
+		log.Printf("... ParseFileToRecords ... %q %q %q %q", fname, site, volume, page)
+		oldRecs, textlines = ParseFileToRecords(fname, site, volume, page, []*Record{})
+	}
+
+	// Collect old records, by field:suffix as key.
+	h := make(map[string]*Record)
+	for _, oldR := range oldRecs {
+		log.Printf("... OldRecord ... %v", *oldR)
+		if oldR.Site != site || oldR.Volume != volume || oldR.Page != page {
+			panic("Wrong oldR in RewriteFileWithRecords")
+		}
+		h[oldR.Field + ":" + oldR.Suffix] = oldR
+	}
+
+	// Create or Replace new records, by field:suffix as key.
+	for _, newR := range newRecs {
+		log.Printf("... NewRecord ... %v", *newR)
+		if newR.Site != site || newR.Volume != volume || newR.Page != page {
+			panic("Wrong newR in RewriteFileWithRecords")
+		}
+		h[newR.Field + ":" + newR.Suffix] = newR
+	}
+
+	// sort the keys.
+	keys := make([]string, 0, len(h))
+	for k, _ := range h {
+		log.Printf("... Key ... %q", k)
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	// First write the non-/set textlines.
+	buf := bytes.NewBuffer(nil)
+	for _, line := range textlines {
+		buf.WriteString(line)
+		buf.WriteByte('\n')
+	}
+
+	// Then append /set lines, sorted.
+	for _, fieldTag := range keys {
+		list := []T{MkString("/set"), MkString(fieldTag)}
+		list = append(list, h[fieldTag].Values...)
+		str := MkList(list).String()
+		if strings.Index(str, "\n") >= 0 {
+			// TODO: warn: panic("cannot have newline in db")
+			continue
+		}
+		buf.WriteString(str)
+		buf.WriteByte('\n')
+	}
+	log.Printf("... buf ... <<<%s>>>", buf.String())
+
+	// TODO: create new rev.  Here we just overwrite it.
+	e := ioutil.WriteFile(fname, buf.Bytes(), 0700)
+	log.Printf("... ioutil.WriteFile ... < %q > %v", fname, e)
+	if e != nil {
+		panic(e)
+	}
+}
+
+func ParseFileToRecords(fname string, site, volume, page string, z []*Record) ([]*Record, []string) {
 	all, err := ioutil.ReadFile(fname)
 	if err != nil {
 		panic(err)
 	}
 
+	textlines := make([]string, 0, 10)
 	lines := strings.Split(string(all), "\n")
 
 	for _, line := range lines {
-		log.Printf("LINE: %q", line)
 		if len(line) > 4 && line[:4] == "/set" {
-			log.Printf("YES")
-			words := ParseList(line) // TODO: Ignore errors.
+			words, parseErr := ParseListOrRecover(line) // TODO: Ignore errors.
+			if parseErr != nil {
+				// TODO: warn.
+				continue // Ignore bad lines.
+			}
 			if len(words) < 2 {
 				continue // Ignore short lines.
 			}
@@ -55,13 +172,18 @@ func ParseFileToRecords(fname string, site, volume, page string, z []*Record) []
 				}
 				z = append(z, r)
 			}
-			log.Printf("z: %v", z)
+		} else {
+			textlines = append(textlines, line)
 		}
 	}
-	return z
+	log.Printf("ParseFile %s -> %d records, %d other lines", fname, len(z), len(textlines))
+	return z, textlines
 }
 
 func ScanSites(dataDir string) []*Record {
+	// Hack: remember dataDir in global var.
+	HackGlobalDataDirectory = dataDir
+
 	log.Printf("ScanSites %s", dataDir)
 	var z []*Record = make([]*Record, 0, 4)
 
@@ -118,7 +240,7 @@ func ScanPages(volumeDir string, site, volume string, z []*Record) []*Record {
 			}
 			fd.Close()  // Close the test.
 
-			z = ParseFileToRecords(fname, site, volume, page, z)
+			z, _ = ParseFileToRecords(fname, site, volume, page, z)
 		}
 	}
 	return z
@@ -190,7 +312,10 @@ func EntityPut(db []*Record, site, table, id, field, tag string, values []T) *Re
 		Suffix: tag,
 		Values: values,
 	}
+	// Old Hack:
 	Records = append(Records, r)
+	// New Hack:
+	SaveRecords(HackGlobalDataDirectory, []*Record{r})
 	return r
 }
 
@@ -299,6 +424,7 @@ func init() {
 
 	Unsafes["db-select-like"] = cmdDbSelectLike
 	Unsafes["db-rebuild"] = cmdRebuild
+	Unsafes["db-save-records"] = cmdSaveRecords
 	Unsafes["entity-get"] = cmdEntityGet
 	Unsafes["entity-put"] = cmdEntityPut
 	Unsafes["entity-like"] = cmdEntityLike

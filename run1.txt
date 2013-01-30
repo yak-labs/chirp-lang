@@ -189,7 +189,7 @@ proc Verb/e {} {
 			set ents [EntityLike [site] Characters * * *]
 			set lines {}
 			foreach e $ents {
-				EntityPut [site] Characters $e player_name "" "Cedric Diggery"
+				EntityPut [site] Characters $e player_name "" "Cedric $e Diggery"
 				set name [join [EntityGet [site] Characters $e player_name ""] "; "]
 				lappend lines "Entity <$e> has player name <$name>"
 			}
