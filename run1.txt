@@ -27,7 +27,7 @@ proc HtmlBody {} { tag body class HtmlBody [ht [
 ]}
 
 proc WikiTop {} { ht [WideTable [list [list "TOP"]]] [tag br] [tag br] }
-proc WikiMiddle {} { WikiText }
+proc WikiMiddle {} { ht "This is the WikiMiddle; override me!" }
 proc WikiBottom {} { ht [tag br] [tag br] [WideTable [list [list "BOTTOM"]]] }
 proc WikiTail {} { tag div class WikiTail [WikiNotes] }
 
@@ -104,6 +104,12 @@ proc Route { path query } {
 }
 
 proc Verb/view {} {
+	proc WikiTopInner {} {
+			ht [tag b "$Page"] " . . . " [tag a href $Page.edit EDIT]
+	}
+	proc WikiTop {} { ht [WideTable [list [list [WikiTopInner]]]] [tag br] [tag br] }
+	proc WikiMiddle {} { tag listing [WikiText] }
+
 	Puts [HtmlOutput]
 }
 
@@ -114,6 +120,13 @@ proc DoVerbList {} {
 		if {[notnull $m]} {
 			set _,page $m
 			lappend zz [tag li [tag a href $page.view $page]]
+		}
+	}
+	foreach p [ListPages [site] Entity] {
+		set m [FindStringSubmatch $WikiPage_rx $p]
+		if {[notnull $m]} {
+			set _,page $m
+			lappend zz [tag li [tag a href /Entity/$page.view $page]]
 		}
 	}
 	tag ul [eval ht $zz]

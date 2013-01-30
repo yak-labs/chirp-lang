@@ -83,6 +83,9 @@ proc @ReadFile { site vol page file } {
 proc @WriteFile { site vol page file contents } {
 	go-call /os/MkdirAll "data/s.$site/v.$vol/p.$page/f.$file" 448
 	go-call /io/ioutil/WriteFile "data/s.$site/v.$vol/p.$page/f.$file/r.0" $contents 384
+
+	# Save no records, but stupid side-effect is to reread all files.
+	db-save-records "data" {}
 }
 
 proc @Route { path query } {
