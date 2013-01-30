@@ -943,6 +943,7 @@ func cmdError(fr *Frame, argv []T) T {
 }
 
 var stringEnsemble = []EnsembleItem{
+	EnsembleItem{Name: "length", Cmd: cmdSLen},
 	EnsembleItem{Name: "range", Cmd: cmdStringRange},
 	EnsembleItem{Name: "slice", Cmd: cmdStringSlice},
 	EnsembleItem{Name: "first", Cmd: cmdStringFirst},

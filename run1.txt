@@ -128,6 +128,12 @@ proc Verb/list {} {
 }
 
 proc Verb/edit {} {
+	set content [XContent $R]
+
+	if [string length $content] {
+		WriteFile [site] $Volume $Page @wiki $content
+	}
+
 	proc WikiMiddle {} {
 		set c [ReadFile [site] $Volume $Page @wiki]
 
@@ -146,10 +152,6 @@ proc Verb/edit {} {
         ]
 	}
 	Puts [HtmlOutput]
-
-	#if {[set content]} {
-	#	WriteFile [site] $Volume $Page @wiki $content
-	#}
 }
 
 proc Verb/db {} {
