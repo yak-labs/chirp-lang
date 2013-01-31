@@ -240,5 +240,8 @@ proc ZygoteHandler {w r} {
 	go-send $clone Eval [ list set R $r ]
 	go-send $clone Eval [ list Route [go-getf $r URL Path] [go-send [go-getf $r URL] Query] ]
 }
-go-call /net/http/HandleFunc / [http_handler ZygoteHandler]
+# go-call /net/http/HandleFunc / [http_handler ZygoteHandler]
+# go-call /net/http/ListenAndServe 127.0.0.1:8080 ""
+
+go-call /net/http/HandleFunc / [ http-handler-lambda {w r who} {set Who $who; ZygoteHandler $w $r} ] 
 go-call /net/http/ListenAndServe 127.0.0.1:8080 ""
