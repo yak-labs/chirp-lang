@@ -1331,11 +1331,11 @@ func cmdSubst(fr *Frame, argv []T) T {
 	for len(args) > 1 {
 		a := args[0].String()
 		switch true {
-		case MatchTailStar("-nob*", a):
+		case StringMatch("-nob*", a):
 			flags |= NoBackslash
-		case MatchTailStar("-noc*", a):
+		case StringMatch("-noc*", a):
 			flags |= NoSquare
-		case MatchTailStar("-nov*", a):
+		case StringMatch("-nov*", a):
 			flags |= NoDollar
 		default:
 			panic(Sprintf("Bad flag for 'subst' commmand: %q", a))
