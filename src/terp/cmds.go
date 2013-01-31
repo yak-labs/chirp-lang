@@ -1078,10 +1078,10 @@ func StringMatch(pattern, str string) bool {
 	var p, c uint8
 
 Loop:
-	for pidx < plen && cidx < slen {
+	for pidx < plen {
 		p = pattern[pidx]
-		c = str[cidx]
 
+		// c is unset.
 		if p == '*' {
 			// Skip successive *'s in the pattern
 			for p == '*' {
@@ -1093,19 +1093,33 @@ Loop:
 				}
 			}
 
-			for {
+			// Loop through the string until satisfied.
+			// p is the pattern after the * we found.
+			// pidx != plen
+			for cidx < slen {
 				// Optimization:
-				// If 'p' isn't a special character, look ahead for the next part of the
-				// string the match.
+				// If 'p' isn't a special character, look ahead for the next matching
+				// character in the string.
 				if p != '[' && p != '?' && p != '\\' {
+
+					// c is the next character to try and match.
+				StarLookAhead:
 					for cidx < slen {
+						c = str[cidx]
+
 						if c == p {
-							break
+							break StarLookAhead
 						}
 
 						cidx++
-						c = str[cidx]
+
+						// We reached the end of str so we can return early.
+						if cidx == slen {
+							return false
+						}
 					}
+					// c should now be the first character that matches p
+					// cidx should be the index of c in str
 				}
 
 				if StringMatch(pattern[pidx:], str[cidx:]) {
@@ -1113,13 +1127,10 @@ Loop:
 				}
 
 				cidx++
-
-				if cidx == slen {
-					return false
-				}
-
-				c = str[cidx]
 			}
+			// reached end of str
+			// p is unmatched
+			return false
 		}
 
 		if p == '?' {
@@ -1128,9 +1139,18 @@ Loop:
 			continue Loop
 		}
 
+		// Populate c if we can.
+		if cidx < slen {
+			c = str[cidx]
+		} else {
+			// We've run out of string.
+			return false
+		}
+
 		if p == '[' {
 			var start, end uint8
 
+			// Skip the pidx to point to the next char
 			pidx++
 
 		BracketLoop:
@@ -1206,13 +1226,6 @@ Loop:
 	// Are we at the end of both the pattern and the string?
 	if pidx == plen {
 		return cidx == slen
-	} else {
-		// If not, but the last pattern character is a '*', succeed anyway.
-		// There's a chance 'p' did not get populated.
-		p = pattern[pidx]
-		if p == '*' {
-			return true
-		}
 	}
 
 	return false
