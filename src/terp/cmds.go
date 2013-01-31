@@ -948,6 +948,7 @@ var stringEnsemble = []EnsembleItem{
 	EnsembleItem{Name: "slice", Cmd: cmdStringSlice},
 	EnsembleItem{Name: "first", Cmd: cmdStringFirst},
 	EnsembleItem{Name: "index", Cmd: cmdStringIndex},
+	EnsembleItem{Name: "match", Cmd: cmdStringMatch},
 }
 
 // Follows Tcl's string range spec.
@@ -1065,6 +1066,158 @@ func cmdStringIndex(fr *Frame, argv []T) T {
 	return MkString(z)
 }
 
+func cmdStringMatch(fr *Frame, argv []T) T {
+	pattern, str := Arg2(argv)
+
+	return MkBool(StringMatch(pattern.String(), str.String()))
+}
+
+func StringMatch(pattern, str string) bool {
+	plen, slen := len(pattern), len(str)
+	pidx, cidx := 0, 0
+	var p, c uint8
+
+Loop:
+	for pidx < plen && cidx < slen {
+		p = pattern[pidx]
+		c = str[cidx]
+
+		if p == '*' {
+			// Skip successive *'s in the pattern
+			for p == '*' {
+				pidx++
+				if pidx < plen {
+					p = pattern[pidx]
+				} else {
+					return true
+				}
+			}
+
+			for {
+				// Optimization:
+				// If 'p' isn't a special character, look ahead for the next part of the
+				// string the match.
+				if p != '[' && p != '?' && p != '\\' {
+					for cidx < slen {
+						if c == p {
+							break
+						}
+
+						cidx++
+						c = str[cidx]
+					}
+				}
+
+				if StringMatch(pattern[pidx:], str[cidx:]) {
+					return true
+				}
+
+				cidx++
+
+				if cidx == slen {
+					return false
+				}
+
+				c = str[cidx]
+			}
+		}
+
+		if p == '?' {
+			pidx++
+			cidx++
+			continue Loop
+		}
+
+		if p == '[' {
+			var start, end uint8
+
+			pidx++
+
+		BracketLoop:
+			for {
+				if pidx == plen {
+					return false
+				}
+
+				p = pattern[pidx]
+				if p == ']' {
+					return false
+				}
+
+				start = p
+
+				pidx++
+				p = pattern[pidx]
+
+				if p == '-' {
+					// Match a range of characters.
+					pidx++
+					if pidx == plen {
+						return false
+					}
+
+					p = pattern[pidx]
+					end = p
+
+					if (start <= c && c <= end) || (end <= c && c <= start) {
+						break BracketLoop
+					}
+				} else if start == c {
+					break BracketLoop
+				}
+			}
+
+			// Skip to after the ending bracket.
+			for p != ']' {
+				pidx++
+				if pidx < plen {
+					p = pattern[pidx]
+				} else {
+					p--
+					break
+				}
+			}
+
+			// We succeeded in matching our character.  Continue the loop.
+			pidx++
+			cidx++
+			continue Loop
+		}
+
+		// Strip off the '\' so we do an exact match on the following char.
+		if p == '\\' {
+			pidx++
+			if pidx == plen {
+				return false
+			}
+
+			p = pattern[pidx]
+		}
+
+		// The normal case, with no special characters.
+		if c != p {
+			return false
+		}
+
+		pidx++
+		cidx++
+	}
+
+	// Are we at the end of both the pattern and the string?
+	if pidx == plen {
+		return cidx == slen
+	} else {
+		// If not, but the last pattern character is a '*', succeed anyway.
+		// There's a chance 'p' did not get populated.
+		p = pattern[pidx]
+		if p == '*' {
+			return true
+		}
+	}
+
+	return false
+}
+
 var infoEnsemble = []EnsembleItem{
 	EnsembleItem{Name: "commands", Cmd: cmdInfoCommands},
 	EnsembleItem{Name: "globals", Cmd: cmdInfoGlobals},
@@ -1178,11 +1331,11 @@ func cmdSubst(fr *Frame, argv []T) T {
 	for len(args) > 1 {
 		a := args[0].String()
 		switch true {
-		case MatchTailStar("-nob*", a):
+		case StringMatch("-nob*", a):
 			flags |= NoBackslash
-		case MatchTailStar("-noc*", a):
+		case StringMatch("-noc*", a):
 			flags |= NoSquare
-		case MatchTailStar("-nov*", a):
+		case StringMatch("-nov*", a):
 			flags |= NoDollar
 		default:
 			panic(Sprintf("Bad flag for 'subst' commmand: %q", a))

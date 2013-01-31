@@ -250,24 +250,24 @@ func SelectLike(db []*Record, site, field, volume, page, suffix, value string) [
 	var z []*Record = make([]*Record, 0, 4)
 
 	for _, r := range db {
-		if !MatchTailStar(site, r.Site) {
+		if !StringMatch(site, r.Site) {
 			continue
 		}
-		if !MatchTailStar(field, r.Field) {
+		if !StringMatch(field, r.Field) {
 			continue
 		}
-		if !MatchTailStar(volume, r.Volume) {
+		if !StringMatch(volume, r.Volume) {
 			continue
 		}
-		if !MatchTailStar(page, r.Page) {
+		if !StringMatch(page, r.Page) {
 			continue
 		}
-		if !MatchTailStar(suffix, r.Suffix) {
+		if !StringMatch(suffix, r.Suffix) {
 			continue
 		}
 
 		for _, v := range r.Values {
-			if MatchTailStar(value, v.String()) {
+			if StringMatch(value, v.String()) {
 				z = append(z, r)
 				break
 			}
@@ -378,23 +378,6 @@ func EntityTriples(db []*Record, site, table, id, field, tag, value string) []T 
 func cmdEntityTriples(fr *Frame, argv []T) T {
 	site, table, id, field, tag, value := Arg6(argv)
 	return MkList(EntityTriples(Records, site.String(), table.String(), id.String(), field.String(), tag.String(), value.String()))
-}
-
-//
-
-func MatchTailStar(pattern, str string) bool {
-	println("pattern ", pattern)
-	println("str ", str)
-	if len(pattern) >= 1 && pattern[len(pattern)-1] == '*' {
-		println("=1= ", str)
-		if len(str) >= len(pattern)-1 {
-			println("=2= ", str)
-			return pattern[:len(pattern)-1] == str[:len(pattern)-1]
-		}
-	}
-
-	println("=3= ", str)
-	return pattern == str
 }
 
 func cmdRebuild(fr *Frame, argv []T) T {
