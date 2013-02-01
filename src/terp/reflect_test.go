@@ -58,7 +58,7 @@ var reflectTests = `
 	set fact70 [go-send [big_factorial 70] String]
 	puts Googol=$Googol
 	puts fact70=$fact70
-	must [slen $Googol] [slen $fact70]
+	must [string length $Googol] [string length $fact70]
 `
 
 func TestReflect(a *testing.T) {

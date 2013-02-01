@@ -17,7 +17,7 @@ var exprTests = `
   set b 6
   must 6.1 [expr { 3.1 + $a }]
   must 5.6 [expr { 2 + "$a.$b" }]
-  must 8 [expr { 4*[llen "6 2"] }]
+  must 8 [expr { 4*[llength "6 2"] }]
 
   must 0 [expr { 4 == 3 }]
   must 1 [expr { 3 == 3 }]

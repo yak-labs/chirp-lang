@@ -465,7 +465,7 @@ func cmdLIndex(fr *Frame, argv []T) T {
 	list := tlist.List()
 	i := ti.Int()
 	if i < 0 || i > int64(len(list)) {
-		panic(Sprintf("lat: bad index: len(list)=%d but i=%d", len(list), i))
+		panic(Sprintf("lindex: bad index: len(list)=%d but i=%d", len(list), i))
 	}
 	return list[i]
 }
@@ -1384,13 +1384,9 @@ func init() {
 	Safes["super"] = cmdSuper
 	Safes["yield"] = cmdYield
 	Safes["ls"] = cmdLs
-	Safes["slen"] = cmdSLen
-	Safes["llen"] = cmdLLen // a.k.a. llength
 	Safes["null"] = cmdNull
 	Safes["notnull"] = cmdNotNull
 	Safes["list"] = cmdList
-	Safes["sat"] = cmdSAt    // a.k.a. string index
-	Safes["lat"] = cmdLIndex // a.k.a. lindex
 	Safes["lindex"] = cmdLIndex
 	Safes["lsort"] = cmdLSort
 	Safes["llength"] = cmdLLen

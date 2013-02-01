@@ -40,15 +40,15 @@ var cmdTests = `
   must 81028 [+ "8[set a]8" [set b]]
   must 81028 [+ 8[set a]8 [set b]]
 
-  must cc [lat [list aa bb cc dd ee] 2]
-  must cc [lat " aa bb cc dd ee" 2]
-  must cc [lat { aa bb cc dd ee } 2]
-  must c [sat abcde 2]
+  must cc [lindex [list aa bb cc dd ee] 2]
+  must cc [lindex " aa bb cc dd ee" 2]
+  must cc [lindex { aa bb cc dd ee } 2]
+  must c [string index abcde 2]
 
-  must 5 [llen [list aa bb cc dd ee] ]
-  must 1 [slen [llen [list aa bb cc dd ee] ]]
-  must 2 [slen [llen [list aa bb cc dd ee 1 2 3 4 5] ]]
-  must 0 [slen ""]
+  must 5 [llength [list aa bb cc dd ee] ]
+  must 1 [string length [llength [list aa bb cc dd ee] ]]
+  must 2 [string length [llength [list aa bb cc dd ee 1 2 3 4 5] ]]
+  must 0 [string length ""]
 
   must {B2 a1 a10 a2 b1} [lsort {a10 B2 b1 a1 a2}]
 
@@ -188,7 +188,7 @@ var cmdTests = `
   hset $h color purple
   must purple [hget $h color]
   hset $h pigs [list S M L]
-  must M [lat [hget $h pigs] 1]
+  must M [lindex [hget $h pigs] 1]
   hset $h color red
   must red [hget $h color]
   must "color pigs" [hkeys $h]
@@ -237,7 +237,7 @@ var cmdTests = `
   must 5 [go-send $sub Eval {set x}]
 
   proc helloArgs { x args } {
-  	return [llen $args]
+  	return [llength $args]
   }
 
   must 3 [helloArgs a b c d]
