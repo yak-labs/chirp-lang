@@ -151,8 +151,10 @@ proc @GetForm r {
 proc @XContent r {
     set content [go-send $r FormValue text]
 }
-proc @XContent2 r {
-    set content2 [go-send [go-send [go-getf $r URL] Query] Get text]
+
+proc @TemporaryRedirect url {
+	set rh [go-call /net/http/RedirectHandler $url 307]
+	go-send $rh ServeHTTP $W $R
 }
 
 proc @UNSAFEDbSelectAll {} {  # TODO remove UNSAFE call.

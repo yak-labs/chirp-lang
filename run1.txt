@@ -58,6 +58,12 @@ proc WikiNotes {} {
 			
 set WikiPage_rx [RxCompile {^([A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*)$}]
 
+proc try {args} {
+	set z ""
+	catch {set z [uplevel 1 $args]} _
+	set z
+}
+
 proc Route { path query } {
 	ParseForm $R
 
@@ -95,11 +101,11 @@ proc Route { path query } {
 
 			Verb/$Verb
 		} else {
-			Puts "Did not understand the path!"
+			Puts [tag pre "Did not understand the path!  <$path>"]
 		}
 
 	} what]} {
-		Puts "*** Caught an error: $what"
+		Puts [tag pre "*** Caught an error:\n$what"]
 	}
 }
 
@@ -145,6 +151,8 @@ proc Verb/edit {} {
 
 	if [string length $content] {
 		WriteFile [site] $Volume $Page @wiki $content
+		TemporaryRedirect /$Volume/$Page.view
+		return
 	}
 
 	proc WikiMiddle {} {
