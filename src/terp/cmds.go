@@ -1385,7 +1385,7 @@ func init() {
 	Safes["yield"] = cmdYield
 	Safes["ls"] = cmdLs
 	Safes["slen"] = cmdSLen
-	Safes["llen"] = cmdLLen
+	Safes["llen"] = cmdLLen // a.k.a. llength
 	Safes["null"] = cmdNull
 	Safes["notnull"] = cmdNotNull
 	Safes["list"] = cmdList
@@ -1393,6 +1393,7 @@ func init() {
 	Safes["lat"] = cmdLIndex // a.k.a. lindex
 	Safes["lindex"] = cmdLIndex
 	Safes["lsort"] = cmdLSort
+	Safes["llength"] = cmdLLen
 	Safes["http_handler"] = cmdHttpHandler
 	Safes["foreach"] = cmdForEach
 	Safes["while"] = cmdWhile

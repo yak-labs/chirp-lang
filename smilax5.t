@@ -74,15 +74,23 @@ yproc @ListRevs { site vol page file } {
 }
 
 proc @ReadFile { site vol page file } {
-	set revs [concat [@ListRevs $site $vol $page $file]]
-	set rev [lindex $revs 0]
+  # TODO: Use [lsort -decreasing] so we can do this in less commands.
+	set revs [lsort [concat [@ListRevs $site $vol $page $file]]]
+	set rev [lindex $revs [expr [llength $revs] - 1]]
 
 	return [go-call /io/ioutil/ReadFile "data/s.$site/v.$vol/p.$page/f.$file/r.$rev"]
 }
 
 proc @WriteFile { site vol page file contents } {
+  set now [go-call /time/Now]
+  set nowUnix [go-send $now Unix]
+
+  # Need to use strconv, otherwise the int64 gets turned into a float and the
+  # timestamp will get represented as scientific notation.
+  set timestamp [go-call /strconv/FormatInt $nowUnix 10]
+
 	go-call /os/MkdirAll "data/s.$site/v.$vol/p.$page/f.$file" 448
-	go-call /io/ioutil/WriteFile "data/s.$site/v.$vol/p.$page/f.$file/r.0" $contents 384
+	go-call /io/ioutil/WriteFile "data/s.$site/v.$vol/p.$page/f.$file/r.$timestamp" $contents 384
 
 	# Save no records, but stupid side-effect is to reread all files.
 	db-save-records "data" {}
