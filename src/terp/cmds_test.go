@@ -371,18 +371,30 @@ func TestFoo(a *testing.T) {
 }
 
 func TestStringMatchExact(t *testing.T) {
-	pat1, str1 := "asdfqwer1234", "asdfqwer1234"
-	pat2, str2 := "asdf", "asdfqwer"
-	pat3, str3 := "asdfqwer", "asdf"
+	// Positive pattern matches.
+	ppats, pstrs := make([]string, 0, 4), make([]string, 0, 4)
 
-	if !StringMatch(pat1, str1) {
-		t.Errorf("StringMatch should have matched pattern %q with string %q", pat1, str1)
+	// Negative pattern matches.
+	npats, nstrs := make([]string, 0, 4), make([]string, 0, 4)
+
+	ppats, pstrs = append(ppats, "asdfqwer1234"), append(pstrs, "asdfqwer1234")
+
+	npats, nstrs = append(npats, "asdf"), append(nstrs, "asdfqwer")
+	npats, nstrs = append(npats, "asdfqwer"), append(nstrs, "asdf")
+	npats, nstrs = append(npats, "z"), append(nstrs, "")
+
+	for i, p := range ppats {
+		matched := StringMatch(p, pstrs[i])
+		if !matched {
+			t.Errorf("StringMatch should have matched pattern %q with string %q", p, pstrs[i])
+		}
 	}
-	if StringMatch(pat2, str2) {
-		t.Errorf("StringMatch should NOT have matched pattern %q with string %q", pat1, str1)
-	}
-	if StringMatch(pat3, str3) {
-		t.Errorf("StringMatch should NOT have matched pattern %q with string %q", pat1, str1)
+
+	for i, p := range npats {
+		matched := StringMatch(p, nstrs[i])
+		if matched {
+			t.Errorf("StringMatch should NOT have matched pattern %q with string %q", p, nstrs[i])
+		}
 	}
 }
 
@@ -395,18 +407,33 @@ func TestStringMatchBackSlash(t *testing.T) {
 }
 
 func TestStringMatchStar(t *testing.T) {
-	pats, strs := make([]string, 0, 4), make([]string, 0, 4)
-	pats, strs = append(pats, "*"), append(strs, "")
-	pats, strs = append(pats, "*"), append(strs, "asdfqwer1234")
-	pats, strs = append(pats, "*.jpg"), append(strs, "picture.jpg")
-	pats, strs = append(pats, "house*dog*cat"), append(strs, "house123dog456cat")
-	pats, strs = append(pats, "thisismytest*"), append(strs, "thisismytestthisoneismine")
-	pats, strs = append(pats, "house*\\*dog*\\*cat"), append(strs, "house123*dog456*cat")
+	// Positive pattern matches.
+	ppats, pstrs := make([]string, 0, 4), make([]string, 0, 4)
 
-	for i, p := range pats {
-		matched := StringMatch(p, strs[i])
+	// Negative pattern matches.
+	npats, nstrs := make([]string, 0, 4), make([]string, 0, 4)
+
+	ppats, pstrs = append(ppats, "*"), append(pstrs, "")
+	ppats, pstrs = append(ppats, "*"), append(pstrs, "asdfqwer1234")
+	ppats, pstrs = append(ppats, "*.jpg"), append(pstrs, "picture.jpg")
+	ppats, pstrs = append(ppats, "house*dog*cat"), append(pstrs, "house123dog456cat")
+	ppats, pstrs = append(ppats, "thisismytest*"), append(pstrs, "thisismytestthisoneismine")
+	ppats, pstrs = append(ppats, "house*\\*dog*\\*cat"), append(pstrs, "house123*dog456*cat")
+
+	npats, nstrs = append(npats, "abc*z"), append(nstrs, "abc")
+	npats, nstrs = append(npats, "abc*z"), append(nstrs, "abcdefg")
+
+	for i, p := range ppats {
+		matched := StringMatch(p, pstrs[i])
 		if !matched {
-			t.Errorf("StringMatch should have matched pattern %q with string %q", p, strs[i])
+			t.Errorf("StringMatch should have matched pattern %q with string %q", p, pstrs[i])
+		}
+	}
+
+	for i, p := range npats {
+		matched := StringMatch(p, nstrs[i])
+		if matched {
+			t.Errorf("StringMatch should NOT have matched pattern %q with string %q", p, nstrs[i])
 		}
 	}
 }
