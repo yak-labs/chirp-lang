@@ -9,7 +9,9 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type Record struct {
@@ -64,9 +66,12 @@ func SaveRecords(dataDir string, newRecs []*Record) {
 		h[key] = append(h[key], r)
 	}
 
+	// Use the current Unix time as the timestamp.
+	tstamp := strconv.FormatInt(time.Now().Unix(), 10)
+
 	for _, recs := range h {
 		volumeDir := filepath.Join(dataDir, "s."+recs[0].Site, "v."+recs[0].Volume)
-		fname := filepath.Join(volumeDir, "p."+recs[0].Page, "f.@wiki", "r.0")
+		fname := filepath.Join(volumeDir, "p."+recs[0].Page, "f.@wiki", "r."+tstamp)
 		RewriteFileWithRecords(fname, recs[0].Site, recs[0].Volume, recs[0].Page, recs)
 	}
 
@@ -230,19 +235,51 @@ func ScanPages(volumeDir string, site, volume string, z []*Record) []*Record {
 	for _, p := range pages {
 		m := InternalFileName_rx.FindStringSubmatch(p.Name())
 		if p.IsDir() && len(m) > 0 {
-			fname := filepath.Join(volumeDir, p.Name(), "f.@wiki", "r.0")
 			page := m[1]
-
-			// Test whether a db file exists.
-			fd, fdErr := os.Open(fname)
-			if fdErr != nil {
-				continue // Skip if cannot open.
-			}
-			fd.Close() // Close the test.
-
-			z, _ = ParseFileToRecords(fname, site, volume, page, z)
+			z = ScanCurrentRev(filepath.Join(volumeDir, p.Name()), site, volume, page, z)
 		}
 	}
+	return z
+}
+
+func ScanCurrentRev(pageDir string, site, volume, page string, z []*Record) []*Record {
+	log.Printf("ScanCurrentRev %s %s %s %s", pageDir, site, volume, page)
+	fileDir := filepath.Join(pageDir, "f.@wiki")
+	revfiles, err := ioutil.ReadDir(fileDir)
+	if err != nil {
+		panic(err)
+	}
+
+	n := len(revfiles)
+	if n == 0 {
+		// No revisions.  Return early.
+		return z
+	}
+
+	// Get the Unix timestamps into a slice of strings from the file names.
+	var revs []string = make([]string, n)
+	for i, r := range revfiles {
+		m := InternalFileName_rx.FindStringSubmatch(r.Name())
+		if !r.IsDir() && len(m) > 0 {
+			revs[i] = m[1]
+		}
+	}
+
+	sort.Strings(revs)
+
+	// The current revision
+	rev := revs[n-1]
+	// The full file path to the current revision.
+	fname := filepath.Join(fileDir, "r."+rev)
+
+	// Test whether a db file exists.
+	fd, fdErr := os.Open(fname)
+	if fdErr != nil {
+		return z // Skip if cannot open.
+	}
+	fd.Close() // Close the test.
+
+	z, _ = ParseFileToRecords(fname, site, volume, page, z)
 	return z
 }
 
