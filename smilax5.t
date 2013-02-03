@@ -97,8 +97,8 @@ proc @WriteFile { site vol page file contents } {
 }
 
 proc @Route { path query } {
-	go-call /fmt/Fprintf $W %s "This is the base Router.  Replace me."
-	go-call /fmt/Fprintf $W {path: %s | query: %s} $path $query
+	go-call /fmt/Fprintf [cred w] %s "This is the base Router.  Replace me."
+	go-call /fmt/Fprintf [cred w] {path: %s | query: %s} $path $query
 }
 
 proc @RxCompile { pattern } {
@@ -130,7 +130,7 @@ proc @ShowValue v {
 }
 
 proc @Puts { str} {
-    go-call /fmt/Fprintf $W %s $str
+    go-call /fmt/Fprintf [cred w] %s $str
 }
 
 proc @ModeHtml {} {
@@ -139,7 +139,7 @@ proc @ModeHtml {} {
 
 proc @TemporaryRedirect url {
 	set rh [go-call /net/http/RedirectHandler $url 307]
-	go-send $rh ServeHTTP $W $R
+	go-send $rh ServeHTTP [cred w] [cred r]
 }
 
 proc @auth-require-level {level} {
@@ -236,13 +236,8 @@ proc ZygoteHandler {w r} {
 	}
 	cred-put level $level
 
-	set W $w
-	set R $r
-
 	set clone [go-send $Zygote Clone]
 	go-send $clone CopyCredFrom -
-	go-send $clone Eval [ list set W $w ]
-	go-send $clone Eval [ list set R $r ]
 	go-send $clone Eval [ list Route [go-getf $r URL Path] [go-send [go-getf $r URL] Query] ]
 }
 go-call /net/http/HandleFunc / [ http-handler-lambda {w r who} {set Who $who; ZygoteHandler $w $r} ] 

@@ -35,9 +35,9 @@ proc WikiText {} { ReadFile [site] $Volume $Page @wiki }
 
 proc WideTable rows {
 	set rr {}
-	foreach r $rows {
+	foreach row $rows {
 		set dd {}
-		foreach d $r {
+		foreach d $row {
 			lappend dd [tag td align left $d]
 		}
 		lappend rr [tag tr [eval ht $dd]]
@@ -87,7 +87,7 @@ proc Route { path query } {
 		set m [FindStringSubmatch $rx $path]
 		if {[notnull $m]} {
 			set _,Volume,Page,_,Verb $m
-			catch { Note "Method: [getf $R Method]" } _
+			catch { Note "Method: [cred method]" } _
 			catch { Note "Query: [ShowValue $Query]" } _
 			catch { Note "Form: [ShowValue $Form]" } _
 			catch { Note "Level: [level]" } _
