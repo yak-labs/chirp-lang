@@ -58,25 +58,27 @@ proc WikiNotes {} {
 			
 set WikiPage_rx [RxCompile {^([A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*)$}]
 
-proc try {args} {
-	set z ""
-	catch {set z [uplevel 1 $args]} _
-	set z
-}
+#proc try {args} { # BROKEN -- TODO --
+#	set z ""
+#	catch {set z [uplevel 1 [list $args]]} _
+#	set z
+#}
 
 proc Route { path query } {
-	ParseForm $R
+	#ParseForm
 
-	set Query [GetQuery $R]
-	set Form [GetForm $R]
+	set Query [cred query]
+	set Form [cred form]
 
-	#set content [go-send $R FormValue text]
-	#set content2 [go-send [go-send [go-getf $R URL] Query] Get text]
-
-	ModeHtml $W
+	ModeHtml
 
 	if {$path eq "/"} {
 		set path "/Main/HomePage.view"
+	}
+
+	if {$path eq "/favicon.ico"} {
+		# Leave quietly, without lots of errors.
+		return
 	}
 
 	if {[catch {
@@ -147,7 +149,8 @@ proc Verb/list {} {
 }
 
 proc Verb/edit {} {
-	set content [XContent $R]
+	set content ""
+	catch { set content [hget [cred form] "text"] } _
 
 	if [string length $content] {
 		WriteFile [site] $Volume $Page @wiki $content

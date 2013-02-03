@@ -133,23 +133,8 @@ proc @Puts { str} {
     go-call /fmt/Fprintf $W %s $str
 }
 
-proc @ModeHtml {w} {
-    go-send [go-send $w Header] Set "Content-Type" "text/html"
-}
-
-proc @ParseForm r {
-    go-send $r ParseForm
-}
-
-proc @GetQuery r {
-    go-send [go-getf $r URL] Query
-}
-proc @GetForm r {
-    go-getf $r Form
-}
-
-proc @XContent r {
-    set content [go-send $r FormValue text]
+proc @ModeHtml {} {
+    go-send [go-send [cred w] Header] Set "Content-Type" "text/html"
 }
 
 proc @TemporaryRedirect url {
@@ -157,30 +142,35 @@ proc @TemporaryRedirect url {
 	go-send $rh ServeHTTP $W $R
 }
 
-proc @UNSAFEDbSelectAll {} {  # TODO remove UNSAFE call.
-	db-select-like * * * * * *
-}
-
 proc @auth-require-level {level} {
+	if {[cred level] < $level} {
+		@RequestBasicAuth
+	}
 }
 
-proc @RequestBasicAuth {w realm} {
-	set h [go-send $w Header]
-	go-send $h Set "WWW-Authenticate" "Basic realm=\"$realm\""
-	go-send $w WriteHeader 401
+proc @RequestBasicAuth {} {
+	set h [go-send [cred w] Header]
+	go-send $h Set "WWW-Authenticate" "Basic realm=\"[cred site]\""
+	go-send [cred w] WriteHeader 401
 }
 
 proc @user {} {
-	return $USER
+	cred user
 }
 proc @host {} {
-	return $HOST
+	cred host
 }
 proc @level {} {
-	return $LEVEL
+	cred level
 }
 proc @site {} {
-	return $SITE
+	cred site
+}
+proc @r {} {
+	cred r
+}
+proc @w {} {
+	cred w
 }
 
 # Dir name is "data"
@@ -206,25 +196,24 @@ foreach m $mixins {
 }
 
 proc gold-level {user pw} {
-	foreach r [db-select-like $SITE pw Sys PassWord "$user:$pw" *] {
+	foreach r [db-select-like [cred site] pw Sys PassWord "$user:$pw" *] {
 		return [lindex [go-getf $r Values] 1]
 	}
 	return 0
 }
 
 proc lookup-site {} {
-	foreach r [db-select-like root serve Sys ServeSite $HOST *] {
+	foreach r [db-select-like root serve Sys ServeSite [cred host] *] {
 		return [lindex [go-getf $r Values] 1]
 	}
-	error "Unknown Site for HOST=$HOST"
+	error "Unknown Site for HOST=[cred host]"
 }
 
 # NOW HANDLE REQUESTS
 proc ZygoteHandler {w r} {
-	set clone [go-send $Zygote Clone]
-
-	set HOST [go-getf $r Host]
-	set SITE [lookup-site]
+	#cred-put w $w
+	#cred-put r $r
+	cred-put site [lookup-site]
 
 	set headers [go-getf $r Header]
 	set authorization [go-send $headers Get Authorization]
@@ -235,23 +224,26 @@ proc ZygoteHandler {w r} {
 		if [notnull $m] {
 			set _,USER,PASSWORD $m
 		}
-		set LEVEL [gold-level $USER $PASSWORD]
-		if {$LEVEL <= 0} {
-			set LEVEL [gold-level * $PASSWORD]
+		set level [gold-level $USER $PASSWORD]
+		if {$level <= 0} {
+			set level [gold-level * $PASSWORD]
 		}
 	} else {
-		# @RequestBasicAuth $w 5.SMILAX.ORG
-		set LEVEL [gold-level * *]
+		set level [gold-level * *]
 	}
+
+	if {$level <= 0} {
+	}
+	cred-put level $level
 
 	set W $w
 	set R $r
+
+	set clone [go-send $Zygote Clone]
+	go-send $clone CopyCredFrom -
 	go-send $clone Eval [ list set W $w ]
 	go-send $clone Eval [ list set R $r ]
 	go-send $clone Eval [ list Route [go-getf $r URL Path] [go-send [go-getf $r URL] Query] ]
 }
-# go-call /net/http/HandleFunc / [http_handler ZygoteHandler]
-# go-call /net/http/ListenAndServe 127.0.0.1:8080 ""
-
 go-call /net/http/HandleFunc / [ http-handler-lambda {w r who} {set Who $who; ZygoteHandler $w $r} ] 
 go-call /net/http/ListenAndServe 127.0.0.1:8080 ""

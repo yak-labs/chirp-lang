@@ -3,8 +3,9 @@ package terp
 import (
 	// "bytes"
 	"encoding/base64"
-	// . "fmt"
+	. "fmt"
 	// "html"
+	"log"
 	"net/http"
 	"net/url"
 	R "reflect"
@@ -42,6 +43,10 @@ func cmdHttpHandlerLambda(fr *Frame, argv []T) T {
 		form := r.Form
 		hdr := r.Header
 
+		for k, v := range hdr {
+			log.Printf("HDR %q : %q", k, v)
+		}
+
 		// Decode Authorization, if present.
 		var user, pw string
 		auth := hdr.Get("Authorization")
@@ -70,11 +75,55 @@ func cmdHttpHandlerLambda(fr *Frame, argv []T) T {
 		fr2.SetVar(wName, MkValue(R.ValueOf(w)))
 		fr2.SetVar(rName, MkValue(R.ValueOf(r)))
 		fr2.SetVar(whoName, MkValue(R.ValueOf(who)))
+
+		fr2.Cred = make(Hash)
+		fr2.Cred["user"] = MkString(user)
+		fr2.Cred["password"] = MkString(pw)
+		fr2.Cred["method"] = MkString(r.Method)
+		fr2.Cred["host"] = MkString(r.Host)
+
+		fr2.Cred["w"] = MkValue(R.ValueOf(w))
+		fr2.Cred["r"] = MkValue(R.ValueOf(r))
+
+		qh := MkHash()
+		for k, v := range query {
+			qh.h[k] = MkString(v[0])
+		}
+		fr2.Cred["query"] = qh
+
+		fh := MkHash()
+		for k, v := range form {
+			fh.h[k] = MkString(v[0])
+		}
+		fr2.Cred["form"] = fh
+
+		hh := MkHash()
+		for k, v := range hdr {
+			hh.h[k] = MkString(v[0])
+		}
+		fr2.Cred["header"] = hh
+
 		fr2.Eval(body)
 	}
 
 	return MkValue(R.ValueOf(handler))
 }
+
+
+// Getting cred is safe.  Setting it is unsafe.  This is the setter.
+func cmdCredPut(fr *Frame, argv []T) T {
+	name, value := Arg2(argv)
+	if fr.Cred == nil {
+		fr.Cred = make(Hash, 4)
+	}
+	key := name.String()
+	if _, ok := fr.Cred[key]; ok {
+		panic(Sprintf("cred-set refuses to redefine key %q", key))
+	}
+	fr.Cred[key] = value
+	return value
+}
+
 
 func init() {
 	if Unsafes == nil {
@@ -82,4 +131,5 @@ func init() {
 	}
 
 	Unsafes["http-handler-lambda"] = cmdHttpHandlerLambda
+	Unsafes["cred-put"] = cmdCredPut
 }

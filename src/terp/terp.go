@@ -35,7 +35,8 @@ type CmdNode struct {
 // and a new one is created for each proc or yproc invocation
 // (but not for every Command; non-proc commands do not make Frames).
 type Frame struct {
-	Vars Scope
+	Vars Scope  // local variables
+	Cred Hash   // credentials
 
 	Prev *Frame
 	G    *Global
@@ -159,19 +160,21 @@ func New1(isSafe bool) *Frame {
 	return &g.Fr
 }
 
+// New() makes a new full interpreter.
 func New() *Frame {
 	return New1(false)
 }
-
+// NewSafe() makes a new safe interpreter.
 func NewSafe() *Frame {
 	return New1(true)
 }
-
+// NewFrame makes a frame for calling another proc.
 func (fr *Frame) NewFrame() *Frame {
 	return &Frame{
-		Vars: make(Scope),
-		Prev: fr,
-		G:    fr.G,
+		Vars: make(Scope),  // new local var scope
+		Cred: fr.Cred,      // same credentials as caller
+		Prev: fr,           // link back to prev frame
+		G:    fr.G,         // the Global struct
 	}
 }
 
@@ -257,7 +260,7 @@ func (p *UpSlot) Has() bool { return p.Fr.HasVar(p.RemoteName) }
 func (p *UpSlot) Get() T    { return p.Fr.GetVar(p.RemoteName) }
 func (p *UpSlot) Set(t T)   { p.Fr.SetVar(p.RemoteName, t) }
 
-func (fr *Frame) UpVar(name string, remFr *Frame, remName string) {
+func (fr *Frame) DefineUpVar(name string, remFr *Frame, remName string) {
 	sc := fr.GetVarScope(name)
 	sc[name] = &UpSlot{Fr: remFr, RemoteName: remName}
 }

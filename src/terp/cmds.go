@@ -19,6 +19,7 @@ var Unsafes map[string]Command
 
 type binaryFlop func(a, b float64) float64
 type binaryFlopBool func(a, b float64) bool
+type binaryStringBool func(a, b string) bool
 
 func MkBinaryFlopCmd(flop binaryFlop) Command {
 	return func(fr *Frame, argv []T) T {
@@ -27,10 +28,17 @@ func MkBinaryFlopCmd(flop binaryFlop) Command {
 	}
 }
 
-func MkBinaryFlopBoolCmd(flop binaryFlopBool) Command {
+func MkBinaryFlopBoolCmd(op binaryFlopBool) Command {
 	return func(fr *Frame, argv []T) T {
 		a, b := Arg2(argv)
-		return MkBool(flop(a.Float(), b.Float()))
+		return MkBool(op(a.Float(), b.Float()))
+	}
+}
+
+func MkBinaryStringBoolCmd(op binaryStringBool) Command {
+	return func(fr *Frame, argv []T) T {
+		a, b := Arg2(argv)
+		return MkBool(op(a.String(), b.String()))
 	}
 }
 
@@ -699,7 +707,7 @@ func cmdUpVar(fr *Frame, argv []T) T {
 	for i := 0; i < int(level); i++ {
 		remFr = remFr.Prev
 	}
-	fr.UpVar(locName, remFr, remName)
+	fr.DefineUpVar(locName, remFr, remName)
 	return Empty
 }
 
@@ -845,7 +853,9 @@ func (ssi *SafeSubInterp) Alias(fr *Frame, newcmdnameStr string, prefix T) {
 		z = append(z, prefix.List()...)
 		z = append(z, argv2[1:]...)
 
-		return fr.Apply(z)
+		fr3 := fr2.NewFrame()
+		fr3.G = fr.G
+		return fr3.Apply(z)
 	}
 
 	if _, ok := ssi.fr.G.Cmds[newcmdnameStr]; ok {
@@ -869,6 +879,17 @@ func (ssi *SafeSubInterp) Clone() *SafeSubInterp {
 		fr: &cloned.Fr,
 	}
 	return z
+}
+
+func (ssi *SafeSubInterp) CopyCredFrom(fr *Frame) {
+	if fr.Cred != nil {
+		if ssi.fr.Cred == nil {
+			ssi.fr.Cred = make(Hash)
+		}
+		for k, v := range fr.Cred {
+			ssi.fr.Cred[k] = v
+		}
+	}
 }
 
 // Tcl requires integers, but our base numeric value is float64.
@@ -1359,6 +1380,21 @@ func cmdSubst(fr *Frame, argv []T) T {
 	return MkString(fr.SubstString(args[0].String(), flags))
 }
 
+// Getting cred is safe.  Setting it is unsafe.  This is the getter.
+func cmdCred(fr *Frame, argv []T) T {
+	name := Arg1(argv)
+
+	for k, v := range fr.Cred {
+		log.Printf("CRED: %q : %s", k, Show(v))
+	}
+
+	key := name.String()
+    if _, ok := fr.Cred[key]; !ok {
+         panic(Sprintf("cred has no key %q", key))
+    }
+    return fr.Cred[key]
+}
+
 func init() {
 	if Safes == nil {
 		Safes = make(map[string]Command, 333)
@@ -1374,6 +1410,13 @@ func init() {
 	Safes["<="] = MkBinaryFlopBoolCmd(func(a, b float64) bool { return (a <= b) })
 	Safes[">"] = MkBinaryFlopBoolCmd(func(a, b float64) bool { return (a > b) })
 	Safes[">="] = MkBinaryFlopBoolCmd(func(a, b float64) bool { return (a >= b) })
+
+	Safes["eq"] = MkBinaryStringBoolCmd(func(a, b string) bool { return (a == b) })
+	Safes["ne"] = MkBinaryStringBoolCmd(func(a, b string) bool { return (a != b) })
+	Safes["lt"] = MkBinaryStringBoolCmd(func(a, b string) bool { return (a < b) })
+	Safes["le"] = MkBinaryStringBoolCmd(func(a, b string) bool { return (a <= b) })
+	Safes["gt"] = MkBinaryStringBoolCmd(func(a, b string) bool { return (a > b) })
+	Safes["ge"] = MkBinaryStringBoolCmd(func(a, b string) bool { return (a >= b) })
 
 	Safes["must"] = cmdMust
 	Safes["if"] = cmdIf
@@ -1418,4 +1461,5 @@ func init() {
 	Safes["join"] = cmdJoin
 	Safes["dropnull"] = cmdDropNull
 	Safes["subst"] = cmdSubst
+	Safes["cred"] = cmdCred
 }
