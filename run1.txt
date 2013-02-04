@@ -73,7 +73,8 @@ proc Route { path query } {
 	ModeHtml
 
 	if {$path eq "/"} {
-		set path "/Main/HomePage.view"
+		TemporaryRedirect /Main/HomePage.view
+		return
 	}
 
 	if {$path eq "/favicon.ico"} {
@@ -83,7 +84,7 @@ proc Route { path query } {
 
 	if {[catch {
 
-		set rx [RxCompile {^/([A-Z][a-z]+)/([A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*)([.]([a-z]+))?$}]
+		set rx [RxCompile {^/([A-Z]+[a-z0-9]*)/([A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*)([.]([a-z]+))?$}]
 		set m [FindStringSubmatch $rx $path]
 		if {[notnull $m]} {
 			set _,Volume,Page,_,Verb $m

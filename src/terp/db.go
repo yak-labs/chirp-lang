@@ -261,7 +261,7 @@ func CurrentRevFilename(pageDir string, site, volume, page string) string {
 	n := len(revfiles)
 	if n == 0 {
 		// No revisions.  Return early.
-		return ""  // TODO -- strick guesses "" is correct, or should we panic?
+		return ""
 	}
 
 	// Get the Unix timestamps into a slice of strings from the file names.

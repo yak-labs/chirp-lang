@@ -1381,6 +1381,7 @@ func cmdSubst(fr *Frame, argv []T) T {
 }
 
 // Getting cred is safe.  Setting it is unsafe.  This is the getter.
+// Returns Empty if none.
 func cmdCred(fr *Frame, argv []T) T {
 	name := Arg1(argv)
 
@@ -1390,7 +1391,7 @@ func cmdCred(fr *Frame, argv []T) T {
 
 	key := name.String()
     if _, ok := fr.Cred[key]; !ok {
-         panic(Sprintf("cred has no key %q", key))
+         return Empty
     }
     return fr.Cred[key]
 }

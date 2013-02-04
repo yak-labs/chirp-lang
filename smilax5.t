@@ -34,6 +34,7 @@ yproc @ListSites {} {
 }
 
 yproc @ListVols { site } {
+	check-site $site
 	foreach f [go-call /io/ioutil/ReadDir "data/s.$site"] {
 		set fname [go-send $f Name]
 		set m [go-send $VolDirRx FindStringSubmatch $fname]
@@ -44,6 +45,7 @@ yproc @ListVols { site } {
 }
 
 yproc @ListPages { site vol } {
+	check-site $site
 	foreach f [go-call /io/ioutil/ReadDir "data/s.$site/v.$vol"] {
 		set fname [go-send $f Name]
 		set m [go-send $PageDirRx FindStringSubmatch $fname]
@@ -54,6 +56,7 @@ yproc @ListPages { site vol } {
 }
 
 yproc @ListFiles { site vol page } {
+	check-site $site
 	foreach f [go-call /io/ioutil/ReadDir "data/s.$site/v.$vol/p.$page"] {
 		set fname [go-send $f Name]
 		set m [go-send $FileDirRx FindStringSubmatch $fname]
@@ -64,6 +67,7 @@ yproc @ListFiles { site vol page } {
 }
 
 yproc @ListRevs { site vol page file } {
+	check-site $site
 	foreach f [go-call /io/ioutil/ReadDir "data/s.$site/v.$vol/p.$page/f.$file"] {
 		set fname [go-send $f Name]
 		set m [go-send $RevFileRx FindStringSubmatch $fname]
@@ -74,6 +78,7 @@ yproc @ListRevs { site vol page file } {
 }
 
 proc @ReadFile { site vol page file } {
+	check-site $site
   # TODO: Use [lsort -decreasing] so we can do this in less commands.
 	set revs [lsort [concat [@ListRevs $site $vol $page $file]]]
 	set rev [lindex $revs [expr [llength $revs] - 1]]
@@ -82,6 +87,7 @@ proc @ReadFile { site vol page file } {
 }
 
 proc @WriteFile { site vol page file contents } {
+  check-site $site
   set now [go-call /time/Now]
   set nowUnix [go-send $now Unix]
 
@@ -109,19 +115,33 @@ proc @FindStringSubmatch { rx str } {
 	go-send $rx FindStringSubmatch $str
 }
 
+proc check-site site {
+	set s [cred site]
+	# If site empty, then no enforcement yet.
+	if [null $s] return
+	# If correct site, OK.
+	if [eq $s $site] return
+	# Must be super-user to access a different site.
+	@auth-require-level 90
+}
+
 proc @EntityGet {site table id field tag} {
+	check-site $site
 	entity-get $site $table $id $field $tag
 }
 
 proc @EntityPut {site table id field tag values} {
+	check-site $site
 	entity-put $site $table $id $field $tag $values
 }
 
 proc @EntityLike {site table field tag value} {
+	check-site $site
 	entity-like $site $table $field $tag $value
 }
 
 proc @EntityTriples {site table id field tag value} {
+	check-site $site
 	entity-triples $site $table $id $field $tag $value
 }
 
