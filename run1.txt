@@ -179,9 +179,13 @@ proc Verb/edit {} {
 }
 
 proc Verb/db {} {
-	foreach record [UNSAFEDbSelectAll] {  # TODO
-		Puts $record
-		Puts <br>
+	foreach e [EntityLike [site] Characters * * *] {
+	  foreach field,tag,values [EntityTriples [site] Characters $e * * *] {
+	    foreach value $values {
+			Puts "Entity:$e Field:$field Tag:$tag Value:=$value <br>"  ; # Not properly escaped!
+		}
+		Puts "<br>"
+	  }
 	}
 }
 
