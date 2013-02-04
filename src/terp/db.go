@@ -81,13 +81,16 @@ func SaveRecords(dataDir string, newRecs []*Record) {
 
 func RewriteFileWithRecords(fname string, site, volume, page string, newRecs []*Record) {
 	log.Printf("RewriteFileWithRecords < %q %q %q %q %v", fname, site, volume, page, newRecs)
+	oldFname := CurrentRevFilename("", site, volume, page)
 
 	oldRecs, textlines := []*Record{}, []string{}
-	_, fileErr := os.Stat(fname)
+	_, fileErr := os.Stat(oldFname)
 	if fileErr == nil {
 		// File exists, so read it.
-		log.Printf("... ParseFileToRecords ... %q %q %q %q", fname, site, volume, page)
-		oldRecs, textlines = ParseFileToRecords(fname, site, volume, page, []*Record{})
+		log.Printf("... ParseFileToRecords OK ... %q %q %q %q", fname, site, volume, page)
+		oldRecs, textlines = ParseFileToRecords(oldFname, site, volume, page, []*Record{})
+	} else {
+		log.Printf("... ParseFileToRecords ERROR %q ... %q %q %q %q", fileErr.Error(), fname, site, volume, page)
 	}
 
 	// Collect old records, by field:suffix as key.
@@ -242,7 +245,12 @@ func ScanPages(volumeDir string, site, volume string, z []*Record) []*Record {
 	return z
 }
 
-func ScanCurrentRev(pageDir string, site, volume, page string, z []*Record) []*Record {
+func CurrentRevFilename(pageDir string, site, volume, page string) string {
+	if pageDir == "" {
+		// When called from ScanPages, we know the pageDir.
+		// But from elsewhere, we may not, so reconstruct it.
+		pageDir = filepath.Join(HackGlobalDataDirectory, "s." + site, "v." + volume, "p." + page)
+	}
 	log.Printf("ScanCurrentRev %s %s %s %s", pageDir, site, volume, page)
 	fileDir := filepath.Join(pageDir, "f.@wiki")
 	revfiles, err := ioutil.ReadDir(fileDir)
@@ -253,7 +261,7 @@ func ScanCurrentRev(pageDir string, site, volume, page string, z []*Record) []*R
 	n := len(revfiles)
 	if n == 0 {
 		// No revisions.  Return early.
-		return z
+		return ""  // TODO -- strick guesses "" is correct, or should we panic?
 	}
 
 	// Get the Unix timestamps into a slice of strings from the file names.
@@ -271,6 +279,11 @@ func ScanCurrentRev(pageDir string, site, volume, page string, z []*Record) []*R
 	rev := revs[n-1]
 	// The full file path to the current revision.
 	fname := filepath.Join(fileDir, "r."+rev)
+	return fname
+}
+func ScanCurrentRev(pageDir string, site, volume, page string, z []*Record) []*Record {
+	// pageDir may be empty, if yet unknown.
+	fname := CurrentRevFilename(pageDir, site, volume, page)
 
 	// Test whether a db file exists.
 	fd, fdErr := os.Open(fname)
