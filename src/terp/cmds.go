@@ -735,7 +735,7 @@ func cmdSet(fr *Frame, argv []T) T {
 			return h.GetAt(MkString(key))
 		}
 		if !fr.HasVar(name) {
-			fr.SetVar(name, MkHash())
+			fr.SetVar(name, MkHash(nil))
 		}
 		_, x := Arg2(argv)
 		h := fr.GetVar(name)
@@ -775,7 +775,7 @@ func cmdContinue(fr *Frame, argv []T) T {
 }
 
 func cmdHash(fr *Frame, argv []T) T {
-	return MkHash()
+	return MkHash(nil)
 }
 
 func cmdHGet(fr *Frame, argv []T) T {

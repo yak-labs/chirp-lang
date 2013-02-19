@@ -6,8 +6,9 @@ import (
 	. "fmt"
 	// "html"
 	"log"
+	// "mime/multipart"
 	"net/http"
-	"net/url"
+	// "net/url"
 	R "reflect"
 	"regexp"
 )
@@ -15,27 +16,16 @@ import (
 var BasicAuthRx = regexp.MustCompile(`^Basic ([A-Za-z0-9+/=]+)`)
 var BasicAuthUserPwSplitterRx = regexp.MustCompile(`^Basic ([^:]*)[:](.*)$`)
 
-type Who struct {
-	user       string
-	password   string
-	remoteAddr string
-	host       string
-	site       string
-	level      int
-	query      url.Values
-	form       url.Values
-}
-
 func cmdHttpHandlerLambda(fr *Frame, argv []T) T {
 	args, body := Arg2(argv)
 
+	// TODO: get rid of these "w r" args.
 	argList := args.List()
-	if len(argList) != 3 {
-		panic("Expected 3 names in http-handler arg list, the http.ResponseWriter & *http.Request & *Who")
+	if len(argList) != 2 {
+		panic("Expected 2 names in http-handler arg list, the http.ResponseWriter & *http.Request")
 	}
 	wName := argList[0].String()
 	rName := argList[1].String()
-	whoName := argList[2].String()
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
@@ -63,18 +53,9 @@ func cmdHttpHandlerLambda(fr *Frame, argv []T) T {
 			}
 		}
 
-		who := &Who{
-			user:     user,
-			password: pw,
-			host:     hdr.Get("Host"),
-			query:    query,
-			form:     form,
-		}
-
 		fr2 := fr.G.Fr.NewFrame() // New frame from Global level.
 		fr2.SetVar(wName, MkValue(R.ValueOf(w)))
 		fr2.SetVar(rName, MkValue(R.ValueOf(r)))
-		fr2.SetVar(whoName, MkValue(R.ValueOf(who)))
 
 		fr2.Cred = make(Hash)
 		fr2.Cred["user"] = MkString(user)
@@ -85,23 +66,48 @@ func cmdHttpHandlerLambda(fr *Frame, argv []T) T {
 		fr2.Cred["w"] = MkValue(R.ValueOf(w))
 		fr2.Cred["r"] = MkValue(R.ValueOf(r))
 
-		qh := MkHash()
+		// QUERY
+		qh := MkHash(nil)
 		for k, v := range query {
 			qh.h[k] = MkString(v[0])
 		}
 		fr2.Cred["query"] = qh
 
-		fh := MkHash()
+		// SIMPLE FORM
+		fh := MkHash(nil)
 		for k, v := range form {
 			fh.h[k] = MkString(v[0])
 		}
-		fr2.Cred["form"] = fh
+		fr2.Cred["form"] = fh  // TODO: save this in "query" too.
 
-		hh := MkHash()
+		hh := MkHash(nil)
 		for k, v := range hdr {
 			hh.h[k] = MkString(v[0])
 		}
 		fr2.Cred["header"] = hh
+
+		// MIME MULTIPART FORM
+		mpReader, _ := r.MultipartReader()
+		if mpReader == nil {
+			// Not a multipart/form-data POST.
+			fr2.Cred["values"] = MkHash(nil)
+			fr2.Cred["files"] = MkHash(nil)
+		} else {
+			mpForm, mpFormErr := mpReader.ReadForm(1000000)
+			if mpFormErr != nil {
+				panic(mpFormErr)
+			}
+			values := make(Hash, 0)
+			for k, v := range mpForm.Value {
+				values[k] = MkStringList(v)
+			}
+			fr2.Cred["values"] = MkHash(values)
+			files := make(Hash, 0)
+			for k, v := range mpForm.File {
+				files[k] = MkT(v)  // TODO: convert []*multipart.FileHeader to something sane.
+			}
+			fr2.Cred["files"] = MkHash(files)
+		}
 
 		fr2.Eval(body)
 	}

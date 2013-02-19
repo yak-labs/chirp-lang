@@ -230,12 +230,10 @@ proc lookup-site {} {
 }
 
 # NOW HANDLE REQUESTS
-proc ZygoteHandler {w r} {
-	#cred-put w $w
-	#cred-put r $r
+proc ZygoteHandler {w r} { # TODO: get rid of the args.i w & r.
 	cred-put site [lookup-site]
 
-	set headers [go-getf $r Header]
+	set headers [go-getf [cred r] Header]
 	set authorization [go-send $headers Get Authorization]
 	if [notnull $authorization] {
 		set obfuscated [lindex $authorization 1]
@@ -260,5 +258,5 @@ proc ZygoteHandler {w r} {
 	go-send $clone CopyCredFrom -
 	go-send $clone Eval [ list Route [go-getf $r URL Path] [go-send [go-getf $r URL] Query] ]
 }
-go-call /net/http/HandleFunc / [ http-handler-lambda {w r who} {set Who $who; ZygoteHandler $w $r} ] 
+go-call /net/http/HandleFunc / [ http-handler-lambda {w r} {ZygoteHandler $w $r} ]
 go-call /net/http/ListenAndServe 127.0.0.1:8080 ""

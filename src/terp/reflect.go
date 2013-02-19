@@ -332,6 +332,20 @@ func cmdGoGet(fr *Frame, argv []T) T {
 	return MkT(generated.Vars[varT.String()])
 }
 
+// TODO: test.
+func cmdGoMapToHash(fr *Frame, argv []T) T {
+	mapT := Arg1(argv)
+	mapV := mapT.QuickReflectValue()
+	keysVs := mapV.MapKeys()
+	h := make(Hash, 4)
+	for _, keyV := range keysVs {
+		k := MkT(keyV.Interface()).String()
+		v := MkT(mapV.MapIndex(keyV).Interface())
+		h[k] = v
+	}
+	return MkHash(h)
+}
+
 func init() {
 	if Unsafes == nil {
 	    Unsafes = make(map[string]Command, 333)
@@ -345,4 +359,5 @@ func init() {
 
 	Unsafes["go-elem"] = cmdElem
 	Unsafes["go-index"] = cmdIndex
+	Unsafes["go-map-to-hash"] = cmdGoMapToHash
 }

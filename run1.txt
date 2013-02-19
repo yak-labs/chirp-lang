@@ -84,7 +84,7 @@ proc Route { path query } {
 
 	if {[catch {
 
-		set rx [RxCompile {^/([A-Z]+[a-z0-9]*)/([A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*)([.]([a-z]+))?$}]
+		set rx [RxCompile {^/([A-Z]+[a-z0-9]*)/([A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*)([.]([a-z_]+))?$}]
 		set m [FindStringSubmatch $rx $path]
 		if {[notnull $m]} {
 			set _,Volume,Page,_,Verb $m
@@ -114,7 +114,9 @@ proc Route { path query } {
 
 proc Verb/view {} {
 	proc WikiTopInner {} {
-			ht [tag b "$Page"] " . . . " [tag a href $Page.edit EDIT]
+			ht [tag b "$Page"] " . . . " [
+				tag a href $Page.edit EDIT] " . . . " [
+				tag a href $Page.attach ATTACH]
 	}
 	proc WikiTop {} { ht [WideTable [list [list [WikiTopInner]]]] [tag br] [tag br] }
 	proc WikiMiddle {} { tag listing [WikiText] }
@@ -146,6 +148,53 @@ proc Verb/list {} {
 		DoVerbList
 	}
 
+	Puts [HtmlOutput]
+}
+
+proc ulist list {
+	set v {}
+	foreach e $list {
+		lappend v [tag {li} $e]
+	}
+	tag {ul} [
+		eval ht $v
+	]
+}
+
+proc Verb/submit_attach {} {
+	proc WikiMiddle {} {
+		ht [
+			tag {h2} "UPLOAD TO /$Volume/$Page -- TODO -- Incomplete"
+		] [
+			tag {h3} "Values:"
+		] [
+			cred values
+		] [
+			tag {h3} "Files:"
+		] [
+			cred files
+		]
+		#WriteFile [site] $Volume $Page @wiki $content
+	}
+	Puts [HtmlOutput]
+}
+
+proc Verb/attach {} {
+	proc WikiMiddle {} {
+		tag {form} method "POST" action "/$Volume/$Page.submit_attach" enctype "multipart/form-data" [
+			ht [
+				tag {h2} "ATTACHMENTS FOR /$Volume/$Page"
+			] [
+				tag {input} type "file" name "filestuff"
+			] [
+				tag {input} type "submit" value "Upload"
+			] [
+				tag {input} type reset
+			] [
+				tag {a} href "/$Volume/$Page.view" Cancel
+			]
+        ]
+	}
 	Puts [HtmlOutput]
 }
 

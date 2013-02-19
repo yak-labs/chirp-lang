@@ -424,8 +424,11 @@ type terpHash struct { // Imlements T.
 	h Hash
 }
 
-func MkHash() terpHash {
-	return terpHash{h: make(Hash, 4)}
+func MkHash(h Hash) terpHash {
+	if h == nil {
+		return terpHash{h: make(Hash, 4)}
+	}
+	return terpHash{h: h}
 }
 func MkGenerator(readerChan <-chan Either) terpGenerator {
 	return terpGenerator{guts: &terpGeneratorGuts{readerChan: readerChan}}
