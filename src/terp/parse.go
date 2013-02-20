@@ -16,6 +16,23 @@ func WhiteOrSemi(ch uint8) bool {
 }
 
 func (fr *Frame) Eval(a T) (result T) {
+	defer func() {
+		if r := recover(); r != nil {
+			if re, ok := r.(error); ok {
+				r = re.Error()  // Convert error to string.
+			}
+			if rs, ok := r.(string); ok {
+				// TODO: Require debug level for the Eval arg.
+				as := a.String()
+				if len(as) > 100 {
+				  as = as[:100] + "..."
+				}  
+				r = rs + Sprintf("\n\tin Eval\n\t\t%q", as)
+			}
+			panic(r)
+		}
+	}()
+
 	result = Empty // In case of empty eval.
 	log.Printf("< Eval < (%T) ## %#v ## %q\n", a, a, a.String())
 

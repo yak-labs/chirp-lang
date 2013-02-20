@@ -161,6 +161,12 @@ proc ulist list {
 	]
 }
 
+proc Verb/zork {} {
+	# To test debugging, cause an error.
+	set cond 1
+	set bogus zork
+	if $cond { list ; $bogus; list }
+}
 proc Verb/submit_attach {} {
 	proc WikiMiddle {} {
 		ht [
