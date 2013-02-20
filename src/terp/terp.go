@@ -35,8 +35,8 @@ type CmdNode struct {
 // and a new one is created for each proc or yproc invocation
 // (but not for every Command; non-proc commands do not make Frames).
 type Frame struct {
-	Vars Scope  // local variables
-	Cred Hash   // credentials
+	Vars Scope // local variables
+	Cred Hash  // credentials
 
 	Prev *Frame
 	G    *Global
@@ -164,17 +164,19 @@ func New1(isSafe bool) *Frame {
 func New() *Frame {
 	return New1(false)
 }
+
 // NewSafe() makes a new safe interpreter.
 func NewSafe() *Frame {
 	return New1(true)
 }
+
 // NewFrame makes a frame for calling another proc.
 func (fr *Frame) NewFrame() *Frame {
 	return &Frame{
-		Vars: make(Scope),  // new local var scope
-		Cred: fr.Cred,      // same credentials as caller
-		Prev: fr,           // link back to prev frame
-		G:    fr.G,         // the Global struct
+		Vars: make(Scope), // new local var scope
+		Cred: fr.Cred,     // same credentials as caller
+		Prev: fr,          // link back to prev frame
+		G:    fr.G,        // the Global struct
 	}
 }
 
@@ -316,6 +318,24 @@ func (fr *Frame) FindCommand(name T, callSuper bool) Command {
 
 // Apply a command with its arguments.
 func (fr *Frame) Apply(argv []T) T {
+	defer func() {
+		if r := recover(); r != nil {
+			if rs, ok := r.(string); ok {
+				rs = rs + Sprintf("\n\tin Apply %q", argv[0])
+				// TODO: Require debug level for the args.
+				for _, ae := range argv[1:] {
+					as := ae.String()
+					if len(as) > 40 {
+						as = as[:40] + "..."
+					}
+					rs = rs + Sprintf(" %q", as)
+				}
+				r = rs
+			}
+			panic(r)
+		}
+	}()
+
 	head := argv[0]
 	log.Printf("< Apply < %q", head)
 	for ai, av := range argv[1:] {
@@ -582,22 +602,30 @@ func MkT(a interface{}) T {
 // terpHash implements T
 
 func (t terpHash) Raw() interface{} {
-	panic("not implemented on generator (terpHash)")
+	return t.h
 }
 func (t terpHash) String() string {
-	return Repr(t)
+	z := make([]T, 0, 2*len(t.h))
+	for k, v := range t.h {
+		if v == nil {
+			continue
+		}
+		z = append(z, MkString(k))
+		z = append(z, v)
+	}
+	return MkList(z).String()
 }
 func (t terpHash) Float() float64 {
-	panic("not implemented on generator (terpHash)")
+	panic("not implemented on terpHash (Float)")
 }
 func (t terpHash) Int() int64 {
-	panic("not implemented on generator (terpHash)")
+	panic("not implemented on terpHash (Int)")
 }
 func (t terpHash) Uint() uint64 {
-	panic("not implemented on generator (terpHash)")
+	panic("not implemented on terpHash (Uint)")
 }
 func (t terpHash) ListElementString() string {
-	panic("not implemented on generator (terpHash)")
+	panic("not implemented on terpHash (ListElementString)")
 }
 func (t terpHash) Bool() bool {
 	panic("terpHash cannot be used as Bool")

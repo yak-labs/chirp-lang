@@ -247,7 +247,24 @@ func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 						}
 					}
 					if rs, ok := r.(string); ok {
-						r = rs + "\n\tin proc " + argv2[0].String() // + " a.k.a. " + argv[1].String()
+						rs = rs + "\n\tin proc " + argv2[0].String()
+						// TODO: Require debug level for the args.
+						for ai, ae := range argv2[1:] {
+							as := ae.String()
+							if len(as) > 80 {
+								as = as[:80] + "..."
+							}
+							rs = rs + Sprintf("\n\t\targ:%d = %q", ai, as)
+						}
+						// TODO: Require debug level for the locals.
+						for vk, vv := range fr2.Vars {
+							vs := vv.Get().String()
+							if len(vs) > 80 {
+								vs = vs[:80] + "..."
+							}
+							rs = rs + Sprintf("\n\t\tlocal:%s = %q", vk, vs)
+						}
+						r = rs
 					}
 					panic(r) // Rethrow errors and unknown Status.
 				}
@@ -1390,10 +1407,14 @@ func cmdCred(fr *Frame, argv []T) T {
 	}
 
 	key := name.String()
-    if _, ok := fr.Cred[key]; !ok {
-         return Empty
-    }
-    return fr.Cred[key]
+	if _, ok := fr.Cred[key]; !ok {
+		return Empty
+	}
+	z := fr.Cred[key]
+	if z == nil {
+		return Empty
+	}
+	return z
 }
 
 func init() {

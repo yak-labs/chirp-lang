@@ -329,9 +329,9 @@ var cmdTests = `
 	# Propagation of error from yproc to consumer.
 	yproc barfer {} {error BARF}
 	must 1 [catch {concat [barfer]} what]
-	must BARF $what
+	must 1 [string match BARF* $what]
 	must 1 [catch {foreach x [barfer] {error NOTREACHED}} what]
-	must BARF $what
+	must 1 [string match BARF* $what]
 
     # Make class Obj.
 	set Obj [subclass ""]
