@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	. "fmt"
 	// "html"
+	"io/ioutil"
 	"log"
 	// "mime/multipart"
 	"net/http"
@@ -104,7 +105,17 @@ func cmdHttpHandlerLambda(fr *Frame, argv []T) T {
 			fr2.Cred["values"] = MkHash(values)
 			files := make(Hash, 0)
 			for k, v := range mpForm.File {
-				files[k] = MkT(v)  // TODO: convert []*multipart.FileHeader to something sane.
+				fileHeader := v[0]  // Only use the first one.
+				fileR, openErr := fileHeader.Open()
+				if openErr != nil {
+					panic(openErr)
+				}
+				defer fileR.Close()
+				bb, readErr := ioutil.ReadAll(fileR)
+				if readErr != nil {
+					panic(readErr)
+				}
+				files[k] = MkString(string(bb))
 			}
 			fr2.Cred["files"] = MkHash(files)
 		}

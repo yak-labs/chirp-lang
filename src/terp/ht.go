@@ -47,6 +47,8 @@ func Ht(things []T) HTML {
 			buf.WriteString(esc(a.String()))
 		case error:
 			buf.WriteString(esc(a.Error()))
+		case Hash:
+			buf.WriteString(esc(thing.String()))
 		default:
 			buf.WriteString(esc(Sprintf("%v", a)))
 		}
