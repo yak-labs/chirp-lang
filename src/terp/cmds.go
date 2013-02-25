@@ -207,10 +207,20 @@ func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 	// Capture this variable, so it can be used when the cmd is called.
 	captureMixinNumberDefining := fr.G.MixinNumberDefining
 	captureMixinNameDefining := fr.G.MixinNameDefining
+
+	log.Printf("procOrYProc: (1) name %q captureMixinNumberDefining %v captureMixinNameDefining %q", nameStr, captureMixinNumberDefining, captureMixinNameDefining)
+
+	// If the proc is being defined by a mixin, put it in the same mixin.
+	if fr.MixinLevel > 0 {
+		captureMixinNumberDefining = fr.MixinLevel
+		captureMixinNameDefining = fr.MixinName
+	}
 	var longMixinName string
 	if captureMixinNumberDefining > 0 {
 		longMixinName = captureMixinNameDefining + "~" + nameStr
 	}
+
+	log.Printf("procOrYProc: (2) name %q captureMixinNumberDefining %v captureMixinNameDefining %q longMixinName %q", nameStr, captureMixinNumberDefining, captureMixinNameDefining, longMixinName)
 
 	var compiled Stmt
 	if !body.IsPreservedByList() { // TODO: reconsider this test.
@@ -248,6 +258,8 @@ func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 					}
 					if rs, ok := r.(string); ok {
 						rs = rs + "\n\tin proc " + argv2[0].String()
+						rs = rs + Sprintf("\n\t\t(caller's MixinLevel=%d)", fr2.MixinLevel)
+						rs = rs + Sprintf("\n\t\t(caller's MixinName=%q)", fr2.MixinName)
 						// TODO: Require debug level for the args.
 						for ai, ae := range argv2[1:] {
 							as := ae.String()
@@ -293,6 +305,7 @@ func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 		fr3.MixinName = captureMixinNameDefining
 		fr3.Self = self
 		fr3.Super = super
+	    log.Printf("fr3: name %q captureMixinNumberDefining %v captureMixinNameDefining %q", argv2[0].String(), captureMixinNumberDefining, captureMixinNameDefining)
 
 		if varargs {
 			for i, arg := range astrs[:len(astrs)-1] {

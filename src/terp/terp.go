@@ -297,6 +297,11 @@ func (fr *Frame) FindCommand(name T, callSuper bool) Command {
 		}
 	}
 
+	log.Printf("FindCommand: # cmdName=%q  ... ok=%v", cmdName, ok)
+	log.Printf("FindCommand: # fr.MixinLevel=%v", fr.MixinLevel)
+	log.Printf("FindCommand: # IsGlobal(cmdName.s)=%v", IsGlobal(cmdName.s))
+	log.Printf("FindCommand: # BTW -- fr.G.MixinNumber/NameDefining=%d/%q", fr.G.MixinNumberDefining, fr.G.MixinNameDefining)
+
 	// Mixin Local Commands:
 	if !ok && fr.MixinLevel > 0 && !IsGlobal(cmdName.s) {
 		// Use long name for mixin local fn.
@@ -309,8 +314,12 @@ func (fr *Frame) FindCommand(name T, callSuper bool) Command {
 			log.Printf("FindCommand: level %d: Found Long Name: %q -> %v", fr.MixinLevel, localCmdName, fn)
 		}
 	}
+	log.Printf("FindCommand: # cmdName=%q  ... ... ok=%v", cmdName, ok)
 
 	if !ok {
+		for k9, v9 := range fr.G.Cmds {
+			log.Printf(" == %q == %v", k9, v9)
+		}
 		panic(Sprintf("FindCommand: command not found: %q", cmdName.s))
 	}
 	return fn
@@ -325,6 +334,7 @@ func (fr *Frame) Apply(argv []T) T {
 			}
 			if rs, ok := r.(string); ok {
 				rs = rs + Sprintf("\n\tin Apply\n\t\t%q", argv[0])
+
 				// TODO: Require debug level for the args.
 				for _, ae := range argv[1:] {
 					as := ae.String()
@@ -333,6 +343,9 @@ func (fr *Frame) Apply(argv []T) T {
 					}
 					rs = rs + Sprintf(" %q", as)
 				}
+
+				rs = rs + Sprintf("\n\t\t(frame's MixinLevel=%d)", fr.MixinLevel)
+				rs = rs + Sprintf("\n\t\t(frame's MixinName=%q)", fr.MixinName)
 				r = rs
 			}
 			panic(r)

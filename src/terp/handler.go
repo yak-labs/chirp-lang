@@ -98,12 +98,18 @@ func cmdHttpHandlerLambda(fr *Frame, argv []T) T {
 			if mpFormErr != nil {
 				panic(mpFormErr)
 			}
-			values := make(Hash, 0)
+
+			// Not sure when we find "mpvalues" in the multipart form, but we support them.
+			mpvalues := make(Hash, 0)
 			for k, v := range mpForm.Value {
-				values[k] = MkStringList(v)
+				mpvalues[k] = MkStringList(v)
 			}
-			fr2.Cred["values"] = MkHash(values)
-			files := make(Hash, 0)
+			fr2.Cred["mpvalues"] = MkHash(mpvalues)
+
+			// These are the uploaded files.
+			// Keys are the form field name.
+			// Values is a list of 2 items, the filename and the contents.
+			uploads := make(Hash, 0)
 			for k, v := range mpForm.File {
 				fileHeader := v[0]  // Only use the first one.
 				fileR, openErr := fileHeader.Open()
@@ -115,9 +121,11 @@ func cmdHttpHandlerLambda(fr *Frame, argv []T) T {
 				if readErr != nil {
 					panic(readErr)
 				}
-				files[k] = MkString(string(bb))
+				filenameT := MkString(fileHeader.Filename)
+				contentsT := MkString(string(bb))
+				uploads[k] = MkList([]T{filenameT, contentsT})
 			}
-			fr2.Cred["files"] = MkHash(files)
+			fr2.Cred["uploads"] = MkHash(uploads)
 		}
 
 		fr2.Eval(body)

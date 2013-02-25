@@ -22,12 +22,12 @@ proc HtmlTitle {} { tag title [ht $Volume -- $Page -- $Verb] }
 proc HtmlCss {} { ht }
 proc HtmlBody {} { tag body class HtmlBody [ht [
 	tag div class WikiTop [WikiTop]] [
-	tag div class WikiMiddle [WikiMiddle]] [
+	tag div class middle [middle]] [
 	tag div class WikiBottom [WikiBottom]]
 ]}
 
 proc WikiTop {} { ht [WideTable [list [list "TOP"]]] [tag br] [tag br] }
-proc WikiMiddle {} { ht "This is the WikiMiddle; override me!" }
+proc middle {} { ht "This is the middle; override me!" }
 proc WikiBottom {} { ht [tag br] [tag br] [WideTable [list [list "BOTTOM"]]] }
 proc WikiTail {} { tag div class WikiTail [WikiNotes] }
 
@@ -119,7 +119,7 @@ proc Verb/view {} {
 				tag a href $Page.attach ATTACH]
 	}
 	proc WikiTop {} { ht [WideTable [list [list [WikiTopInner]]]] [tag br] [tag br] }
-	proc WikiMiddle {} { tag listing [WikiText] }
+	proc middle {} { tag listing [WikiText] }
 
 	Puts [HtmlOutput]
 }
@@ -144,7 +144,7 @@ proc DoVerbList {} {
 }
 
 proc Verb/list {} {
-	proc WikiMiddle {} {
+	proc middle {} {
 		DoVerbList
 	}
 
@@ -168,28 +168,23 @@ proc Verb/zork {} {
 	if $cond { list ; $bogus; list }
 }
 proc Verb/submit_attach {} {
-	proc WikiMiddle {} {
-		ht [
-			tag {h2} "UPLOAD TO /$Volume/$Page -- TODO -- Incomplete"
-		] [
-			tag {h3} "Values:"
-		] [
-			cred values
-		] [
-			tag {h3} "Files:"
-		] [
-			cred files
-		]
-		#WriteFile [site] $Volume $Page @wiki $content
+	set uploads [cred uploads]
+	foreach name [hkeys $uploads] {
+		set filename,contents $uploads($name)
+		WriteFile [site] $Volume $Page $filename $contents
 	}
-	Puts [HtmlOutput]
+	TemporaryRedirect /$Volume/$Page.attach
 }
 
 proc Verb/attach {} {
-	proc WikiMiddle {} {
+	proc middle {} {
+		set files [ListFiles [site] $Volume $Page]
+
 		tag {form} method "POST" action "/$Volume/$Page.submit_attach" enctype "multipart/form-data" [
 			ht [
 				tag {h2} "ATTACHMENTS FOR /$Volume/$Page"
+			] [
+				ulist $files
 			] [
 				tag {input} type "file" name "filestuff"
 			] [
@@ -214,7 +209,7 @@ proc Verb/edit {} {
 		return
 	}
 
-	proc WikiMiddle {} {
+	proc middle {} {
 		set c [ReadFile [site] $Volume $Page @wiki]
 
 		tag form method POST action /$Volume/$Page.edit [
@@ -254,7 +249,7 @@ proc HtList list { # Make HTML Unordered Lists from Tcl list
 }
 
 proc Verb/e {} {
-	proc WikiMiddle {} {
+	proc middle {} {
 		ht [
 			tag h3 "All Entities:"
 		] [
