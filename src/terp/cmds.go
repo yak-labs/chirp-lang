@@ -555,18 +555,31 @@ func cmdHttpHandler(fr *Frame, argv []T) T {
 }
 
 func cmdForEach(fr *Frame, argv []T) T {
-	v, list, body := Arg3(argv)
+	varLT, list, body := Arg3(argv)
+	varL := varLT.List()
 
 	toBreak := false
 	toContinue := false
 
+Outer:
 	for {
-		hd, tl := list.HeadTail()
-		if hd == nil {
-			break
+		var hd T
+		var tl T
+		for _, varT := range varL {
+			hd, tl = list.HeadTail()
+			if hd == nil {
+				// This does leave vars in a slightly skewed state if the stride of varL
+				// doesn't fit the data.  So just don't mismatch the lengths.
+				// It's not worth the complexity to fix this code.
+				break Outer
+			}
+			list = tl
+
+			log.Printf("foreach sets %q <- %s", varT.String(), Show(hd))
+			fr.SetVar(varT.String(), hd)
 		}
 
-		fr.SetVar(v.String(), hd)
+		log.Printf("foreach evals body")
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -584,9 +597,7 @@ func cmdForEach(fr *Frame, argv []T) T {
 					panic(r) // Rethrow errors and unknown Status.
 				}
 			}()
-			log.Printf("foreach before: %q", body.String())
 			fr.Eval(body)
-			log.Printf("foreach after: %q", body.String())
 		}()
 		if toBreak {
 			log.Printf("foreach breaks ======================================")
@@ -596,7 +607,6 @@ func cmdForEach(fr *Frame, argv []T) T {
 			log.Printf("foreach continues =====================================")
 			continue
 		}
-		list = tl
 	}
 
 	return Empty

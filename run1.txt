@@ -168,9 +168,9 @@ proc Verb/zork {} {
 	if $cond { list ; $bogus; list }
 }
 proc Verb/submit_attach {} {
-	set uploads [cred uploads]
-	foreach name [hkeys $uploads] {
-		set filename,contents $uploads($name)
+	list MUMBLE [concat [cred uploads]]
+	foreach {name filename,contents} [cred uploads] {
+		list MUMBLE2 $name $filename $contents
 		WriteFile [site] $Volume $Page $filename $contents
 	}
 	TemporaryRedirect /$Volume/$Page.attach
