@@ -175,6 +175,50 @@ func cmdIf(fr *Frame, argv []T) T {
 	return Empty
 }
 
+func cmdCase(fr *Frame, argv []T) T {
+	// Two possible syntaxes for Tcl 6.7 case command:
+	//   (1) case string ?in? patList body ?patList body ...?
+	//   (2) case string ?in? {patList body ?patList body ...?}
+	topicL, rest := Arg1v(argv)
+	topic := topicL.String()
+
+	if len(rest) < 1 {
+		panic(Sprintf("Too few arguments for 'case': %#v", argv))
+	}
+	if rest[0].String() == "in" {
+		// ?in? exists; delete it.
+		rest = rest[1:]
+	}
+	
+	if len(rest) == 1 {
+		// Case (2).  Expand the one arg into its parts.
+		rest = rest[0].List()
+	}
+
+	if (len(rest) & 1) == 1 {
+		panic(Sprintf("Odd number of items in {patList body} list of stride two: %v", argv))
+	}
+
+    var dflt T
+	for i := 0; i < len(rest); i += 2 {
+		pats := rest[i].List()
+		if len(pats) == 1 && pats[0].String() == "default" {
+			dflt = rest[i+1]
+			continue
+		}
+		for _, pat := range pats {
+			if StringMatch(pat.String(), topic) {
+				return fr.Eval(rest[i+1])
+			}
+		}
+	}
+
+	if dflt == nil {
+		return Empty
+	}
+	return fr.Eval(dflt)
+}
+
 func cmdPuts(fr *Frame, argv []T) T {
 	// TODO:  accept a Writer as first arg.
 	out := Arg1(argv)
@@ -1465,6 +1509,7 @@ func init() {
 
 	Safes["must"] = cmdMust
 	Safes["if"] = cmdIf
+	Safes["case"] = cmdCase
 	Safes["puts"] = cmdPuts
 	Safes["proc"] = cmdProc
 	Safes["yproc"] = cmdYProc

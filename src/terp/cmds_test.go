@@ -363,6 +363,11 @@ var cmdTests = `
 
 	must "aaa111 foo24bar222.zzz\b5" [
 		subst {aaa$a foo[expr 3*8]bar$B.zzz\0105}]
+
+	# http://wiki.yak.net/1030
+	must 3 [case abc in {a b} {list 1} default {list 2} a* {list 3}]
+	must 1 [case a in {   {a b} {list 1}   default {list 2}   a* {list 3} }]
+	must 2 [case xyz {   {a b}     {list  1}    default {list 2}   a*     {list 3} }]
 `
 
 func TestFoo(a *testing.T) {
