@@ -1047,6 +1047,20 @@ func cmdError(fr *Frame, argv []T) T {
 	panic(message.String())
 }
 
+// Modern Tcl uses "return --code" to throw strange codes,
+// but our "return" takes multiple values, so we cannot use it.
+// Tcl 6.7 had no way to do it.
+// We add a command "throw code result" to do it.
+func cmdThrow(fr *Frame, argv []T) T {
+	statusT, resultT := Arg2(argv)
+	status := statusT.Int()
+
+	panic(Jump{
+		Status: StatusCode(status),
+		Result: resultT,
+	})
+}
+
 var stringEnsemble = []EnsembleItem{
 	EnsembleItem{Name: "length", Cmd: cmdSLen},
 	EnsembleItem{Name: "range", Cmd: cmdStringRange},
@@ -1545,6 +1559,7 @@ func init() {
 	Safes["append"] = cmdAppend
 	Safes["lappend"] = cmdLAppend
 	Safes["error"] = cmdError
+	Safes["throw"] = cmdThrow
 	Safes["string"] = MkEnsemble(stringEnsemble)
 	Safes["info"] = MkEnsemble(infoEnsemble)
 	Safes["split"] = cmdSplit

@@ -82,7 +82,7 @@ proc Route { path query } {
 		return
 	}
 
-	if {[catch {
+	if {[set e [catch {
 
 		set rx [RxCompile {^/([A-Z]+[a-z0-9]*)/([A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*)([.]([a-z_]+))?$}]
 		set m [FindStringSubmatch $rx $path]
@@ -107,8 +107,13 @@ proc Route { path query } {
 			Puts [tag pre "Did not understand the path!  <$path>"]
 		}
 
-	} what]} {
-		Puts [tag pre "*** Caught an error:\n$what"]
+	} what]]} {
+		if {$e < 5} {
+			Puts [tag pre "*** ($e) Caught an error:\n$what"]
+		} else {
+			# Rethrow exotic codes.
+			throw $e $what
+		}
 	}
 }
 

@@ -157,9 +157,14 @@ proc @ModeHtml {} {
     go-send [go-send [cred w] Header] Set "Content-Type" "text/html"
 }
 
+#proc @TemporaryRedirect url {
+#	set rh [go-call /net/http/RedirectHandler $url 307]
+#	go-send $rh ServeHTTP [cred w] [cred r]
+#}
 proc @TemporaryRedirect url {
-	set rh [go-call /net/http/RedirectHandler $url 307]
-	go-send $rh ServeHTTP [cred w] [cred r]
+	# set rh [go-call /net/http/RedirectHandler $url 307]
+	# go-send $rh ServeHTTP [cred w] [cred r]
+	throw 307 $url
 }
 
 proc @auth-require-level {level} {
@@ -250,13 +255,32 @@ proc ZygoteHandler {w r} { # TODO: get rid of the args.i w & r.
 		set level [gold-level * *]
 	}
 
-	if {$level <= 0} {
-	}
-	cred-put level $level
+	  cred-put level $level
 
-	set clone [go-send $Zygote Clone]
-	go-send $clone CopyCredFrom -
-	go-send $clone Eval [ list Route [go-getf $r URL Path] [go-send [go-getf $r URL] Query] ]
+	  set clone [go-send $Zygote Clone]
+	  go-send $clone CopyCredFrom -
+
+	set e [catch {
+	  if {$level <= 0} {
+	  }
+	  go-send $clone Eval [ list Route [go-getf $r URL Path] [go-send [go-getf $r URL] Query] ]
+	} what]
+
+    case $e in {
+	  0 {
+		# OK
+	  }
+	  307 {
+		set url [lindex [split $what "\n"] 0]
+		set rh [go-call /net/http/RedirectHandler $url 307]
+		go-send $rh ServeHTTP [cred w] [cred r]
+	  }
+	  default {
+		# TODO: something better.
+		go-send [cred w] Write [go-send [ht $what] Html]
+	  }
+	}
 }
+
 go-call /net/http/HandleFunc / [ http-handler-lambda {w r} {ZygoteHandler $w $r} ]
 go-call /net/http/ListenAndServe 127.0.0.1:8080 ""
