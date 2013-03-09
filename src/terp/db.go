@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	/* "treap" -- FUTURE */
 )
 
 type Record struct {
@@ -36,6 +38,53 @@ func (r *Record) String() string {
 	})
 	return list.String() // Use Tcl list format.
 }
+
+/************************   FUTURE
+// ==== New roots using treap.  In progress.
+
+// RTree is our own Tree type.
+type RTree treap.Tree
+
+// Trees maps {site volume} into a tree.
+var Trees map[string]*RTree
+
+func FindTree(site, volume string) *RTree {
+	key := site + " " + volume
+	z, ok := Trees[key]
+	if !ok {
+		z = (*RTree)(treap.NewTree(RecordKeysLT))
+		Trees[key] = z
+	}
+	return z
+}
+
+func (me *RTree) TODO() {
+}
+
+// RecordKeysLT returns true if the keys of the first record are less than
+// the keys of the second.  The Values of the records are not compared.
+func RecordKeysLT(p, q interface{}) bool {
+	a, b := p.(*Record), q.(*Record)
+	if a.Site < b.Site { return true }
+	if a.Site > b.Site { return false }
+
+	if a.Volume < b.Volume { return true }
+	if a.Volume > b.Volume { return false }
+
+	if a.Volume < b.Volume { return true }
+	if a.Volume > b.Volume { return false }
+
+	if a.Volume < b.Volume { return true }
+	if a.Volume > b.Volume { return false }
+
+	if a.Volume < b.Volume { return true }
+	if a.Volume > b.Volume { return false }
+
+	return false  // They are equal, which is not Less Than.
+}
+************************/
+
+// ==== Old roots using []*Record.
 
 var Records []*Record
 var HackGlobalDataDirectory string // hack: remember this.

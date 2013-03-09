@@ -7,7 +7,7 @@
 # f: file.  Special files: "@wiki".
 # r: revision; also v: varient.
 
-set SiteNameRx     [go-call /regexp/MustCompile {^[a-z][a-z0-9_]*$}]
+set SiteNameRx     [go-call /regexp/MustCompile {^[A-Z]_[a-z0-9_]*$}]
 set VolNameRx      [go-call /regexp/MustCompile {^[A-Z]+[a-z0-9_]*$}]
 set PageNameRx     [go-call /regexp/MustCompile {^[A-Z]+[a-z]+[A-Z][A-Za-z0-9_]*$}]
 set FileNameRx     [go-call /regexp/MustCompile {^[A-Za-z0-9_.@%~][-A-Za-z0-9_.@%~]*[.][-A-Za-z0-9_.@%~]+$}]
@@ -24,6 +24,7 @@ set BasicAuthUserPwSplitterRx [go-call /regexp/MustCompile {^([^:]*)[:](.*)$}]
 set BASE64 [go-elem [go-get /encoding/base64/StdEncoding]]
 
 yproc @ListSites {} {
+	check-site Root
 	foreach f [go-call /io/ioutil/ReadDir "data"] {
 		set fname [go-send $f Name]
 		set m [go-send $SiteDirRx FindStringSubmatch $fname]
@@ -215,9 +216,9 @@ foreach cmd [info commands] {
 go-send $Zygote Alias - DB "set DB"
 
 # -- Load our mixins into our sub-interpreter
-set mixins [@ListPages root Mixin]
+set mixins [@ListPages Root Mixin]
 foreach m $mixins {
-	go-send $Zygote Eval [list mixin $m [@ReadFile root Mixin $m @wiki]]
+	go-send $Zygote Eval [list mixin $m [@ReadFile Root Mixin $m @wiki]]
 }
 
 proc gold-level {user pw} {
@@ -228,7 +229,7 @@ proc gold-level {user pw} {
 }
 
 proc lookup-site {} {
-	foreach r [db-select-like root serve Sys ServeSite [cred host] *] {
+	foreach r [db-select-like Root serve Sys ServeSite [cred host] *] {
 		return [lindex [go-getf $r Values] 1]
 	}
 	error "Unknown Site for HOST=[cred host]"

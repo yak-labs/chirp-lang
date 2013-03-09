@@ -1,20 +1,21 @@
-/TEXT /local/Sys/PassWord/@wiki/0
+/TEXT /Local/Sys/PassWord/@wiki/0
 
+/# Limitation: Only gold is supported now.
 /set pw:super:super gold 90
 /set pw:foo:bar gold 70
 /set pw:*:xyzzy gold 30
 /set pw:*:* gold 10
 
-/TEXT /root/Sys/ServeSite/@wiki/0
+/TEXT /Root/Sys/ServeSite/@wiki/0
 
-/set serve:localhost:8080 site local
-#future# /set serve:localhost:8081 site larp
+/set serve:localhost:8080 site Local
+#future# /set serve:localhost:8081 site Larp
 
-/TEXT /local/Main/HomePage/@wiki/0
+/TEXT /Local/Main/HomePage/@wiki/0
 
 This is the HomePage.
 
-/TEXT /root/Mixin/MixinFirst/@wiki/0
+/TEXT /Root/Mixin/MixinFirst/@wiki/0
 
 proc HtmlOutput {} { tag html [ht [HtmlHead] [HtmlBody] [WikiTail]] }
 proc HtmlHead {} { tag head [ht [HtmlTitle] [HtmlCss]] }
@@ -319,11 +320,11 @@ proc Verb/e {} {
 }
 
 
-#future# /TEXT /larp/Main/HomePage/@wiki/0
+#future# /TEXT /Larp/Main/HomePage/@wiki/0
 
-#future# This is the larp HomePage.
+#future# This is the Larp HomePage.
 
-/TEXT /local/Entity/TableCharacters_OlSmithy/@wiki/0
+/TEXT /Local/Entity/TableCharacters_OlSmithy/@wiki/0
 
 /set player_name:    {John Henry}
 /set character_name: {Ol Smithy}
@@ -390,7 +391,7 @@ proc Verb/e {} {
   ]
 }
 
-/TEXT /local/Entity/TableCharacters_Marina/@wiki/0
+/TEXT /Local/Entity/TableCharacters_Marina/@wiki/0
 
 /set player_name:    {Janet Snufflepuff}
 /set character_name: {Marina}
