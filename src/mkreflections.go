@@ -10,16 +10,19 @@ import (
 	. "fmt"
 	"go/ast"
 	"os"
+	"runtime"
+	"path/filepath"
 	"strings"
 )
 
 var imports = make(map[string]*ast.Object)
 
-var packages = []string{
-	// Defaults used if no cmd line args are specified.
-	"bufio", "io", "os", "bytes", "strings", "fmt", "net/http",
-	"regexp", "io/ioutil",
-}
+var packages = make([]string, 0)
+
+var pkgbasepath, _ = filepath.Abs(Sprintf("%s/pkg/%s_%s",
+	os.Getenv("GOROOT"),
+	runtime.GOOS,
+	runtime.GOARCH))
 
 func RemarkScope(pack string, sc *ast.Scope) {
 	for k, v := range sc.Objects {
@@ -63,6 +66,18 @@ func DoScope(pack string, sc *ast.Scope) {
 	}
 }
 
+// Finds the packages to use specific to this
+func findPackages(path string, info os.FileInfo, err error) error {
+	if (strings.HasSuffix(path, ".a") && !strings.HasSuffix(path, "cgo.a")) {
+		var pkg, _ = filepath.Rel(pkgbasepath, path)
+		pkg = filepath.ToSlash(pkg) // Convert all dir seperators to correct slash
+		pkg = pkg[0 : len(pkg) - 2] // Take out the extension
+		packages = append(packages, pkg)
+	}
+
+	return nil
+}
+
 func main() {
 	var err error
 	var p *ast.Object
@@ -73,6 +88,9 @@ func main() {
 
 	if len(os.Args) > 1 {
 		packages = os.Args[1:]
+	} else {
+		// Walk the packages directory to find our packages
+		filepath.Walk(pkgbasepath, findPackages)
 	}
 	for _, pack := range packages {
 		p, err = types.GcImport(imports, pack)
