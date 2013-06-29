@@ -10,7 +10,6 @@ if "%1" == "help" (
     :help
     echo.Please use `make ^<target^>` where ^<target^> is one of
     echo.  build        to build Chirp.
-    echo.  reflections  to build Chirp's reflection library.
     echo.  test         to run tests.
     goto end
 )
@@ -25,11 +24,6 @@ if "%1" == "clean" (
 
 if "%1" == "build" (
     go build -x goterp
-    goto end
-)
-
-if "%1" == "reflections" (
-    go run src\mkreflections.go > src\generated\reflections.go
     goto end
 )
 

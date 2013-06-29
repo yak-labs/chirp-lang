@@ -84,7 +84,7 @@ var cmdTests = `
   yproc yrange n {
       set i 0
       while {[< $i $n]} {
-          yield $i 
+          yield $i
           set i [+ $i 1]
       }
   }
@@ -102,7 +102,7 @@ var cmdTests = `
   yproc naturals {} {
       set i 0
       while {[+ 1]} {
-          yield $i 
+          yield $i
           set i [sum $i 1]
       }
   }
@@ -227,15 +227,6 @@ var cmdTests = `
   # dumbCompileSequence can compile this:
   proc demo1 { a b c d e } { list $a $b $c $d $e }
 
-  set sub [interp]
-  go-send $sub Alias - demo2 "demo1 1 2 3"
-  must [list 1 2 3 x y] [go-send $sub Eval {demo2 x y}]
-
-  must 5 [go-send $sub Eval {set x 5}]
-  set clone [go-send $sub Clone]
-  must 9 [go-send $clone Eval {set x 9; set x}]
-  must 5 [go-send $sub Eval {set x}]
-
   proc helloArgs { x args } {
   	return [llength $args]
   }
@@ -243,7 +234,7 @@ var cmdTests = `
   must 3 [helloArgs a b c d]
   must 4 [helloArgs a b c d e]
   must 0 [helloArgs a]
- 
+
   proc helloArgs2 { x args } {
   	return [list $x $args]
   }
@@ -302,18 +293,17 @@ var cmdTests = `
 
 	set key one
 	set arr(one) foo
-	must foo $arr($key) 
+	must foo $arr($key)
 	set arr(b) one
-	must foo $arr($arr(b)) 
+	must foo $arr($arr(b))
 	set arr(z) n
-	must foo $arr(o$arr(z)e) 
+	must foo $arr(o$arr(z)e)
 	must 1 [catch {list $arr(aaa$arr(z)zzz) } what]
 
 	set link [ tag a  href http://www.foo.com/bar  alt FooBar  click ]
 	set ht [ ht [htraw "&lt;"] <One> \040 Two&Three \  $link ]
 	set expect {&lt;&lt;One&gt; Two&amp;Three <a href="http://www.foo.com/bar" alt="FooBar">click</a
 >}
-	must $expect [go-send $ht Html]
 
 	# destructuring list assignment:
 	set nada,uno,dos,tres [yrange 10]
@@ -350,7 +340,7 @@ var cmdTests = `
 	# TODO: inheritance.
 	# TODO: super.
 
-	set a 111; set B 222 
+	set a 111; set B 222
 
 	must {aaa$a foo[expr 3*8]bar$B.zzz\\0105} [
 		subst -noback -nocommand -novar {aaa$a foo[expr 3*8]bar$B.zzz\0105}]
