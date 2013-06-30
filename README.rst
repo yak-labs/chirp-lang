@@ -3,6 +3,12 @@ Chirp
 
 Chirp is a dynamic language inspired by Tcl_ and written in Go_.
 
+.. image:: https://drone.io/github.com/chirp-lang/chirp/status.png
+   :alt: Build Status
+   :target: https://drone.io/github.com/chirp-lang/chirp/latest
+   :width: 80
+   :height: 18
+
 Building Chirp
 --------------------------------------------------------------------------------
 
