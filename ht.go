@@ -1,4 +1,4 @@
-package terp
+package chirp
 
 import (
 	"bytes"
@@ -108,7 +108,7 @@ func cmdTag(fr *Frame, argv []T) T {
 
 func init() {
 	if Safes == nil {
-	    Safes = make(map[string]Command, 333)
+		Safes = make(map[string]Command, 333)
 	}
 
 	Safes["ht"] = cmdHt

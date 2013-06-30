@@ -1,4 +1,4 @@
-package terp
+package chirp
 
 import (
 	// "bytes"
@@ -79,7 +79,7 @@ func cmdHttpHandlerLambda(fr *Frame, argv []T) T {
 		for k, v := range form {
 			fh.h[k] = MkString(v[0])
 		}
-		fr2.Cred["form"] = fh  // TODO: save this in "query" too.
+		fr2.Cred["form"] = fh // TODO: save this in "query" too.
 
 		hh := MkHash(nil)
 		for k, v := range hdr {
@@ -111,7 +111,7 @@ func cmdHttpHandlerLambda(fr *Frame, argv []T) T {
 			// Values is a list of 2 items, the filename and the contents.
 			uploads := make(Hash, 0)
 			for k, v := range mpForm.File {
-				fileHeader := v[0]  // Only use the first one.
+				fileHeader := v[0] // Only use the first one.
 				fileR, openErr := fileHeader.Open()
 				if openErr != nil {
 					panic(openErr)
@@ -134,7 +134,6 @@ func cmdHttpHandlerLambda(fr *Frame, argv []T) T {
 	return MkValue(R.ValueOf(handler))
 }
 
-
 // Getting cred is safe.  Setting it is unsafe.  This is the setter.
 func cmdCredPut(fr *Frame, argv []T) T {
 	name, value := Arg2(argv)
@@ -148,7 +147,6 @@ func cmdCredPut(fr *Frame, argv []T) T {
 	fr.Cred[key] = value
 	return value
 }
-
 
 func init() {
 	if Unsafes == nil {

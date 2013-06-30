@@ -1,4 +1,4 @@
-package terp
+package chirp
 
 import (
 	"bytes"
@@ -189,7 +189,7 @@ func cmdCase(fr *Frame, argv []T) T {
 		// ?in? exists; delete it.
 		rest = rest[1:]
 	}
-	
+
 	if len(rest) == 1 {
 		// Case (2).  Expand the one arg into its parts.
 		rest = rest[0].List()
@@ -199,7 +199,7 @@ func cmdCase(fr *Frame, argv []T) T {
 		panic(Sprintf("Odd number of items in {patList body} list of stride two: %v", argv))
 	}
 
-    var dflt T
+	var dflt T
 	for i := 0; i < len(rest); i += 2 {
 		pats := rest[i].List()
 		if len(pats) == 1 && pats[0].String() == "default" {
@@ -349,7 +349,7 @@ func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 		fr3.MixinName = captureMixinNameDefining
 		fr3.Self = self
 		fr3.Super = super
-	    log.Printf("fr3: name %q captureMixinNumberDefining %v captureMixinNameDefining %q", argv2[0].String(), captureMixinNumberDefining, captureMixinNameDefining)
+		log.Printf("fr3: name %q captureMixinNumberDefining %v captureMixinNameDefining %q", argv2[0].String(), captureMixinNumberDefining, captureMixinNameDefining)
 
 		if varargs {
 			for i, arg := range astrs[:len(astrs)-1] {

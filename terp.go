@@ -1,4 +1,4 @@
-package terp
+package chirp
 
 import (
 	"bytes"
@@ -330,7 +330,7 @@ func (fr *Frame) Apply(argv []T) T {
 	defer func() {
 		if r := recover(); r != nil {
 			if re, ok := r.(error); ok {
-				r = re.Error()  // Convert error to string.
+				r = re.Error() // Convert error to string.
 			}
 			if rs, ok := r.(string); ok {
 				rs = rs + Sprintf("\n\tin Apply\n\t\t%q", argv[0])

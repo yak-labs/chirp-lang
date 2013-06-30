@@ -1,4 +1,4 @@
-package terp
+package chirp
 
 /*
 To see this simple compiler in action, try
@@ -32,36 +32,36 @@ type Word interface {
 // Seq is a list of Stmts that can be evaluated.
 // The value is usually the value of the last one.
 // If empty, the value is Empty.
-type Seq struct {  // implements Stmt
-	stmts	[]Stmt
+type Seq struct { // implements Stmt
+	stmts []Stmt
 }
 
 // Words is a single command statement;
 // it cannot be an empty list.
 // The first word usually names the command.
-type Words struct {  // * implements Stmt
-	words	[]Word
+type Words struct { // * implements Stmt
+	words []Word
 }
 
 type WordParts struct { // * implements Word // TODO
-	parts	[]Word
+	parts []Word
 }
 
 type BareWord struct { // * implements Word
-	word	T
+	word T
 }
 
 type Dollar1 struct { // * implements Word
-	varName	string
+	varName string
 }
 
 type Dollar2 struct { // * implements Word // TODO
-	varName	string
-	subscript	Word
+	varName   string
+	subscript Word
 }
 
 type Square struct { // * implements Word // TODO
-	body	Stmt
+	body Stmt
 }
 
 // Eval each member of the sequence, returning the last result.
@@ -110,21 +110,23 @@ var MatchDumbDollar = regexp.MustCompile("^" + DumbDollarPattern + "$")
 // Very dumb compiler.
 // Understands things made only of inert bare words and simple dollar words.
 // e.g.   proc doublePlus11 {x} { set a 10 ; + $x $x 1 $a }
-//    or  proc f {x} { /fmt/Sprintf %e $x } 
+//    or  proc f {x} { /fmt/Sprintf %e $x }
 // If it finds something it doesn't grok, it panics.
 func dumbCompileSequence(fr *Frame, s string) Stmt {
-	s = strings.Replace(s, "\t", " ", -1)  // get rid of tabs
-	s = strings.Replace(s, ";", "\n", -1)  // get rid of semicolons
+	s = strings.Replace(s, "\t", " ", -1) // get rid of tabs
+	s = strings.Replace(s, ";", "\n", -1) // get rid of semicolons
 
 	seq := &Seq{stmts: make([]Stmt, 0, 4)}
 	lines := strings.Split(s, "\n")
 
 	for _, line := range lines {
-		words := &Words{words: make([]Word,0, 4)}
+		words := &Words{words: make([]Word, 0, 4)}
 
 		v := strings.Split(line, " ")
 		for _, e := range v {
-			if e == "" {continue}
+			if e == "" {
+				continue
+			}
 			mw := MatchBareWord.FindStringSubmatch(e)
 			if mw != nil {
 				words.words = append(words.words, &BareWord{word: MkString(e)})

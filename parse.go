@@ -1,4 +1,4 @@
-package terp
+package chirp
 
 import (
 	"bytes"
@@ -19,14 +19,14 @@ func (fr *Frame) Eval(a T) (result T) {
 	defer func() {
 		if r := recover(); r != nil {
 			if re, ok := r.(error); ok {
-				r = re.Error()  // Convert error to string.
+				r = re.Error() // Convert error to string.
 			}
 			if rs, ok := r.(string); ok {
 				// TODO: Require debug level for the Eval arg.
 				as := a.String()
 				if len(as) > 100 {
-				  as = as[:100] + "..."
-				}  
+					as = as[:100] + "..."
+				}
 				r = rs + Sprintf("\n\tin Eval\n\t\t%q", as)
 			}
 			panic(r)
@@ -203,7 +203,7 @@ Loop:
 		case '$':
 			newresult3, rest3 := fr.ParseDollar(s[i:])
 
-			// Special case, the entire word is dollar-substituted. 
+			// Special case, the entire word is dollar-substituted.
 			if i == 0 && buf.Len() == 0 && (len(rest3) == 0 || WhiteOrSemi(rest3[0]) || rest3[0] == ']') {
 				return newresult3, rest3
 			}
@@ -257,7 +257,7 @@ Loop:
 		case '$':
 			newresult3, rest3 := fr.ParseDollar(s[i:])
 
-			// Special case, the entire word is dollar-substituted. 
+			// Special case, the entire word is dollar-substituted.
 			if i == 0 && buf.Len() == 0 && (len(rest3) == 0 || WhiteOrSemi(rest3[0]) || rest3[0] == ']') {
 				return newresult3, rest3
 			}

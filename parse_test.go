@@ -1,9 +1,7 @@
-package terp_test
+package chirp_test
 
 import (
 	"testing"
-
-	. "terp"
 )
 
 func TestSimpleList3(t *testing.T) {
@@ -82,4 +80,3 @@ func TestComment(t *testing.T) {
 	a = fr.Eval(MkString("proc #bar {} {return 888} ; {#bar} "))
 	MustA("888", a.String())
 }
-

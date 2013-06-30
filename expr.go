@@ -1,4 +1,4 @@
-package terp
+package chirp
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ var True = MkInt(1)
 // expression.
 func cmdExpr(fr *Frame, argv []T) T {
 	// Optimization: It's already a single arg.
-	if len(argv)==2 {
+	if len(argv) == 2 {
 		return fr.EvalExpr(argv[1])
 	}
 
@@ -86,7 +86,7 @@ Loop:
 			i++
 			colon := strings.Index(s[i:], ":") // find the ':' character.
 			if z.Bool() {
-				z = fr.ParseExpression(s[i:colon+1])
+				z = fr.ParseExpression(s[i : colon+1])
 				break Loop
 			} else {
 				z = fr.ParseExpression(s[colon+2:])
@@ -228,12 +228,12 @@ Loop:
 	for i < n {
 		if lookForOp == true {
 			if len(s) >= 2 {
-				op = s[i:i+2]
+				op = s[i : i+2]
 			}
 
 			switch {
 			case op == "eq", op == "ne", op == "lt", op == "le",
-			op == "gt", op == "ge":
+				op == "gt", op == "ge":
 				lookForOp = false
 				i += 2
 			case White(op[0]):
@@ -295,7 +295,7 @@ Loop:
 
 		if lookForOp == true {
 			switch {
-			case c == '!', c == '=', c == '<',  c == '>':
+			case c == '!', c == '=', c == '<', c == '>':
 				i++
 				peek := s[i]
 				if peek == '=' {
@@ -364,7 +364,7 @@ Loop:
 
 		if lookForOp == true {
 			switch {
-			case c == '+', c == '-', c == '|',  c == '^':
+			case c == '+', c == '-', c == '|', c == '^':
 				if c == '|' {
 					peek := s[i+1]
 					if peek == '|' {
@@ -428,7 +428,7 @@ Loop:
 
 		if lookForOp == true {
 			switch {
-			case c == '*', c == '/', c == '%',  c == '&':
+			case c == '*', c == '/', c == '%', c == '&':
 				if c == '&' {
 					peek := s[i+1]
 					if peek == '&' {
@@ -552,7 +552,7 @@ Loop:
 
 func init() {
 	if Safes == nil {
-	    Safes = make(map[string]Command, 333)
+		Safes = make(map[string]Command, 333)
 	}
 
 	Safes["expr"] = cmdExpr

@@ -1,7 +1,6 @@
-package terp_test
+package chirp_test
 
 import (
-	. "terp"
 	"testing"
 )
 

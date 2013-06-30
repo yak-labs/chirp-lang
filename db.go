@@ -1,4 +1,4 @@
-package terp
+package chirp
 
 import (
 	"bytes"
@@ -298,7 +298,7 @@ func CurrentRevFilename(pageDir string, site, volume, page string) string {
 	if pageDir == "" {
 		// When called from ScanPages, we know the pageDir.
 		// But from elsewhere, we may not, so reconstruct it.
-		pageDir = filepath.Join(HackGlobalDataDirectory, "s." + site, "v." + volume, "p." + page)
+		pageDir = filepath.Join(HackGlobalDataDirectory, "s."+site, "v."+volume, "p."+page)
 	}
 	log.Printf("ScanCurrentRev %s %s %s %s", pageDir, site, volume, page)
 	fileDir := filepath.Join(pageDir, "f.@wiki")

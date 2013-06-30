@@ -1,4 +1,4 @@
-package terp
+package chirp
 
 import (
 	. "fmt"
@@ -6,15 +6,15 @@ import (
 )
 
 type Obj struct {
-	Class	*Obj
-	Super	*Obj
-	Slots	Scope
+	Class *Obj
+	Super *Obj
+	Slots Scope
 }
 
 func cmdSubclass(fr *Frame, argv []T) T {
 	super := Arg1(argv)
 	var sup *Obj
-	if ! super.IsEmpty() {
+	if !super.IsEmpty() {
 		sup = super.Raw().(*Obj)
 	}
 	z := &Obj{
@@ -25,6 +25,7 @@ func cmdSubclass(fr *Frame, argv []T) T {
 }
 
 var methSerial = 100
+
 func cmdMeth(fr *Frame, argv []T) T {
 	cls, name, arglist, body := Arg4(argv)
 	super := cls.Raw().(*Obj).Super
@@ -59,7 +60,9 @@ func cmdOn(fr *Frame, argv []T) T {
 	var ok bool
 	for cls != nil {
 		loc, ok = cls.Slots[msg.String()]
-		if ok {break}
+		if ok {
+			break
+		}
 		cls = cls.Super
 	}
 	if !ok {
@@ -71,7 +74,7 @@ func cmdOn(fr *Frame, argv []T) T {
 
 func init() {
 	if Safes == nil {
-	    Safes = make(map[string]Command, 333)
+		Safes = make(map[string]Command, 333)
 	}
 
 	Safes["subclass"] = cmdSubclass

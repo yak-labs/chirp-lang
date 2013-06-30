@@ -1,9 +1,7 @@
-package terp_test
+package chirp_test
 
 import (
 	"testing"
-
-	. "terp"
 )
 
 var cmdTests = `

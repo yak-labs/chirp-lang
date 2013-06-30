@@ -1,4 +1,4 @@
-package terp
+package chirp
 
 // Example Usage:
 //   set m,format,width,height [image-load /tmp/old.jpg]
@@ -9,13 +9,13 @@ package terp
 // see http://golang.org/doc/articles/image_package.html
 
 import (
+	"github.com/nfnt/resize"
 	"image"
 	_ "image/gif"
 	"image/jpeg"
 	"image/png"
 	"os"
 	R "reflect"
-	"resize" // Located in src/resize/resize.go
 )
 
 func cmdImageLoad(fr *Frame, argv []T) T {
@@ -47,10 +47,10 @@ func cmdImageResample(fr *Frame, argv []T) T {
 	imgT, widthT, heightT := Arg3(argv)
 
 	img := imgT.Raw().(image.Image)
-	width := int(widthT.Int())
-	height := int(heightT.Int())
+	width := uint(widthT.Int())
+	height := uint(heightT.Int())
 
-	z := resize.Resample(img, img.Bounds(), width, height)
+	z := resize.Resize(width, height, img, resize.Lanczos3)
 	return MkValue(R.ValueOf(z))
 }
 

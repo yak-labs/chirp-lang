@@ -3,30 +3,29 @@ package main
 import (
 	"flag"
 	. "fmt"
+	"github.com/chirp-lang/chirp"
 	"io/ioutil"
 	"os"
-
-	"terp"
 )
 
 var cFlag = flag.String("c", "", "Immediate command to execute.")
 
-func saveArgvStarting(fr *terp.Frame, i int) {
-	argv := []terp.T{}
+func saveArgvStarting(fr *chirp.Frame, i int) {
+	argv := []chirp.T{}
 	for _, a := range os.Args[i:] {
-		argv = append(argv, terp.MkString(a))
+		argv = append(argv, chirp.MkString(a))
 	}
-	fr.SetVar("argv", terp.MkList(argv))
+	fr.SetVar("argv", chirp.MkList(argv))
 }
 
 func main() {
 	flag.Parse()
-	fr := terp.New()
+	fr := chirp.New()
 
 	if cFlag != nil && *cFlag != "" {
 		saveArgvStarting(fr, 1)
 		Printf("T<<< %#v\n", *cFlag)
-		z := fr.Eval(terp.MkString(*cFlag))
+		z := fr.Eval(chirp.MkString(*cFlag))
 		Printf("T>>> %#v\n", z)
 		return
 	}
@@ -41,7 +40,7 @@ func main() {
 		}
 		saveArgvStarting(fr, 2)
 		Printf("T<<< fname = %#v\n", fname)
-		z := fr.Eval(terp.MkString(string(contents)))
+		z := fr.Eval(chirp.MkString(string(contents)))
 		Printf("T>>> %#v\n", z)
 		return
 	}
