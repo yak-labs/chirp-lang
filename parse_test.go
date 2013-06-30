@@ -1,4 +1,4 @@
-package chirp_test
+package chirp
 
 import (
 	"testing"
