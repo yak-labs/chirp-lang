@@ -24,9 +24,7 @@ func main() {
 
 	if cFlag != nil && *cFlag != "" {
 		saveArgvStarting(fr, 1)
-		Printf("T<<< %#v\n", *cFlag)
-		z := fr.Eval(chirp.MkString(*cFlag))
-		Printf("T>>> %#v\n", z)
+		fr.Eval(chirp.MkString(*cFlag))
 		return
 	}
 
@@ -39,9 +37,7 @@ func main() {
 			return
 		}
 		saveArgvStarting(fr, 2)
-		Printf("T<<< fname = %#v\n", fname)
-		z := fr.Eval(chirp.MkString(string(contents)))
-		Printf("T>>> %#v\n", z)
+		fr.Eval(chirp.MkString(string(contents)))
 		return
 	}
 
