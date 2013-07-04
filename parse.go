@@ -3,7 +3,6 @@ package chirp
 import (
 	"bytes"
 	. "fmt"
-	"log"
 	"strings"
 )
 
@@ -34,7 +33,6 @@ func (fr *Frame) Eval(a T) (result T) {
 	}()
 
 	result = Empty // In case of empty eval.
-	log.Printf("< Eval < (%T) ## %#v ## %q\n", a, a, a.String())
 
 	if a.IsPreservedByList() {
 		return fr.Apply(a.List())
@@ -53,7 +51,6 @@ Loop:
 	if len(rest) > 0 {
 		panic(Sprintf("Eval: Did not eval entire string: rest=<%q>", rest))
 	}
-	log.Printf("> Eval > (%T) ## %#v ## %q\n", result, result, result.String())
 	return
 }
 
@@ -113,7 +110,6 @@ Loop:
 // TODO: ParseSquare is too much like Eval.
 // Parse Square Bracketed subcommand, returning result and new position
 func (fr *Frame) ParseSquare(s string) (result T, rest string) {
-	//- log.Printf("< ParseSquare < %#v\n", s)
 	if s[0] != '[' {
 		panic("ParseSquare should begin at open square")
 	}
@@ -134,12 +130,10 @@ Loop:
 		panic("ParseSquare: missing end bracket: s=" + Repr(s))
 	}
 	rest = rest[1:]
-	//- log.Printf("> ParseSquare > %#v > %q\n", result, rest)
 	return
 }
 
 func (fr *Frame) ParseQuote(s string) (T, string) {
-	//- log.Printf("< ParseQuote < %#v\n", s)
 	if s[0] != '"' {
 		panic("ParseQuote should begin at open Quote")
 	}
@@ -176,13 +170,11 @@ Loop:
 			i++
 		}
 	}
-	//- log.Printf("> ParseQuote > %#v > %q\n", result, rest)
 	return MkString(buf.String()), s[i:]
 }
 
 // Parse a bareword, returning result and new position
 func (fr *Frame) ParseWord(s string) (T, string) {
-	//- log.Printf("< ParseWord < %#v\n", s)
 	i := 0
 	n := len(s)
 	buf := bytes.NewBuffer(nil)
@@ -226,7 +218,6 @@ Loop:
 	}
 	// result = MkString(buf.String())
 	// rest = s[i:]
-	//- log.Printf("> ParseWord > %#v > %q\n", result, rest)
 	return MkString(buf.String()), s[i:]
 }
 
@@ -235,7 +226,6 @@ Loop:
 // White space and DQuotes are not special.
 // Terminates with ")".
 func (fr *Frame) ParseDollarKey(s string) (T, string) {
-	//- log.Printf("< ParseDollarKey < %#v\n", s)
 	i := 0
 	n := len(s)
 	buf := bytes.NewBuffer(nil)
@@ -276,13 +266,11 @@ Loop:
 	}
 	result := MkString(buf.String())
 	rest := s[i:]
-	log.Printf("> ParseDollarKey > %s > %q\n", Show(result), rest)
 	return result, rest
 }
 
 // Parse a variable name after a '$', returning result and new position
 func (fr *Frame) ParseDollar(s string) (T, string) {
-	log.Printf("< ParseDollar < %#v\n", s)
 	var key T // nil unless Key exists.
 	if '$' != s[0] {
 		panic("Expected $ at beginning of ParseDollar")
@@ -318,7 +306,6 @@ Loop:
 			panic(Sprintf("ParseDollar: key not found: varName=%q key=%s", varName, Show(key)))
 		}
 	}
-	log.Printf("> ParseDollar > %s ... %q\n", Show(z), s[i:])
 	return z, s[i:]
 }
 
@@ -326,7 +313,6 @@ Loop:
 // Returns next command as List (may be empty) (substituting as needed) and remaining string.
 func (fr *Frame) ParseCmd(str string) (zwords []T, s string) {
 	s = str
-	//- log.Printf("< ParseCmd < %#v\n", s)
 	zwords = make([]T, 0, 4)
 	var c uint8
 
@@ -450,7 +436,6 @@ const (
 
 // SubstString does Square, Dollar, and Backslash substitutions on a string.
 func (fr *Frame) SubstString(s string, flags SubstFlags) string {
-	log.Printf("< SubstString < %d < %q\n", flags, s)
 	i := 0
 	n := len(s)
 	buf := bytes.NewBuffer(nil)
@@ -501,7 +486,6 @@ Loop:
 		panic(Sprintf("Syntax error in subst: %q", s))
 	}
 	z := buf.String()
-	log.Printf("> SubstString > %q\n", z)
 	return z
 }
 

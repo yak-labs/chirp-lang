@@ -4,7 +4,6 @@ import (
 	"bytes"
 	. "fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -129,23 +128,18 @@ func SaveRecords(dataDir string, newRecs []*Record) {
 }
 
 func RewriteFileWithRecords(fname string, site, volume, page string, newRecs []*Record) {
-	log.Printf("RewriteFileWithRecords < %q %q %q %q %v", fname, site, volume, page, newRecs)
 	oldFname := CurrentRevFilename("", site, volume, page)
 
 	oldRecs, textlines := []*Record{}, []string{}
 	_, fileErr := os.Stat(oldFname)
 	if fileErr == nil {
 		// File exists, so read it.
-		log.Printf("... ParseFileToRecords OK ... %q %q %q %q", fname, site, volume, page)
 		oldRecs, textlines = ParseFileToRecords(oldFname, site, volume, page, []*Record{})
-	} else {
-		log.Printf("... ParseFileToRecords ERROR %q ... %q %q %q %q", fileErr.Error(), fname, site, volume, page)
 	}
 
 	// Collect old records, by field:suffix as key.
 	h := make(map[string]*Record)
 	for _, oldR := range oldRecs {
-		log.Printf("... OldRecord ... %v", *oldR)
 		if oldR.Site != site || oldR.Volume != volume || oldR.Page != page {
 			panic("Wrong oldR in RewriteFileWithRecords")
 		}
@@ -154,7 +148,6 @@ func RewriteFileWithRecords(fname string, site, volume, page string, newRecs []*
 
 	// Create or Replace new records, by field:suffix as key.
 	for _, newR := range newRecs {
-		log.Printf("... NewRecord ... %v", *newR)
 		if newR.Site != site || newR.Volume != volume || newR.Page != page {
 			panic("Wrong newR in RewriteFileWithRecords")
 		}
@@ -164,7 +157,6 @@ func RewriteFileWithRecords(fname string, site, volume, page string, newRecs []*
 	// sort the keys.
 	keys := make([]string, 0, len(h))
 	for k, _ := range h {
-		log.Printf("... Key ... %q", k)
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
@@ -188,11 +180,9 @@ func RewriteFileWithRecords(fname string, site, volume, page string, newRecs []*
 		buf.WriteString(str)
 		buf.WriteByte('\n')
 	}
-	log.Printf("... buf ... <<<%s>>>", buf.String())
 
 	// TODO: create new rev.  Here we just overwrite it.
 	e := ioutil.WriteFile(fname, buf.Bytes(), 0600)
-	log.Printf("... ioutil.WriteFile ... < %q > %v", fname, e)
 	if e != nil {
 		panic(e)
 	}
@@ -233,7 +223,6 @@ func ParseFileToRecords(fname string, site, volume, page string, z []*Record) ([
 			textlines = append(textlines, line)
 		}
 	}
-	log.Printf("ParseFile %s -> %d records, %d other lines", fname, len(z), len(textlines))
 	return z, textlines
 }
 
@@ -241,7 +230,6 @@ func ScanSites(dataDir string) []*Record {
 	// Hack: remember dataDir in global var.
 	HackGlobalDataDirectory = dataDir
 
-	log.Printf("ScanSites %s", dataDir)
 	var z []*Record = make([]*Record, 0, 4)
 
 	sites, err := ioutil.ReadDir(dataDir)
@@ -261,7 +249,6 @@ func ScanSites(dataDir string) []*Record {
 }
 
 func ScanVolumes(siteDir string, site string, z []*Record) []*Record {
-	log.Printf("ScanVolumes %s %s", siteDir, site)
 	volumes, err := ioutil.ReadDir(siteDir)
 	if err != nil {
 		panic(err)
@@ -278,7 +265,6 @@ func ScanVolumes(siteDir string, site string, z []*Record) []*Record {
 }
 
 func ScanPages(volumeDir string, site, volume string, z []*Record) []*Record {
-	log.Printf("ScanPages %s %s %s", volumeDir, site, volume)
 	pages, err := ioutil.ReadDir(volumeDir)
 	if err != nil {
 		panic(err)
@@ -300,7 +286,6 @@ func CurrentRevFilename(pageDir string, site, volume, page string) string {
 		// But from elsewhere, we may not, so reconstruct it.
 		pageDir = filepath.Join(HackGlobalDataDirectory, "s."+site, "v."+volume, "p."+page)
 	}
-	log.Printf("ScanCurrentRev %s %s %s %s", pageDir, site, volume, page)
 	fileDir := filepath.Join(pageDir, "f.@wiki")
 	revfiles, err := ioutil.ReadDir(fileDir)
 	if err != nil {

@@ -3,7 +3,6 @@ package chirp
 import (
 	"bytes"
 	. "fmt"
-	"log"
 	"strconv"
 	"strings"
 )
@@ -63,15 +62,12 @@ func isOperator(ch uint8) bool {
 
 // Takes the string that represents an expression and returns the result.
 func (fr *Frame) ParseExpression(s string) (result T) {
-	log.Printf("ParseExpression <- %q", s)
-
 	t, _ := fr.ParseExprCond(s)
 
 	return t
 }
 
 func (fr *Frame) ParseExprCond(s string) (T, string) {
-	log.Printf("ParseExprCond <- %q", s)
 	var z T
 	z, s = fr.ParseExprDisjunct(s)
 	n := len(s)
@@ -101,7 +97,6 @@ Loop:
 }
 
 func (fr *Frame) ParseExprDisjunct(s string) (T, string) {
-	log.Printf("ParseExprDisjunct <- %q", s)
 	i := 0
 	n := len(s)
 	var op [2]uint8
@@ -159,7 +154,6 @@ Loop:
 }
 
 func (fr *Frame) ParseExprConjunct(s string) (T, string) {
-	log.Printf("ParseExprConjunct <- %q", s)
 	i := 0
 	n := len(s)
 	var op [2]uint8
@@ -217,7 +211,6 @@ Loop:
 }
 
 func (fr *Frame) ParseExprRelStr(s string) (T, string) {
-	log.Printf("ParseExprRelStr <- %q", s)
 	i := 0
 	n := len(s)
 	var op string
@@ -282,7 +275,6 @@ Loop:
 }
 
 func (fr *Frame) ParseExprRel(s string) (T, string) {
-	log.Printf("ParseExprRel <- %q", s)
 	i := 0
 	n := len(s)
 	var op [2]uint8
@@ -351,7 +343,6 @@ Loop:
 }
 
 func (fr *Frame) ParseExprTerm(s string) (T, string) {
-	log.Printf("ParseExprTerm <- %q", s)
 	i := 0
 	n := len(s)
 	var op uint8 = 0
@@ -415,7 +406,6 @@ Loop:
 }
 
 func (fr *Frame) ParseExprFactor(s string) (T, string) {
-	log.Printf("ParseExprFactor <- %q", s)
 	i := 0
 	n := len(s)
 	var op uint8 = 0
@@ -479,7 +469,6 @@ Loop:
 }
 
 func (fr *Frame) ParseExprPrim(s string) (T, string) {
-	log.Printf("ParseExprPrim <- %q", s)
 	i := 0
 	n := len(s)
 
@@ -513,7 +502,6 @@ func (fr *Frame) ParseExprPrim(s string) (T, string) {
 }
 
 func (fr *Frame) ParseNumber(s string) (T, string) {
-	log.Printf("ParseNumber <- %q", s)
 	i := 0
 	n := len(s)
 	decimal := false // only allow one decimal per number

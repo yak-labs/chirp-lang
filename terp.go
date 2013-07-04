@@ -4,7 +4,6 @@ import (
 	"bytes"
 	. "fmt"
 	"go/ast"
-	"log"
 	R "reflect"
 	"sort"
 	"strconv"
@@ -282,44 +281,29 @@ func (fr *Frame) FindCommand(name T, callSuper bool) Command {
 			if maxMixinLevel < 0 {
 				panic("cannot callSuper from non-mixin")
 			}
-			log.Printf("FindCommand: callSuper: maxMixinLevel=%d try=%#v", maxMixinLevel, cmdNode)
 			for cmdNode != nil && cmdNode.MixinLevel > maxMixinLevel {
-				log.Printf("FindCommand: callSuper: maxMixinLevel=%d try=%#v", maxMixinLevel, cmdNode)
 				cmdNode = cmdNode.Next
 			}
-			log.Printf("FindCommand: callSuper: OK")
 		}
 		if cmdNode == nil {
 			ok = false
 		} else {
-			log.Printf("FindCommand: Choosing mixin level %d from %#v", cmdNode.MixinLevel, cmdNode)
 			fn = cmdNode.Fn
 		}
 	}
-
-	log.Printf("FindCommand: # cmdName=%q  ... ok=%v", cmdName, ok)
-	log.Printf("FindCommand: # fr.MixinLevel=%v", fr.MixinLevel)
-	log.Printf("FindCommand: # IsGlobal(cmdName.s)=%v", IsGlobal(cmdName.s))
-	log.Printf("FindCommand: # BTW -- fr.G.MixinNumber/NameDefining=%d/%q", fr.G.MixinNumberDefining, fr.G.MixinNameDefining)
 
 	// Mixin Local Commands:
 	if !ok && fr.MixinLevel > 0 && !IsGlobal(cmdName.s) {
 		// Use long name for mixin local fn.
 		localCmdName := fr.MixinName + "~" + cmdName.s
-		log.Printf("FindCommand: level %d: try Long Name: %q", fr.MixinLevel, localCmdName)
 		var localNode *CmdNode
 		localNode, ok = fr.G.Cmds[localCmdName]
 		if ok {
 			fn = localNode.Fn // Should be singleton.
-			log.Printf("FindCommand: level %d: Found Long Name: %q -> %v", fr.MixinLevel, localCmdName, fn)
 		}
 	}
-	log.Printf("FindCommand: # cmdName=%q  ... ... ok=%v", cmdName, ok)
 
 	if !ok {
-		for k9, v9 := range fr.G.Cmds {
-			log.Printf(" == %q == %v", k9, v9)
-		}
 		panic(Sprintf("FindCommand: command not found: %q", cmdName.s))
 	}
 	return fn
@@ -353,15 +337,8 @@ func (fr *Frame) Apply(argv []T) T {
 	}()
 
 	head := argv[0]
-	log.Printf("< Apply < %q", head)
-	for ai, av := range argv[1:] {
-		_, _ = ai, av
-		log.Printf("< ...... < [%d] (%T) ## %#v ## %q", ai, av, av, av.String())
-	}
-
 	fn := fr.FindCommand(head, false) // false: Don't call super.
 	z := fn(fr, argv)
-	log.Printf("> Apply > %s", Show(z))
 	return z
 }
 
@@ -488,7 +465,6 @@ func MkString(a string) terpString {
 	return terpString{s: a}
 }
 func MkList(a []T) terpList {
-	log.Printf("MkList: from <%T> <%s>", a, a)
 	return terpList{l: a}
 }
 func MkStringList(a []string) terpList {
@@ -502,8 +478,6 @@ func MkValue(a R.Value) terpValue {
 	return terpValue{v: a}
 }
 func MkT(a interface{}) T {
-	log.Printf("MkT <-- (%T)   %v", a, a)
-
 	// Very specific type cases.
 	switch x := a.(type) {
 	case T:
@@ -611,7 +585,6 @@ func MkT(a interface{}) T {
 	}
 
 	// Everything else becomes a terpValue
-	log.Printf("MkT --> defaulting to terpValue")
 	return MkValue(v)
 }
 
@@ -964,7 +937,6 @@ func (t terpValue) Raw() interface{} {
 }
 func (t terpValue) String() string {
 	s := Sprintf("Value:%s:%s", t.v.Kind(), t.v.Type())
-	log.Printf("Warning: converting to terpValue to String: %q", s)
 	return s
 }
 func (t terpValue) ListElementString() string {

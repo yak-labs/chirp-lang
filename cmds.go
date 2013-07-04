@@ -3,7 +3,6 @@ package chirp
 import (
 	"bytes"
 	. "fmt"
-	"log"
 	"net/http"
 	"sort"
 	"strings"
@@ -252,8 +251,6 @@ func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 	captureMixinNumberDefining := fr.G.MixinNumberDefining
 	captureMixinNameDefining := fr.G.MixinNameDefining
 
-	log.Printf("procOrYProc: (1) name %q captureMixinNumberDefining %v captureMixinNameDefining %q", nameStr, captureMixinNumberDefining, captureMixinNameDefining)
-
 	// If the proc is being defined by a mixin, put it in the same mixin.
 	if fr.MixinLevel > 0 {
 		captureMixinNumberDefining = fr.MixinLevel
@@ -263,8 +260,6 @@ func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 	if captureMixinNumberDefining > 0 {
 		longMixinName = captureMixinNameDefining + "~" + nameStr
 	}
-
-	log.Printf("procOrYProc: (2) name %q captureMixinNumberDefining %v captureMixinNameDefining %q longMixinName %q", nameStr, captureMixinNumberDefining, captureMixinNameDefining, longMixinName)
 
 	var compiled Stmt
 	if !body.IsPreservedByList() { // TODO: reconsider this test.
@@ -349,7 +344,6 @@ func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 		fr3.MixinName = captureMixinNameDefining
 		fr3.Self = self
 		fr3.Super = super
-		log.Printf("fr3: name %q captureMixinNumberDefining %v captureMixinNameDefining %q", argv2[0].String(), captureMixinNumberDefining, captureMixinNameDefining)
 
 		if varargs {
 			for i, arg := range astrs[:len(astrs)-1] {
@@ -426,13 +420,11 @@ func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 			MixinName:  fr.G.MixinNameDefining,
 			Next:       existingNode,
 		}
-		log.Printf("%s: NEW NODE %s: make %#v", argv[0], nameStr, node)
 		fr.G.Cmds[nameStr] = node
 
 		// Debug Dump
 		node = fr.G.Cmds[nameStr]
 		for node != nil {
-			log.Printf("%s: NODE DUMP %s: %#v", argv[0], nameStr, node)
 			node = node.Next
 		}
 	} else {
@@ -447,7 +439,6 @@ func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 				MixinName:  fr.G.MixinNameDefining,
 				Next:       nil,
 			}
-			log.Printf("%s: NEW BASE NODE %s: make %#v", argv[0], nameStr, node)
 			fr.G.Cmds[nameStr] = node
 		} else {
 			// Install as Long Name below.
@@ -463,7 +454,6 @@ func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 			Next:       nil,
 		}
 		fr.G.Cmds[longMixinName] = newNode
-		log.Printf("%s: INSTALLED LONG NAME: %q -> %v", argv[0], longMixinName, cmd)
 	}
 
 	return Empty
@@ -490,14 +480,11 @@ func cmdMixin(fr *Frame, argv []T) T {
 
 func cmdSuper(fr *Frame, argv []T) T {
 	name, _ := Arg1v(argv)
-	log.Printf("< Super < %s", Showv(argv))
-	log.Printf("= Super = From mixin level %d", fr.MixinLevel)
 	if fr.MixinLevel < 1 {
 		panic("cannot super from non-mixin")
 	}
 	fn := fr.FindCommand(name, true) // true: Call Super.
 	z := fn(fr, argv[1:])
-	log.Printf("> Super > %s", Show(z))
 	return z
 }
 
@@ -619,15 +606,12 @@ Outer:
 			}
 			list = tl
 
-			log.Printf("foreach sets %q <- %s", varT.String(), Show(hd))
 			fr.SetVar(varT.String(), hd)
 		}
 
-		log.Printf("foreach evals body")
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					log.Printf("foreach recovered: %#v", r)
 					if j, ok := r.(Jump); ok {
 						switch j.Status {
 						case BREAK:
@@ -644,11 +628,9 @@ Outer:
 			fr.Eval(body)
 		}()
 		if toBreak {
-			log.Printf("foreach breaks ======================================")
 			break
 		}
 		if toContinue {
-			log.Printf("foreach continues =====================================")
 			continue
 		}
 	}
@@ -671,7 +653,6 @@ func cmdWhile(fr *Frame, argv []T) T {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					log.Printf("while recovered: %#v", r)
 					if j, ok := r.(Jump); ok {
 						switch j.Status {
 						case BREAK:
@@ -685,16 +666,12 @@ func cmdWhile(fr *Frame, argv []T) T {
 					panic(r) // Rethrow errors and unknown Status.
 				}
 			}()
-			log.Printf("while before: %q", body.String())
 			fr.Eval(body)
-			log.Printf("while after: %q", body.String())
 		}()
 		if toBreak {
-			log.Printf("while breaks ======================================")
 			break
 		}
 		if toContinue {
-			log.Printf("while continues =====================================")
 			continue
 		}
 	}
@@ -757,7 +734,6 @@ func EvalOrApplyLists(fr *Frame, lists []T) T {
 	}
 
 	if areLists {
-		log.Printf("EvalOrApplyLists: Preserving lists and calling Apply.")
 		return fr.Apply(ConcatLists(lists))
 	}
 
@@ -766,7 +742,6 @@ func EvalOrApplyLists(fr *Frame, lists []T) T {
 		buf.WriteString(e.String())
 		buf.WriteRune(' ')
 	}
-	log.Printf("EvalOrApplyLists: Connecting with spaces and calling Eval.")
 	return fr.Eval(MkString(buf.String()))
 }
 
@@ -949,7 +924,6 @@ func (ssi *SafeSubInterp) Alias(fr *Frame, newcmdnameStr string, prefix T) {
 	node := &CmdNode{
 		Fn: cmd,
 	}
-	log.Printf("NEW Interp-Alias NODE %s: make %#v", newcmdnameStr, node)
 	ssi.fr.G.Cmds[newcmdnameStr] = node
 }
 
@@ -1482,10 +1456,6 @@ func cmdSubst(fr *Frame, argv []T) T {
 // Returns Empty if none.
 func cmdCred(fr *Frame, argv []T) T {
 	name := Arg1(argv)
-
-	for k, v := range fr.Cred {
-		log.Printf("CRED: %q : %s", k, Show(v))
-	}
 
 	key := name.String()
 	if _, ok := fr.Cred[key]; !ok {

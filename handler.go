@@ -6,7 +6,6 @@ import (
 	. "fmt"
 	// "html"
 	"io/ioutil"
-	"log"
 	// "mime/multipart"
 	"net/http"
 	// "net/url"
@@ -33,10 +32,6 @@ func cmdHttpHandlerLambda(fr *Frame, argv []T) T {
 		query := r.URL.Query()
 		form := r.Form
 		hdr := r.Header
-
-		for k, v := range hdr {
-			log.Printf("HDR %q : %q", k, v)
-		}
 
 		// Decode Authorization, if present.
 		var user, pw string
