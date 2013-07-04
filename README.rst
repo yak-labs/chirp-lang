@@ -27,7 +27,6 @@ folder and run the following::
 
     go get github.com/yak-people/chirp-lang
     cd src/github.com/yak-people/chirp-lang/chirp
-    git checkout master
     go install
 
 This will fetch the Chirp source code, ensure you're on the ``master`` branch,
