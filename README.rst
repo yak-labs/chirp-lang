@@ -25,8 +25,8 @@ also a nice `screencast`_ available as well.
 Once you've setup your workspace, open up a command line to your workspace
 folder and run the following::
 
-    go get github.com/chirp-lang/chirp
-    cd src/github.com/chirp-lang/chirp/chirp
+    go get github.com/yak-people/chirp-lang
+    cd src/github.com/yak-people/chirp-lang/chirp
     git checkout master
     go install
 
