@@ -1,11 +1,15 @@
 package main
 
 import (
+	_ "github.com/yak-labs/chirp-lang/http"
+	_ "github.com/yak-labs/chirp-lang/img"
+)
+
+import (
+	"bufio"
 	"flag"
 	. "fmt"
 	"github.com/yak-labs/chirp-lang"
-	_ "github.com/yak-labs/chirp-lang/http"
-	_ "github.com/yak-labs/chirp-lang/img"
 	"io/ioutil"
 	"os"
 )
@@ -43,6 +47,41 @@ func main() {
 		return
 	}
 
-	// No os.Args --
-	panic("REPL not yet")
+	bio := bufio.NewReader(os.Stdin)
+	for {
+		Fprint(os.Stderr, "chirp% ") // Prompt to stderr.
+		line, isPrefix, err := bio.ReadLine()
+		if err != nil {
+			if err.Error() == "EOF" { // TODO: better way?
+				return
+			}
+			Fprintf(os.Stderr, "ERROR in ReadLine: %s\n", err.Error())
+			return
+		}
+		fullLine := line
+		for isPrefix {
+			line, isPrefix, err = bio.ReadLine()
+			if err != nil {
+				Fprintf(os.Stderr, "ERROR in ReadLine: %s\n", err.Error())
+				return
+			}
+			fullLine = append(fullLine, line...)
+		}
+		result := EvalStringOrPrintError(fr, string(fullLine))
+		if result != "" { // Traditionally, if result is empty, tclsh doesn't print.
+			Println(result)
+		}
+	}
+}
+
+func EvalStringOrPrintError(fr *chirp.Frame, cmd string) (out string) {
+	defer func() {
+		if r := recover(); r != nil {
+			Fprintln(os.Stderr, "ERROR: ", r) // Error to stderr.
+			out = ""
+			return
+		}
+	}()
+
+	return fr.Eval(chirp.MkString(cmd)).String()
 }
