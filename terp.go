@@ -61,9 +61,9 @@ type Global struct {
 	MixinNumberDefining int    // Set nonzero while defining Mixin.
 	MixinNameDefining   string // Set nonempty while defining Mixin.
 	isSafe              bool   // Set true for safe subinterpreter.
-	Logger				*log.Logger
-	Verbosity			int    // Log if message level <= verbosity.
-	LogName				string  // for logging
+	Logger              *log.Logger
+	Verbosity           int    // Log if message level <= verbosity.
+	LogName             string // for logging
 
 	Mu sync.Mutex
 }
