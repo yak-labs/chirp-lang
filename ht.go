@@ -107,7 +107,7 @@ func cmdHtRaw(fr *Frame, argv []T) T {
 }
 
 func HtEntity(entity string) T {
-    s := "&" + niceEntity(entity) + ";"
+	s := "&" + niceEntity(entity) + ";"
 	return MkValue(R.ValueOf(HtRaw(s)))
 }
 func cmdHtEntity(fr *Frame, argv []T) T {
@@ -116,13 +116,13 @@ func cmdHtEntity(fr *Frame, argv []T) T {
 }
 
 func HtPeek(ht HTML) string {
-    return string(ht)
+	return string(ht)
 }
 func cmdHtPeek(fr *Frame, argv []T) T {
 	h := Arg1(argv)
 	ht, ok := h.Raw().(HTML)
-	if (!ok) {
-	  panic("ht-peek expects an ht object argument")
+	if !ok {
+		panic("ht-peek expects an ht object argument")
 	}
 	return MkString(HtPeek(ht))
 }
