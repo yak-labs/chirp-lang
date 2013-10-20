@@ -1,4 +1,4 @@
-package chirp
+package img
 
 // Example Usage:
 //   set m,format,width,height [image-load /tmp/old.jpg]
@@ -9,6 +9,7 @@ package chirp
 // see http://golang.org/doc/articles/image_package.html
 
 import (
+	. "github.com/yak-labs/chirp-lang"
 	"github.com/nfnt/resize"
 	"image"
 	_ "image/gif"

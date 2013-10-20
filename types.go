@@ -63,14 +63,14 @@ type terpGenerator struct { // Implements T.
 
 // terpHash holds a Hash.
 type terpHash struct { // Imlements T.
-	h Hash
+	H Hash
 }
 
 func MkHash(h Hash) terpHash {
 	if h == nil {
-		return terpHash{h: make(Hash, 4)}
+		return terpHash{H: make(Hash, 4)}
 	}
-	return terpHash{h: h}
+	return terpHash{H: h}
 }
 func MkGenerator(readerChan <-chan Either) terpGenerator {
 	return terpGenerator{guts: &terpGeneratorGuts{readerChan: readerChan}}
@@ -220,11 +220,11 @@ func MkT(a interface{}) T {
 // terpHash implements T
 
 func (t terpHash) Raw() interface{} {
-	return t.h
+	return t.H
 }
 func (t terpHash) String() string {
-	z := make([]T, 0, 2*len(t.h))
-	for k, v := range t.h {
+	z := make([]T, 0, 2*len(t.H))
+	for k, v := range t.H {
 		if v == nil {
 			continue
 		}
@@ -249,7 +249,7 @@ func (t terpHash) Bool() bool {
 	panic("terpHash cannot be used as Bool")
 }
 func (t terpHash) IsEmpty() bool {
-	return len(t.h) == 0
+	return len(t.H) == 0
 }
 
 type SortListByStringTSlice []T
@@ -279,11 +279,11 @@ func SortedKeysOfHash(h Hash) []string {
 func (t terpHash) IsPreservedByList() bool { return true }
 func (t terpHash) IsQuickNumber() bool     { return false }
 func (t terpHash) List() []T {
-	keys := SortedKeysOfHash(t.h)
+	keys := SortedKeysOfHash(t.H)
 	z := make([]T, 0, 2*len(keys))
 	// TODO: mutex
 	for _, k := range keys {
-		v := t.h[k]
+		v := t.H[k]
 		if v == nil {
 			continue // Omit phantoms and deletions.
 		}
@@ -295,13 +295,13 @@ func (t terpHash) HeadTail() (hd, tl T) {
 	return MkList(t.List()).HeadTail()
 }
 func (t terpHash) Hash() Hash {
-	return t.h
+	return t.H
 }
 func (t terpHash) GetAt(key T) T {
-	return t.h[key.String()]
+	return t.H[key.String()]
 }
 func (t terpHash) PutAt(value T, key T) {
-	t.h[key.String()] = value
+	t.H[key.String()] = value
 }
 func (t terpHash) QuickReflectValue() R.Value { return InvalidValue }
 

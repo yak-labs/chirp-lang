@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	. "fmt"
-	"github.com/yak-people/chirp-lang"
+	"github.com/yak-labs/chirp-lang"
+	_ "github.com/yak-labs/chirp-lang/img"
+	_ "github.com/yak-labs/chirp-lang/http"
 	"io/ioutil"
 	"os"
 )

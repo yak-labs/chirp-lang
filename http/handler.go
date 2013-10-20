@@ -1,14 +1,10 @@
-package chirp
+package http
 
 import (
-	// "bytes"
+	. "github.com/yak-labs/chirp-lang"
 	"encoding/base64"
-	. "fmt"
-	// "html"
 	"io/ioutil"
-	// "mime/multipart"
 	"net/http"
-	// "net/url"
 	R "reflect"
 	"regexp"
 )
@@ -65,20 +61,20 @@ func cmdHttpHandlerLambda(fr *Frame, argv []T) T {
 		// QUERY
 		qh := MkHash(nil)
 		for k, v := range query {
-			qh.h[k] = MkString(v[0])
+			qh.H[k] = MkString(v[0])
 		}
 		fr2.Cred["query"] = qh
 
 		// SIMPLE FORM
 		fh := MkHash(nil)
 		for k, v := range form {
-			fh.h[k] = MkString(v[0])
+			fh.H[k] = MkString(v[0])
 		}
 		fr2.Cred["form"] = fh // TODO: save this in "query" too.
 
 		hh := MkHash(nil)
 		for k, v := range hdr {
-			hh.h[k] = MkString(v[0])
+			hh.H[k] = MkString(v[0])
 		}
 		fr2.Cred["header"] = hh
 
@@ -129,25 +125,10 @@ func cmdHttpHandlerLambda(fr *Frame, argv []T) T {
 	return MkValue(R.ValueOf(handler))
 }
 
-// Getting cred is safe.  Setting it is unsafe.  This is the setter.
-func cmdCredPut(fr *Frame, argv []T) T {
-	name, value := Arg2(argv)
-	if fr.Cred == nil {
-		fr.Cred = make(Hash, 4)
-	}
-	key := name.String()
-	if _, ok := fr.Cred[key]; ok {
-		panic(Sprintf("cred-set refuses to redefine key %q", key))
-	}
-	fr.Cred[key] = value
-	return value
-}
-
 func init() {
 	if Unsafes == nil {
 		Unsafes = make(map[string]Command, 333)
 	}
 
 	Unsafes["http-handler-lambda"] = cmdHttpHandlerLambda
-	Unsafes["cred-put"] = cmdCredPut
 }
