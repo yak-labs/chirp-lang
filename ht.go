@@ -10,15 +10,28 @@ import (
 
 var esc = html.EscapeString
 
-var identifier_rx = regexp.MustCompile("^[A-Za-z0-9_:]+$")
+// Nice things should start with letter or "_",
+// and may also contain digits, ":", and "-".
+var nice_rx = regexp.MustCompile("^[A-Za-z_][-A-Za-z0-9_:]*$")
 
-// nice asserts valid identifier syntax,
+// nice asserts that tags and attributes are "nice", conforming to nice_rx.
 // returning its argument, or panics if bad.
 func nice(s string) string {
-	if identifier_rx.FindString(s) == s {
+	if nice_rx.FindString(s) == s {
 		return s
 	}
-	panic(Sprintf("ht or tag: Bad identifier: %q", s))
+	panic(Sprintf("ht or ht-tag: Bad identifier: %q", s))
+}
+
+var nice_entity_rx = regexp.MustCompile("^#?[A-Za-z0-9]+$")
+
+// nice asserts that tags and attributes are "nice", conforming to nice_rx.
+// returning its argument, or panics if bad.
+func niceEntity(s string) string {
+	if nice_entity_rx.FindString(s) == s {
+		return s
+	}
+	panic(Sprintf("ht-entity: Bad entity syntax: %q", s))
 }
 
 // HTML contains properly formatted & escaped HTML
@@ -88,12 +101,33 @@ func cmdHt(fr *Frame, argv []T) T {
 	return MkValue(R.ValueOf(Ht(args)))
 }
 
-func cmdRawHtml(fr *Frame, argv []T) T {
+func cmdHtRaw(fr *Frame, argv []T) T {
 	html := Arg1(argv)
 	return MkValue(R.ValueOf(HtRaw(html.String())))
 }
 
-func cmdTag(fr *Frame, argv []T) T {
+func HtEntity(entity string) T {
+    s := "&" + niceEntity(entity) + ";"
+	return MkValue(R.ValueOf(HtRaw(s)))
+}
+func cmdHtEntity(fr *Frame, argv []T) T {
+	entity := Arg1(argv)
+	return HtEntity(entity.String())
+}
+
+func HtPeek(ht HTML) string {
+    return string(ht)
+}
+func cmdHtPeek(fr *Frame, argv []T) T {
+	h := Arg1(argv)
+	ht, ok := h.Raw().(HTML)
+	if (!ok) {
+	  panic("ht-peek expects an ht object argument")
+	}
+	return MkString(HtPeek(ht))
+}
+
+func cmdHtTag(fr *Frame, argv []T) T {
 	tag, args := Arg1v(argv)
 	n := len(args)
 	var body T = Empty
@@ -112,6 +146,8 @@ func init() {
 	}
 
 	Safes["ht"] = cmdHt
-	Safes["htraw"] = cmdRawHtml
-	Safes["tag"] = cmdTag
+	Safes["ht-raw"] = cmdHtRaw
+	Safes["ht-entity"] = cmdHtEntity
+	Safes["ht-tag"] = cmdHtTag
+	Safes["ht-peek"] = cmdHtPeek
 }
