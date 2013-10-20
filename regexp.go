@@ -7,17 +7,39 @@ import (
 
 var regexpCache = make(map[string]*regexp.Regexp)
 
-func Regexp(exp, str string, nocase bool) bool {
-	if nocase {
-		exp = fmt.Sprintf("(?i)%s", exp)
-	}
+func regexpNoCase(exp string) string {
+	return fmt.Sprintf("(?i)%s", exp)
+}
 
+func regexpFromCache(exp string) *regexp.Regexp {
 	r, exists := regexpCache[exp]
 	if !exists {
 		r = regexp.MustCompile(exp)
 		regexpCache[exp] = r
 	}
-	return r.MatchString(str)
+	return r
+}
+
+func Regexp(exp string, nocase bool) *regexp.Regexp {
+	if nocase {
+		exp = regexpNoCase(exp)
+	}
+
+	return regexpFromCache(exp)
+}
+
+func RegexpMatch(exp, str string, nocase bool) bool {
+	return Regexp(exp, nocase).MatchString(str)
+}
+
+func RegexpFindMatch(exp, str string, nocase bool) (bool, string) {
+	r := Regexp(exp, nocase)
+	return r.MatchString(str), r.FindString(str)
+}
+
+func RegexpFindSubmatch(exp, str string, nocase bool) (bool, []string) {
+	r := Regexp(exp, nocase)
+	return r.MatchString(str), r.FindStringSubmatch(str)
 }
 
 func cmdRegexp(fr *Frame, argv []T) T {
@@ -25,22 +47,54 @@ func cmdRegexp(fr *Frame, argv []T) T {
 	var exp string
 	var str string
 
-	if len(argv) < 2+1 || len(argv) > 3+1 {
+	if len(argv) < 2+1 {
 		panic(fmt.Sprintf(
-			"Expected 2 to 3 arguments, but got argv=%s",
+			"Expected 2 or more arguments, but got argv=%s",
 			Showv(argv)))
 	}
 
-	if argv[1].String() == "-nocase" {
+	arg_idx := 1
+	if argv[arg_idx].String() == "-nocase" {
 		nocase = true
-		exp = argv[2].String()
-		str = argv[3].String()
+		arg_idx++
+		exp = argv[arg_idx].String()
+		arg_idx++
+		str = argv[arg_idx].String()
+		arg_idx++
 	} else {
-		exp = argv[1].String()
-		str = argv[2].String()
+		exp = argv[arg_idx].String()
+		arg_idx++
+		str = argv[arg_idx].String()
+		arg_idx++
 	}
 
-	return MkBool(Regexp(exp, str, nocase))
+	if len(argv) == arg_idx {
+		return MkBool(RegexpMatch(exp, str, nocase))
+	} else if len(argv) == arg_idx + 1 {
+		isMatch, match := RegexpFindMatch(exp, str, nocase)
+
+		if len(match) == 0 {
+			fr.SetVar(argv[arg_idx].String(), Empty)
+		} else {
+			fr.SetVar(argv[arg_idx].String(), MkString(match))
+		}
+		return MkBool(isMatch)
+	} else {
+		isMatch, submatches := RegexpFindSubmatch(exp, str, nocase)
+
+		sub_idx := 0
+		for arg_idx < len(argv) {
+			if sub_idx < len(submatches) {
+				fr.SetVar(argv[arg_idx].String(), MkString(submatches[sub_idx]))
+			} else {
+				fr.SetVar(argv[arg_idx].String(), Empty)
+			}
+			sub_idx++
+			arg_idx++
+		}
+
+		return MkBool(isMatch)
+	}
 }
 
 func init() {
