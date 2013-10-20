@@ -1,8 +1,8 @@
 package http
 
 import (
-	. "github.com/yak-labs/chirp-lang"
 	"encoding/base64"
+	. "github.com/yak-labs/chirp-lang"
 	"io/ioutil"
 	"net/http"
 	R "reflect"

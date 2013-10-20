@@ -9,8 +9,8 @@ package img
 // see http://golang.org/doc/articles/image_package.html
 
 import (
-	. "github.com/yak-labs/chirp-lang"
 	"github.com/nfnt/resize"
+	. "github.com/yak-labs/chirp-lang"
 	"image"
 	_ "image/gif"
 	"image/jpeg"
