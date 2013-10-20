@@ -3,7 +3,9 @@ package chirp
 import (
 	"bytes"
 	. "fmt"
+	"log"
 	"net/http"
+	"os"
 	"sort"
 	"strings"
 )
@@ -389,7 +391,7 @@ func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 						case CONTINUE:
 							ei.Bad = "yproc command: continue command was not inside a loop"
 						default:
-							ei.Bad = "yproc command: unknown Jump Status"
+							ei.Bad = Sprintf("yproc command: unknown Jump Status: %d", int(j.Status))
 						}
 					}
 					if rs, ok := r.(string); ok {
@@ -1468,6 +1470,64 @@ func cmdCred(fr *Frame, argv []T) T {
 	return z
 }
 
+// Usage: log <level> <messages>...
+// Creates a new stderr logger, if Global has no logger yet.
+func cmdLog(fr *Frame, argv []T) T {
+	levelT, detailT := Arg2(argv)
+
+	var panicky, fatally bool
+    s := levelT.String()
+	if len(s) != 1 {
+	  panic(Sprintf("Log level should be 'p', 'f', or in '0'..'9' but is %q", s))
+	}
+	c := s[0]
+	level := -1 // for case 'p' or 'f'
+
+	if c == 'p' { // "p"anic level
+	  panicky = true
+	} else if c == 'f' { // "f"atal level
+	  fatally = true
+	} else if '0' <= c && c <= '9' {
+	  level = int(c) - int('0')
+	} else {
+	  panic(Sprintf("Log level should be 'p', 'f', or in '0'..'9' but is %q", s))
+	}
+
+	if level > fr.G.Verbosity {
+	  return Empty // Not enough verbosity for this message.
+	}
+
+    if fr.G.Logger == nil {
+	  logName := fr.G.LogName
+	  if logName == "" {
+	    logName = "chirp"  // Default LogName
+	  }
+	  fr.G.Logger = log.New(os.Stderr, logName, log.LstdFlags)
+	}
+    
+	message := SubstStringOrOrig(fr, detailT.String())
+	fr.G.Logger.Println(message)
+
+	if panicky {
+	  panic(Sprintf("log p: %s", message))
+	}
+	if fatally {
+	  fr.G.Logger.Println("Exiting after fatal log message.")
+	  os.Exit(13)  // Unlucky Exit.
+	}
+	return Empty
+}
+
+func SubstStringOrOrig(fr *Frame, s string) (z string) {
+	defer func() {
+	  if r := recover(); r != nil {
+	    z = Sprintf("ERROR ignored while substituting log message: %s", s)
+	    return
+	  }
+	}()
+	return fr.SubstString((s), 0)  // 0 is all substitutions.
+}
+
 func init() {
 	if Safes == nil {
 		Safes = make(map[string]Command, 333)
@@ -1537,4 +1597,5 @@ func init() {
 	Safes["dropnull"] = cmdDropNull
 	Safes["subst"] = cmdSubst
 	Safes["cred"] = cmdCred
+	Safes["log"] = cmdLog
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	. "fmt"
 	"go/ast"
+	"log"
 	R "reflect"
 	"strings"
 	"sync"
@@ -58,8 +59,11 @@ type Global struct {
 
 	MixinSerial         int    // Increment before defining Mixin.
 	MixinNumberDefining int    // Set nonzero while defining Mixin.
-	MixinNameDefining   string // Set nonzero while defining Mixin.
+	MixinNameDefining   string // Set nonempty while defining Mixin.
 	isSafe              bool   // Set true for safe subinterpreter.
+	Logger				*log.Logger
+	Verbosity			int    // Log if message level <= verbosity.
+	LogName				string  // for logging
 
 	Mu sync.Mutex
 }
