@@ -61,20 +61,20 @@ func cmdHttpHandlerLambda(fr *Frame, argv []T) T {
 		// QUERY
 		qh := MkHash(nil)
 		for k, v := range query {
-			qh.H[k] = MkString(v[0])
+			qh.Raw().(Hash)[k] = MkString(v[0])
 		}
 		fr2.Cred["query"] = qh
 
 		// SIMPLE FORM
 		fh := MkHash(nil)
 		for k, v := range form {
-			fh.H[k] = MkString(v[0])
+			fh.Raw().(Hash)[k] = MkString(v[0])
 		}
 		fr2.Cred["form"] = fh // TODO: save this in "query" too.
 
 		hh := MkHash(nil)
 		for k, v := range hdr {
-			hh.H[k] = MkString(v[0])
+			hh.Raw().(Hash)[k] = MkString(v[0])
 		}
 		fr2.Cred["header"] = hh
 
