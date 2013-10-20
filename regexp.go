@@ -79,22 +79,23 @@ func cmdRegexp(fr *Frame, argv []T) T {
 			fr.SetVar(argv[arg_idx].String(), MkString(match))
 		}
 		return MkBool(isMatch)
-	} else {
-		isMatch, submatches := RegexpFindSubmatch(exp, str, nocase)
-
-		sub_idx := 0
-		for arg_idx < len(argv) {
-			if sub_idx < len(submatches) {
-				fr.SetVar(argv[arg_idx].String(), MkString(submatches[sub_idx]))
-			} else {
-				fr.SetVar(argv[arg_idx].String(), Empty)
-			}
-			sub_idx++
-			arg_idx++
-		}
-
-		return MkBool(isMatch)
 	}
+	// else:
+
+	isMatch, submatches := RegexpFindSubmatch(exp, str, nocase)
+
+	sub_idx := 0
+	for arg_idx < len(argv) {
+		if sub_idx < len(submatches) {
+			fr.SetVar(argv[arg_idx].String(), MkString(submatches[sub_idx]))
+		} else {
+			fr.SetVar(argv[arg_idx].String(), Empty)
+		}
+		sub_idx++
+		arg_idx++
+	}
+
+	return MkBool(isMatch)
 }
 
 func init() {
