@@ -1,13 +1,13 @@
 package chirp
 
 /*
-To see this simple compiler in action, try
-	$ GOPATH=$(pwd) go test -test.v src/terp/*test.go 2>&1 | grep PRECOMP
+// To see this simple compiler in action, try
+// $ GOPATH=$(pwd) go test -test.v src/terp/*test.go 2>&1 | grep PRECOMP
 */
 
 import (
 	. "fmt"
-	"log"
+	// "log"
 	"regexp"
 	"strings"
 )
@@ -67,24 +67,24 @@ type Square struct { // * implements Word // TODO
 // Eval each member of the sequence, returning the last result.
 // If sequence is empty, return Empty.
 func (me *Seq) Eval(fr *Frame) T {
-	log.Printf("PRECOMPILED SEQUENCE << %v", me.stmts)
+	// log.Printf("PRECOMPILED SEQUENCE << %v", me.stmts)
 	var z T = Empty
 	for _, stmt := range me.stmts {
 		z = stmt.Eval(fr)
 	}
-	log.Printf("PRECOMPILED SEQUENCE >> %s", Show(z))
+	// log.Printf("PRECOMPILED SEQUENCE >> %s", Show(z))
 	return z
 }
 
 // Eval Words by substituting each word, and then Applying the resulting list.
 func (me *Words) Eval(fr *Frame) T {
-	log.Printf("PRECOMPILED WORDS << %v", me.words)
+	// log.Printf("PRECOMPILED WORDS << %v", me.words)
 	cmd := make([]T, len(me.words))
 	for i, w := range me.words {
 		cmd[i] = w.Subst(fr)
 	}
 	z := fr.Apply(cmd)
-	log.Printf("PRECOMPILED WORDS >> %s", Show(z))
+	// log.Printf("PRECOMPILED WORDS >> %s", Show(z))
 	return z
 }
 
@@ -145,7 +145,7 @@ func dumbCompileSequence(fr *Frame, s string) Stmt {
 		}
 	}
 
-	log.Printf("dumbCompileSequence: SUCCESSFULLY PRECOMPILED: %v <- %q", *seq, s)
+	// log.Printf("dumbCompileSequence: SUCCESSFULLY PRECOMPILED: %v <- %q", *seq, s)
 	return seq
 }
 
