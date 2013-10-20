@@ -70,7 +70,7 @@ func cmdRegexp(fr *Frame, argv []T) T {
 
 	if len(argv) == arg_idx {
 		return MkBool(RegexpMatch(exp, str, nocase))
-	} else if len(argv) == arg_idx + 1 {
+	} else if len(argv) == arg_idx+1 {
 		isMatch, match := RegexpFindMatch(exp, str, nocase)
 
 		if len(match) == 0 {

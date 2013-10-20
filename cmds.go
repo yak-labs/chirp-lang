@@ -1476,56 +1476,56 @@ func cmdLog(fr *Frame, argv []T) T {
 	levelT, detailT := Arg2(argv)
 
 	var panicky, fatally bool
-    s := levelT.String()
+	s := levelT.String()
 	if len(s) != 1 {
-	  panic(Sprintf("Log level should be 'p', 'f', or in '0'..'9' but is %q", s))
+		panic(Sprintf("Log level should be 'p', 'f', or in '0'..'9' but is %q", s))
 	}
 	c := s[0]
 	level := -1 // for case 'p' or 'f'
 
 	if c == 'p' { // "p"anic level
-	  panicky = true
+		panicky = true
 	} else if c == 'f' { // "f"atal level
-	  fatally = true
+		fatally = true
 	} else if '0' <= c && c <= '9' {
-	  level = int(c) - int('0')
+		level = int(c) - int('0')
 	} else {
-	  panic(Sprintf("Log level should be 'p', 'f', or in '0'..'9' but is %q", s))
+		panic(Sprintf("Log level should be 'p', 'f', or in '0'..'9' but is %q", s))
 	}
 
 	if level > fr.G.Verbosity {
-	  return Empty // Not enough verbosity for this message.
+		return Empty // Not enough verbosity for this message.
 	}
 
-    if fr.G.Logger == nil {
-	  logName := fr.G.LogName
-	  if logName == "" {
-	    logName = "chirp"  // Default LogName
-	  }
-	  fr.G.Logger = log.New(os.Stderr, logName, log.LstdFlags)
+	if fr.G.Logger == nil {
+		logName := fr.G.LogName
+		if logName == "" {
+			logName = "chirp" // Default LogName
+		}
+		fr.G.Logger = log.New(os.Stderr, logName, log.LstdFlags)
 	}
-    
+
 	message := SubstStringOrOrig(fr, detailT.String())
 	fr.G.Logger.Println(message)
 
 	if panicky {
-	  panic(Sprintf("log p: %s", message))
+		panic(Sprintf("log p: %s", message))
 	}
 	if fatally {
-	  fr.G.Logger.Println("Exiting after fatal log message.")
-	  os.Exit(13)  // Unlucky Exit.
+		fr.G.Logger.Println("Exiting after fatal log message.")
+		os.Exit(13) // Unlucky Exit.
 	}
 	return Empty
 }
 
 func SubstStringOrOrig(fr *Frame, s string) (z string) {
 	defer func() {
-	  if r := recover(); r != nil {
-	    z = Sprintf("ERROR ignored while substituting log message: %s", s)
-	    return
-	  }
+		if r := recover(); r != nil {
+			z = Sprintf("ERROR ignored while substituting log message: %s", s)
+			return
+		}
 	}()
-	return fr.SubstString((s), 0)  // 0 is all substitutions.
+	return fr.SubstString((s), 0) // 0 is all substitutions.
 }
 
 func init() {
