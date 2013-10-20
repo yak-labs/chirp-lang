@@ -3,9 +3,9 @@ Chirp
 
 Chirp is a dynamic language inspired by Tcl_ and written in Go_.
 
-.. image:: https://drone.io/github.com/chirp-lang/chirp/status.png
+.. image:: https://drone.io/github.com/yak-labs/chirp-lang/status.png
    :alt: Build Status
-   :target: https://drone.io/github.com/chirp-lang/chirp/latest
+   :target: https://drone.io/github.com/yak-labs/chirp-lang/latest
    :width: 80
    :height: 18
 
@@ -25,8 +25,8 @@ also a nice `screencast`_ available as well.
 Once you've setup your workspace, open up a command line to your workspace
 folder and run the following::
 
-    go get github.com/yak-people/chirp-lang
-    cd src/github.com/yak-people/chirp-lang/chirp
+    go get github.com/yak-labs/chirp-lang
+    cd src/github.com/yak-labs/chirp-lang/chirp
     go install
 
 This will fetch the Chirp source code, ensure you're on the ``master`` branch,
