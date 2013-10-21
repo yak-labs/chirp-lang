@@ -304,16 +304,16 @@ func cmdExec(fr *Frame, argv []T) T {
 			stdin = strings.NewReader(a)
 			state = ""
 		case ">":
-			stdout, err = os.OpenFile(a, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0666)
+			stdout, err = os.OpenFile(a, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 			state = ""
 		case ">>":
-			stdout, err = os.OpenFile(a, os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0666)
+			stdout, err = os.OpenFile(a, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 			state = ""
 		case "2>":
-			stderr, err = os.OpenFile(a, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0666)
+			stderr, err = os.OpenFile(a, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 			state = ""
 		case "2>>":
-			stderr , err= os.OpenFile(a, os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0666)
+			stderr, err = os.OpenFile(a, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 			state = ""
 		}
 		if err != nil {
