@@ -330,8 +330,12 @@ func (fr *Frame) Apply(argv []T) T {
 					rs = rs + Sprintf(" %q", as)
 				}
 
-				rs = rs + Sprintf("\n\t\t(frame's MixinLevel=%d)", fr.MixinLevel)
-				rs = rs + Sprintf("\n\t\t(frame's MixinName=%q)", fr.MixinName)
+				if fr.MixinLevel > 0 {
+					rs = rs + Sprintf("\n\t\t(frame's MixinLevel=%d)", fr.MixinLevel)
+				}
+				if len(fr.MixinName) > 0 {
+					rs = rs + Sprintf("\n\t\t(frame's MixinName=%q)", fr.MixinName)
+				}
 				r = rs
 			}
 			panic(r)
@@ -378,4 +382,9 @@ func Showv(a []T) string {
 		buf.WriteString(Sprintf("\n    ... [%d] = %s", i, Show(e)))
 	}
 	return buf.String()
+}
+
+// Quick internal logging function that needs no Frame.
+func Say(args ...interface{}) {
+	log.Println(args)
 }

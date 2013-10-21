@@ -14,6 +14,19 @@ var tests = `
   log 0 {second open -> $g}
   close $f
   close $g
+
+  set f [open $path "a"]
+  puts $f One
+  puts $f Two
+  puts -nonewline $f Three
+  puts $f AndAHalf
+  flush $f
+
+  set f [open $path "r"]
+  must One [gets $f]
+  must Two [gets $f x ; set x]
+  must ThreeAndAHalf [gets $f]
+  close $f
 `
 
 func TestHt(a *testing.T) {

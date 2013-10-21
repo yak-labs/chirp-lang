@@ -4,8 +4,10 @@ import (
 	"bufio"
 	. "fmt"
 	. "github.com/yak-labs/chirp-lang"
+	"io"
 	"os"
 	R "reflect"
+	"strings"
 )
 
 type terpFile struct {
@@ -105,6 +107,19 @@ func Open(name string, access string) T {
 	return &terpFile{f: f}
 }
 
+func cmdFlush(fr *Frame, argv []T) T {
+	fileT := Arg1(argv)
+	tf := fileT.(*terpFile)
+	Flush(tf)
+	return Empty
+}
+
+func Flush(tf *terpFile) {
+	if tf.w != nil {
+		tf.w.Flush()
+	}
+}
+
 func cmdClose(fr *Frame, argv []T) T {
 	fileT := Arg1(argv)
 	tf := fileT.(*terpFile)
@@ -123,6 +138,93 @@ func Close(tf *terpFile) {
 	tf.f = nil
 	tf.r = nil
 	tf.w = nil
+}
+
+func cmdGets(fr *Frame, argv []T) T {
+	fileT, args := Arg1v(argv)
+	var varName string
+	if len(args) > 1 {
+		panic(`Too many args to "gets"`)
+	}
+	if len(args) > 0 {
+		varName = args[0].String()
+	}
+	f := fileT.(*terpFile)
+
+	if f.r == nil {
+		f.r = bufio.NewReader(f.f)
+	}
+
+	data, err := f.r.ReadString('\n')
+	if err != nil && err != io.EOF {
+		panic(Sprintf(`Error duing "gets": %s`, err.Error()))
+	}
+	if len(data) > 0 {
+		if data[len(data)-1] == '\n' {
+			data = data[:len(data)-1]
+		}
+	}
+	dataT := MkString(data)
+
+	if len(varName) > 0 {
+		fr.SetVar(varName, dataT)
+		return MkInt(int64(len(data)))
+	}
+	// else:
+	return dataT
+}
+
+func cmdPuts(fr *Frame, argv []T) T {
+	i := 1
+	noNewLine := false
+	if len(argv) > i {
+		if strings.HasPrefix(argv[i].String(), "-n") && strings.HasPrefix("-nonewline", argv[i].String()) {
+			noNewLine = true
+			i++
+		}
+	}
+
+	var t *terpFile
+	var data string
+	switch len(argv) {
+	case i + 1:
+		data = argv[i].String()
+	case i + 2:
+		var ok bool
+		t, ok = argv[i].(*terpFile)
+		if !ok {
+			panic(Sprintf(`Bad args to "puts". Expected file as arg %d.`, i))
+		}
+		data = argv[i+1].String()
+	default:
+		panic(`Bad args to "puts"`)
+	}
+
+	Puts(noNewLine, t, data)
+	return Empty
+}
+
+func Puts(noNewLine bool, t *terpFile, data string) {
+	var err error
+	if t == nil {
+		if noNewLine {
+			_, err = Print(data)
+		} else {
+			_, err = Println(data)
+		}
+	} else {
+		if t.w == nil {
+			t.w = bufio.NewWriter(t.f)
+		}
+		if noNewLine {
+			_, err = Fprint(t.w, data)
+		} else {
+			_, err = Fprintln(t.w, data)
+		}
+	}
+	if err != nil {
+		panic(Sprintf(`Error during "puts": %s`, err.Error()))
+	}
 }
 
 var fileEnsemble = []EnsembleItem{
@@ -153,6 +255,7 @@ func init() {
 	Unsafes["open"] = cmdOpen
 	Unsafes["close"] = cmdClose
 	Unsafes["file"] = MkEnsemble(fileEnsemble)
-	// Unsafes["gets"] = cmdGets
-	// Unsafes["puts"] = cmdPuts
+	Unsafes["gets"] = cmdGets
+	Unsafes["puts"] = cmdPuts
+	Unsafes["flush"] = cmdFlush
 }

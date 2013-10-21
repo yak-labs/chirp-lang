@@ -1473,28 +1473,31 @@ func cmdCred(fr *Frame, argv []T) T {
 // Usage: log <level> <messages>...
 // Creates a new stderr logger, if Global has no logger yet.
 func cmdLog(fr *Frame, argv []T) T {
-	levelT, detailT := Arg2(argv)
+	levelT, messageT := Arg2(argv)
+	Log(fr, levelT.String(), messageT.String())
+	return Empty
+}
 
+func Log(fr *Frame, levelStr string, message string) {
 	var panicky, fatally bool
-	s := levelT.String()
-	if len(s) != 1 {
-		panic(Sprintf("Log level should be 'p', 'f', or in '0'..'9' but is %q", s))
+	if len(levelStr) != 1 {
+		panic(Sprintf("Log level should be 'p', 'f', or in '0'..'9' but is %q", levelStr))
 	}
-	c := s[0]
+	lev := levelStr[0]
 	level := -1 // for case 'p' or 'f'
 
-	if c == 'p' { // "p"anic level
+	if lev == 'p' { // "p"anic level
 		panicky = true
-	} else if c == 'f' { // "f"atal level
+	} else if lev == 'f' { // "f"atal level
 		fatally = true
-	} else if '0' <= c && c <= '9' {
-		level = int(c) - int('0')
+	} else if '0' <= lev && lev <= '9' {
+		level = int(lev) - int('0')
 	} else {
-		panic(Sprintf("Log level should be 'p', 'f', or in '0'..'9' but is %q", s))
+		panic(Sprintf("Log level should be 'p', 'f', or in '0'..'9' but is %q", level))
 	}
 
 	if level > fr.G.Verbosity {
-		return Empty // Not enough verbosity for this message.
+		return // Not enough verbosity for this message.
 	}
 
 	if fr.G.Logger == nil {
@@ -1505,7 +1508,7 @@ func cmdLog(fr *Frame, argv []T) T {
 		fr.G.Logger = log.New(os.Stderr, logName, log.LstdFlags)
 	}
 
-	message := SubstStringOrOrig(fr, detailT.String())
+	message = SubstStringOrOrig(fr, message)
 	fr.G.Logger.Println(message)
 
 	if panicky {
@@ -1515,7 +1518,6 @@ func cmdLog(fr *Frame, argv []T) T {
 		fr.G.Logger.Println("Exiting after fatal log message.")
 		os.Exit(13) // Unlucky Exit.
 	}
-	return Empty
 }
 
 func SubstStringOrOrig(fr *Frame, s string) (z string) {
