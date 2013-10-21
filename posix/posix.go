@@ -2,10 +2,12 @@ package posix
 
 import (
 	"bufio"
+	"bytes"
 	. "fmt"
 	. "github.com/yak-labs/chirp-lang"
 	"io"
 	"os"
+	"os/exec"
 	R "reflect"
 	"strings"
 )
@@ -247,6 +249,122 @@ func cmdFileJoin(fr *Frame, argv []T) T {
 	panic("TODO")
 }
 
+// "exec" command.  Supports < << > >> 2> 2>> & when they are separte words.  
+// TODO:  Pipes.
+func cmdExec(fr *Frame, argv []T) T {
+	nameT, argsT := Arg1v(argv)
+	name := nameT.String()
+
+	// Default stdin is process's normal stdin.
+	var stdin io.Reader
+
+	// Default stdout is captured, and becomes result of exec command, unless background.
+	var outBuf bytes.Buffer
+	var stdout io.Writer
+
+	// Default stderr is captured, and becomes panic text, unless background.
+	var errBuf bytes.Buffer
+	var stderr io.Writer
+
+	background := false
+
+	state := ""
+	args := make([]string, len(argsT))
+	for i, a := range argsT {
+		args[i] = a.String()
+	}
+
+	cmdArgs := make([]string, 0, len(argsT))
+	for _, a := range args {
+		var err error
+		switch state {
+		case "":
+			switch a {
+			case "<":
+				state = a
+			case "<<":
+				state = a
+			case ">":
+				state = a
+			case ">>":
+				state = a
+			case "2>":
+				state = a
+			case "2>>":
+				state = a
+			case "&":
+				background = true
+			default:
+				cmdArgs = append(cmdArgs, a)
+			}
+		case "<":
+			stdin, err = os.Open(a)
+			state = ""
+		case "<<":
+			stdin = strings.NewReader(a)
+			state = ""
+		case ">":
+			stdout, err = os.OpenFile(a, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0666)
+			state = ""
+		case ">>":
+			stdout, err = os.OpenFile(a, os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0666)
+			state = ""
+		case "2>":
+			stderr, err = os.OpenFile(a, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0666)
+			state = ""
+		case "2>>":
+			stderr , err= os.OpenFile(a, os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0666)
+			state = ""
+		}
+		if err != nil {
+			panic(Sprintf(`ERROR in redirection in "exec" command: %s`, err.Error()))
+		}
+	}
+
+	if stdin == nil {
+		stdin = os.Stdin
+	}
+	if stdout == nil {
+		if background {
+			stdout = os.Stdout
+		} else {
+			stdout = &outBuf
+		}
+	}
+	if stderr == nil {
+		if background {
+			stderr = os.Stderr
+		} else {
+			stderr = &errBuf
+		}
+	}
+
+	cmd := exec.Command(name, cmdArgs...)
+	cmd.Stdin = stdin
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+
+	if background {
+		err := cmd.Start()
+		if err != nil {
+			panic(Sprintf("ERROR in \"exec\" of background %q: %s", name, err.Error()))
+		}
+		return Empty
+	}
+	// else:
+	err := cmd.Run()
+	errStr := errBuf.String()
+
+	if err != nil {
+		panic(Sprintf("ERROR in \"exec\" of %q: %s\nSTDERR:\n%s", name, err.Error(), errStr))
+	}
+	if len(errStr) > 0 {
+		panic(Sprintf("STDERR of \"exec\" of %q:\n%s", name, errStr))
+	}
+
+	return MkString(outBuf.String())
+}
+
 func init() {
 	if Unsafes == nil {
 		Unsafes = make(map[string]Command, 333)
@@ -258,4 +376,5 @@ func init() {
 	Unsafes["gets"] = cmdGets
 	Unsafes["puts"] = cmdPuts
 	Unsafes["flush"] = cmdFlush
+	Unsafes["exec"] = cmdExec
 }
