@@ -1,5 +1,10 @@
 package main
 
+/*
+	For debugging exec pipes, try this:
+	go run chirp.go -panic -c='puts [exec ls -l | sed {s/[0-9]/#/g} | tr {a-z} {A-Z} ]' 2>/dev/null | od -c
+*/
+
 import (
 	_ "github.com/yak-labs/chirp-lang/http"
 	_ "github.com/yak-labs/chirp-lang/img"
