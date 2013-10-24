@@ -249,24 +249,169 @@ func cmdFileJoin(fr *Frame, argv []T) T {
 	panic("TODO")
 }
 
-// "exec" command.  Supports < << > >> 2> 2>> & when they are separte words.  
-// TODO:  Pipes.
-func cmdExec(fr *Frame, argv []T) T {
-	nameT, argsT := Arg1v(argv)
-	name := nameT.String()
+type pipeNotification struct {
+	which   int
+	writing bool
+	err     error
+}
 
+type pipeBuffer struct {
+	buf      []byte
+	producer io.ReadCloser
+	consumer io.WriteCloser
+	which    int // which pipe is this?
+	notifier chan<- *pipeNotification
+}
+
+// run() could be faster if more than 1 buffer & more than 1 goroutine?
+func (p *pipeBuffer) run() {
+	var rc int
+	var err error
+	for {
+		rc, err = p.producer.Read(p.buf) // rc will be used by Iterated write & final write.
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			p.notifier <- &pipeNotification{which: p.which, writing: false, err: err}
+			break
+		}
+		if rc == 0 {
+			continue
+		}
+
+		_, err = p.consumer.Write(p.buf[:rc]) // Iterated write.
+		rc = 0
+		if err != nil {
+			p.notifier <- &pipeNotification{which: p.which, writing: true, err: err}
+			break
+		}
+	}
+
+	err = p.producer.Close()
+	if err != nil {
+		p.notifier <- &pipeNotification{which: p.which, writing: false, err: err}
+	}
+
+	if rc > 0 {
+		_, err = p.consumer.Write(p.buf[:rc]) // Final write.
+		if err != nil {
+			p.notifier <- &pipeNotification{which: p.which, writing: true, err: err}
+		}
+	}
+
+	err = p.consumer.Close()
+	if err != nil {
+		p.notifier <- &pipeNotification{which: p.which, writing: true, err: err}
+	}
+
+	p.notifier <- nil // The end.
+}
+
+func runBuffer(producer io.ReadCloser, consumer io.WriteCloser, which int, notifier chan<- *pipeNotification) {
+	pb := &pipeBuffer{
+		buf:      make([]byte, 4096),
+		producer: producer,
+		consumer: consumer,
+		which:    which,
+		notifier: notifier,
+	}
+	go pb.run()
+}
+
+type ExecStdoutError struct {
+	which int
+	data  string
+}
+
+func (p ExecStdoutError) Error() string { return p.data }
+
+type Process struct {
 	// Default stdin is process's normal stdin.
-	var stdin io.Reader
+	stdin io.Reader
 
 	// Default stdout is captured, and becomes result of exec command, unless background.
-	var outBuf bytes.Buffer
-	var stdout io.Writer
+	outBuf bytes.Buffer
+	stdout io.Writer
 
 	// Default stderr is captured, and becomes panic text, unless background.
-	var errBuf bytes.Buffer
-	var stderr io.Writer
+	errBuf bytes.Buffer
+	stderr io.Writer
 
-	background := false
+	background bool
+	piped      bool
+
+	words []string
+
+	cmd *exec.Cmd
+}
+
+func (p *Process) runAndReportStatus(reporter chan<- error) {
+	// Sayf("START %v", p)
+	report := p.cmd.Run()
+	Sayf("GOT_FROM_RUN %v", report)
+	reporter <- report
+	// Sayf("FINISH %v", p)
+}
+
+func (p *Process) useStandardDefaults() {
+	if p.stdin == nil {
+		p.stdin = os.Stdin
+	}
+	if p.stdout == nil {
+		if p.background {
+			p.stdout = os.Stdout
+		} else {
+			p.stdout = &p.outBuf
+		}
+	}
+	if p.stderr == nil {
+		if p.background {
+			p.stderr = os.Stderr
+		} else {
+			p.stderr = &p.errBuf
+		}
+	}
+}
+
+func consumeAndIgnoreNotifications(notifier <-chan *pipeNotification) {
+	for {
+		note := <-notifier
+		if note == nil { // When we read nil, that's the end.
+			return
+		} else {
+			Say(Sprintf("Background Pipe Status: %s", note))
+		}
+	}
+}
+
+func consumeAndIgnoreReports(n int, notifier <-chan error) {
+	i := 0
+	for {
+		report := <-notifier
+		if len(report.Error()) > 0 {
+			Say(Sprintf("Background Exit Status: %s", report))
+		}
+		i++
+		if i == n {
+			return
+		}
+	}
+}
+
+// "exec" command.  Supports "< << > >> 2> 2>> &" when they are separte words.  
+// TODO:  Pipes.
+func cmdExec(fr *Frame, argv []T) T {
+	argsT := Arg0v(argv)
+	notifier := make(chan *pipeNotification, 8) // Notifies us of errors in pipe copiers.
+
+	reporter := make(chan error, 8) // Report exit status of processes.
+
+	p := new(Process)
+	p.words = make([]string, 0)
+	// Add p to processes when it is finished.
+	processes := make([]*Process, 0)
+	_ = processes
 
 	state := ""
 	args := make([]string, len(argsT))
@@ -274,7 +419,6 @@ func cmdExec(fr *Frame, argv []T) T {
 		args[i] = a.String()
 	}
 
-	cmdArgs := make([]string, 0, len(argsT))
 	for _, a := range args {
 		var err error
 		switch state {
@@ -293,27 +437,31 @@ func cmdExec(fr *Frame, argv []T) T {
 			case "2>>":
 				state = a
 			case "&":
-				background = true
+				p.background = true
+			case "|":
+				processes = append(processes, p)
+				p = new(Process)
+				p.words = make([]string, 0)
 			default:
-				cmdArgs = append(cmdArgs, a)
+				p.words = append(p.words, a)
 			}
 		case "<":
-			stdin, err = os.Open(a)
+			p.stdin, err = os.Open(a)
 			state = ""
 		case "<<":
-			stdin = strings.NewReader(a)
+			p.stdin = strings.NewReader(a)
 			state = ""
 		case ">":
-			stdout, err = os.OpenFile(a, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+			p.stdout, err = os.OpenFile(a, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 			state = ""
 		case ">>":
-			stdout, err = os.OpenFile(a, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+			p.stdout, err = os.OpenFile(a, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 			state = ""
 		case "2>":
-			stderr, err = os.OpenFile(a, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+			p.stderr, err = os.OpenFile(a, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 			state = ""
 		case "2>>":
-			stderr, err = os.OpenFile(a, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+			p.stderr, err = os.OpenFile(a, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 			state = ""
 		}
 		if err != nil {
@@ -321,48 +469,88 @@ func cmdExec(fr *Frame, argv []T) T {
 		}
 	}
 
-	if stdin == nil {
-		stdin = os.Stdin
+	processes = append(processes, p)
+
+	n := len(processes)
+	for i := 0; i < n; i++ {
+		p = processes[i]
+		p.useStandardDefaults()
+
+		p.cmd = exec.Command(p.words[0], p.words[1:]...)
+		p.cmd.Stdin = p.stdin
+		p.cmd.Stdout = p.stdout
+		p.cmd.Stderr = p.stderr
 	}
-	if stdout == nil {
-		if background {
-			stdout = os.Stdout
+
+	for i := 0; i < n; i++ {
+		p = processes[i]
+		isFinal := (i+1 == n)
+		if !isFinal {
+			// This must pipe into the next one.
+			p.cmd.Stdout = nil // Necessary, to avoid error in StdoutPipe()
+			rc, err1 := p.cmd.StdoutPipe()
+			if err1 != nil {
+				panic(Sprintf("p.cmd.StdoutPipe: %s", err1))
+			}
+
+			q := processes[i+1] // q is next in the pipeline after p.
+			q.cmd.Stdin = nil   // Necessary, to avoid error in StdinPipe()
+			wc, err2 := q.cmd.StdinPipe()
+			if err2 != nil {
+				panic(Sprintf("p.cmd.StdinPipe: %s", err2))
+			}
+
+			runBuffer(rc, wc, i, notifier)
 		} else {
-			stdout = &outBuf
+			if p.background {
+				err := p.cmd.Start()
+				if err != nil {
+					panic(Sprintf("ERROR in \"exec\" of background %q: %s", p.words[0], err.Error()))
+				}
+				consumeAndIgnoreNotifications(notifier)
+				consumeAndIgnoreReports(n, reporter)
+				return Empty
+			}
 		}
+		go p.runAndReportStatus(reporter)
 	}
-	if stderr == nil {
-		if background {
-			stderr = os.Stderr
+
+	// First read notes from the pipes.
+	for i := 0; i < n-1; {
+		note := <-notifier
+		if note == nil {
+			i++
 		} else {
-			stderr = &errBuf
+			Say(Sprintf("Pipe problem: %v", *note))
 		}
 	}
 
-	cmd := exec.Command(name, cmdArgs...)
-	cmd.Stdin = stdin
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-
-	if background {
-		err := cmd.Start()
-		if err != nil {
-			panic(Sprintf("ERROR in \"exec\" of background %q: %s", name, err.Error()))
+	// Then collect exit status
+	var anError error
+	for i := 0; i < n; i++ {
+		report := <-reporter
+		Sayf("Collecting Exit Status: got%d: %v", i, report)
+		if report != nil {
+			Sayf("Bad Exit Status: %v", report)
+			anError = report
 		}
-		return Empty
-	}
-	// else:
-	err := cmd.Run()
-	errStr := errBuf.String()
-
-	if err != nil {
-		panic(Sprintf("ERROR in \"exec\" of %q: %s\nSTDERR:\n%s", name, err.Error(), errStr))
-	}
-	if len(errStr) > 0 {
-		panic(Sprintf("STDERR of \"exec\" of %q:\n%s", name, errStr))
 	}
 
-	return MkString(outBuf.String())
+	for i := 0; i < n; i++ {
+		errStr := p.errBuf.String()
+		if len(errStr) > 0 {
+			Sayf("Stderr of command #%d: %v", i, errStr)
+		}
+		if anError == nil {
+			anError = ExecStdoutError{which: i, data: errStr}
+		}
+	}
+
+	if anError != nil && len(anError.Error()) > 0 {
+		panic(Sprintf("ERROR in \"exec\": %s", anError.Error()))
+	}
+
+	return MkString(processes[n-1].outBuf.String())
 }
 
 func init() {

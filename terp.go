@@ -388,3 +388,6 @@ func Showv(a []T) string {
 func Say(args ...interface{}) {
 	log.Println(args)
 }
+func Sayf(format string, args ...interface{}) {
+	log.Println(Sprintf(format, args...))
+}

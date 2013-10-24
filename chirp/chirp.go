@@ -16,10 +16,11 @@ import (
 )
 
 var cFlag = flag.String("c", "", "Immediate command to execute.")
+var panicFlag = flag.Bool("panic", false, "Don't catch panic in REPL.")
 
 func saveArgvStarting(fr *chirp.Frame, i int) {
 	argv := []chirp.T{}
-	for _, a := range os.Args[i:] {
+	for _, a := range flag.Args() {
 		argv = append(argv, chirp.MkString(a))
 	}
 	fr.SetVar("argv", chirp.MkList(argv))
@@ -35,8 +36,8 @@ func main() {
 		return
 	}
 
-	if len(os.Args) > 1 {
-		fname := os.Args[1]
+	if len(flag.Args()) > 1 {
+		fname := flag.Arg(1)
 		contents, err := ioutil.ReadFile(fname)
 		if err != nil {
 			Fprintf(os.Stderr, "Cannot read file %s: %v", fname, err)
@@ -76,13 +77,15 @@ func main() {
 }
 
 func EvalStringOrPrintError(fr *chirp.Frame, cmd string) (out string) {
-	defer func() {
-		if r := recover(); r != nil {
-			Fprintln(os.Stderr, "ERROR: ", r) // Error to stderr.
-			out = ""
-			return
-		}
-	}()
+	if panicFlag != nil {
+		defer func() {
+			if r := recover(); r != nil {
+				Fprintln(os.Stderr, "ERROR: ", r) // Error to stderr.
+				out = ""
+				return
+			}
+		}()
+	}
 
 	return fr.Eval(chirp.MkString(cmd)).String()
 }
