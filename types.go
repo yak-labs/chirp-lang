@@ -708,21 +708,46 @@ type EnsembleItem struct {
 	Doc  string
 }
 
+func ShowEnsembleItems(items []EnsembleItem) string {
+	z := ""
+	for _, e := range items {
+		z += " " + e.Name
+	}
+	return z
+}
+
 func MkEnsemble(items []EnsembleItem) Command {
 	cmd := func(fr *Frame, argv []T) T {
 		switch len(argv) {
 		case 0:
 			panic("TODO: doc string")
 		case 1:
-			panic("Ensemble command needs a subcommand argument: " + Showv(argv))
+			panic(Sprintf("Ensemble options: %s", ShowEnsembleItems(items)))
 		}
 		subName := argv[1].String()
+		// Try for exact match.
 		for _, e := range items {
 			if e.Name == subName {
 				return e.Cmd(fr, argv[1:])
 			}
 		}
-		panic("Ensemble subcommand not found: " + Showv(argv))
+		// Failing exact match, try for prefix match.
+		found := -1
+		for i, e := range items {
+			if len(subName) < len(e.Name) && e.Name[:len(subName)] == subName {
+				if found < 0 {
+					found = i
+				} else {
+					panic(Sprintf("Ensemble subcommand ambiguous: %#v Options: %s",
+						subName, ShowEnsembleItems(items)))
+				}
+			}
+		}
+		if found >= 0 {
+			return items[found].Cmd(fr, argv[1:])
+		}
+		panic(Sprintf("Ensemble subcommand not found: %#v Options: %s",
+			subName, ShowEnsembleItems(items)))
 	}
 	return cmd
 }
