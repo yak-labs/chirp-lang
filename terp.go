@@ -10,6 +10,10 @@ import (
 	"sync"
 )
 
+type Shower interface {
+	Show() string
+}
+
 type Hash map[string]T // TODO: Mutex
 
 type Command func(fr *Frame, argv []T) T
@@ -369,6 +373,22 @@ func MustA(a, b interface{}) {
 	}
 }
 
+// MustSp takes Any 2 values, and compares their Repr()s, without spaces.
+func MustNoSp(a, b interface{}) {
+	if DropSpaces(Repr(a)) != DropSpaces(Repr(b)) {
+		panic(Repr(a) + " .vs. " + Repr(b))
+	}
+}
+func DropSpaces(s string) string {
+	z := ""
+	for _, c := range s {
+		if (c != ' ') {
+			z += string(c)
+		}
+	}
+	return z
+}
+
 func Show(a T) string {
 	if a == nil {
 		return "{(T)nil}"
@@ -386,7 +406,16 @@ func Showv(a []T) string {
 
 // Quick internal logging function that needs no Frame.
 func Say(args ...interface{}) {
-	log.Println(args)
+	prefix := "Say "
+	for _, a := range args {
+		switch t := a.(type) {
+		case Shower:
+			log.Println(Sprintf("%s%s", prefix, t.Show()))
+		default:
+			log.Println(Sprintf("%s%#v", prefix, a))
+		}
+		prefix += "::: "
+	}
 }
 func Sayf(format string, args ...interface{}) {
 	log.Println(Sprintf(format, args...))

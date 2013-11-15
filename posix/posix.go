@@ -380,7 +380,7 @@ func consumeAndIgnoreNotifications(notifier <-chan *pipeNotification) {
 		if note == nil { // When we read nil, that's the end.
 			return
 		} else {
-			Say(Sprintf("Background Pipe Status: %s", note))
+			Sayf("Background Pipe Status: %s", note)
 		}
 	}
 }
@@ -390,7 +390,7 @@ func consumeAndIgnoreReports(n int, notifier <-chan error) {
 	for {
 		report := <-notifier
 		if len(report.Error()) > 0 {
-			Say(Sprintf("Background Exit Status: %s", report))
+			Sayf("Background Exit Status: %s", report)
 		}
 		i++
 		if i == n {
@@ -521,7 +521,7 @@ func cmdExec(fr *Frame, argv []T) T {
 		if note == nil {
 			i++
 		} else {
-			Say(Sprintf("Pipe problem: %v", *note))
+			Sayf("Pipe problem: %v", *note)
 		}
 	}
 
