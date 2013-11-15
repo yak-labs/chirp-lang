@@ -8,7 +8,7 @@ package chirp
 import (
 	"bytes"
 	. "fmt"
-	_ "strings"
+	"strings"
 )
 
 // Any piece of tcl code, a sequence of commands.
@@ -64,8 +64,8 @@ const (
 
 type PPart struct {
 	Str  string
-	Word PWord // for DOLLAR2
-	Seq  PSeq  // for SQUARE
+	Word *PWord // for DOLLAR2
+	Seq  *PSeq  // for SQUARE
 	Type PartType
 }
 
@@ -80,11 +80,11 @@ func (me *PPart) Show() string {
 	case SQUARE:
 		return Sprintf("SQUARE{ %s } ", me.Seq.Show())
 	}
-	return "PPart{?} "
+	return Sprintf("PPart{?%d?} ", me.Type)
 }
 
 // Parse nested curlies, returning contents and new position
-func (fr *Frame) Parse2Curly(s string) (*PWord, string) {
+func Parse2Curly(s string) (*PWord, string) {
 	if s[0] != '{' {
 		panic("Parse2Curly should begin at open curly")
 	} // vim: '}'
@@ -142,56 +142,71 @@ Loop:
 	return result, s[i:]
 }
 
-/*
+// finishBarePart turns the buffer into a BARE PPart and appends it to the slice, unless the buffer is empty.
+// It returns a new empty buffer (or the input buffer, if it was empty).
+// This pattern is used by most of the Parsers.
+func finishBarePart(parts []*PPart, buf *bytes.Buffer) ([]*PPart, *bytes.Buffer) {
+	if buf.Len() > 0 {
+		bare := &PPart{
+			Type: BARE,
+			Str:  buf.String(),
+		}
+		return append(parts, bare), bytes.NewBuffer(nil)
+	}
+	return parts, buf
+}
 
 // Parse Square Bracketed subcommand, returning result and new position
-func (fr *Frame) Parse2Square(s string) (result T, rest string) {
+func Parse2Square(s string) (*PPart, string) {
 	if s[0] != '[' {
 		panic("Parse2Square should begin at open square")
 	}
-	rest = s[1:]
-	result = Empty // In case there are no commands.
+	rest := s[1:]
+	cmds := make([]*PCmd, 0)
 
 Loop:
 	for {
-		var words []T
-		words, rest = fr.Parse2Cmd(rest)
-		if len(words) == 0 {
+		var cmd *PCmd
+		cmd, rest = Parse2Cmd(rest)
+		if cmd == nil {
 			break Loop
 		}
-		result = fr.Apply(words)
+		cmds = append(cmds, cmd)
 	}
 
 	if len(rest) == 0 || rest[0] != ']' {
 		panic("Parse2Square: missing end bracket: s=" + Repr(s))
 	}
 	rest = rest[1:]
-	return
+	return &PPart{Type: SQUARE, Seq: &PSeq{Cmds: cmds}}, rest
 }
 
-func (fr *Frame) Parse2Quote(s string) (T, string) {
+func Parse2Quote(s string) (*PWord, string) {
 	if s[0] != '"' {
 		panic("Parse2Quote should begin at open Quote")
 	}
 	i := 1
 	n := len(s)
 	buf := bytes.NewBuffer(nil)
+	parts := make([]*PPart, 0)
 Loop:
 	for i < n {
 		c := s[i]
 		switch c {
 		case '[':
+			parts, buf = finishBarePart(parts, buf)
 			// Mid-word, squares should return stringlike result.
-			newresult, rest := fr.Parse2Square(s[i:])
-			buf.WriteString(newresult.String())
+			newresult, rest := Parse2Square(s[i:])
+			parts = append(parts, newresult)
 			s = rest
 			n = len(s)
 			i = 0
 		case ']':
 			panic("Parse2Quote: CloseSquareBracket inside Quote")
 		case '$':
-			newresult3, rest3 := fr.ParseDollar(s[i:])
-			buf.WriteString(newresult3.String())
+			parts, buf = finishBarePart(parts, buf)
+			newresult3, rest3 := Parse2Dollar(s[i:])
+			parts = append(parts, newresult3)
 			s = rest3
 			n = len(s)
 			i = 0
@@ -206,44 +221,45 @@ Loop:
 			i++
 		}
 	}
-	return MkString(buf.String()), s[i:]
+	parts, buf = finishBarePart(parts, buf)
+	return &PWord{Parts: parts}, s[i:]
 }
 
-// Parse a bareword, returning result and new position
-func (fr *Frame) ParseWord(s string) (T, string) {
+// Parse a word, returning result and new position
+func Parse2Word(s string) (*PWord, string) {
 	i := 0
 	n := len(s)
 	buf := bytes.NewBuffer(nil)
+	parts := make([]*PPart, 0)
 
 Loop:
 	for i < n {
 		c := s[i]
 		switch c {
 		case '[':
+			parts, buf = finishBarePart(parts, buf)
 			// Mid-word, squares should return stringlike result.
-			newresult2, rest2 := fr.Parse2Square(s[i:])
-			buf.WriteString(newresult2.String())
+			newresult2, rest2 := Parse2Square(s[i:])
+			parts = append(parts, newresult2)
+
 			s = rest2
 			n = len(s)
 			i = 0
 		case ']':
 			break Loop
 		case '$':
-			newresult3, rest3 := fr.ParseDollar(s[i:])
+			parts, buf = finishBarePart(parts, buf)
+			newresult3, rest3 := Parse2Dollar(s[i:])
+			parts = append(parts, newresult3)
 
-			// Special case, the entire word is dollar-substituted.
-			if i == 0 && buf.Len() == 0 && (len(rest3) == 0 || WhiteOrSemi(rest3[0]) || rest3[0] == ']') {
-				return newresult3, rest3
-			}
-
-			buf.WriteString(newresult3.String())
 			s = rest3
 			n = len(s)
 			i = 0
 		case ' ', '\t', '\n', '\r', ';':
+			parts, buf = finishBarePart(parts, buf)
 			break Loop
 		case '"':
-			panic("ParseWord: DoubleQuote inside word")
+			panic("Parse2Word: DoubleQuote inside word")
 		case '\\':
 			c, i = consumeBackslashEscaped(s, i)
 			buf.WriteByte(c)
@@ -252,19 +268,19 @@ Loop:
 			i++
 		}
 	}
-	// result = MkString(buf.String())
-	// rest = s[i:]
-	return MkString(buf.String()), s[i:]
+	parts, buf = finishBarePart(parts, buf)
+	return &PWord{Parts: parts}, s[i:]
 }
 
 // Parse the Key for a Dollar with Parens, e.g. $x(key).
 // Dollar, Square, and Backslash substitutions occur.
 // White space and DQuotes are not special.
 // Terminates with ")".
-func (fr *Frame) ParseDollarKey(s string) (T, string) {
+func Parse2DollarKey(s string) (*PWord, string) {
 	i := 0
 	n := len(s)
 	buf := bytes.NewBuffer(nil)
+	parts := make([]*PPart, 0)
 
 Loop:
 	for i < n {
@@ -274,21 +290,17 @@ Loop:
 			i++ // Skip over ')'
 			break Loop
 		case '[':
+			parts, buf = finishBarePart(parts, buf)
 			// Mid-word, squares should return stringlike result.
-			newresult2, rest2 := fr.Parse2Square(s[i:])
-			buf.WriteString(newresult2.String())
+			newresult2, rest2 := Parse2Square(s[i:])
+			parts = append(parts, newresult2)
 			s = rest2
 			n = len(s)
 			i = 0
 		case '$':
-			newresult3, rest3 := fr.ParseDollar(s[i:])
-
-			// Special case, the entire word is dollar-substituted.
-			if i == 0 && buf.Len() == 0 && (len(rest3) == 0 || WhiteOrSemi(rest3[0]) || rest3[0] == ']') {
-				return newresult3, rest3
-			}
-
-			buf.WriteString(newresult3.String())
+			parts, buf = finishBarePart(parts, buf)
+			newresult3, rest3 := Parse2Dollar(s[i:])
+			parts = append(parts, newresult3)
 			s = rest3
 			n = len(s)
 			i = 0
@@ -300,28 +312,29 @@ Loop:
 			i++
 		}
 	}
-	result := MkString(buf.String())
-	rest := s[i:]
-	return result, rest
+	parts, buf = finishBarePart(parts, buf)
+	return &PWord{Parts: parts}, s[i:]
 }
 
 // Parse a variable name after a '$', returning result and new position
-func (fr *Frame) ParseDollar(s string) (T, string) {
-	var key T // nil unless Key exists.
+func Parse2Dollar(s string) (*PPart, string) {
+	var key *PWord // nil unless Key exists.
 	if '$' != s[0] {
-		panic("Expected $ at beginning of ParseDollar")
+		panic("Expected $ at beginning of Parse2Dollar")
 	}
 	i := 1
 	n := len(s)
 	buf := bytes.NewBuffer(nil)
+	typ := DOLLAR1
 Loop:
 	for i < n {
 		c := s[i]
 		if c == '(' {
 			i++
-			key, s = fr.ParseDollarKey(s[i:])
+			key, s = Parse2DollarKey(s[i:])
 			n = len(s)
 			i = 0
+			typ = DOLLAR2
 			break Loop
 		} else if 'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || '0' <= c && c <= '9' || c == '_' {
 			buf.WriteByte(c)
@@ -333,25 +346,21 @@ Loop:
 
 	varName := buf.String()
 	if len(varName) < 1 {
-		panic(Sprintf("Empty Variable Name after $ here: %q", s))
+		panic(Sprintf("Parse2Dollar: Empty Variable Name after $ here: %q", s))
 	}
-	z := fr.GetVar(varName)
-	if key != nil {
-		z = z.GetAt(key)
-		if z == nil {
-			panic(Sprintf("ParseDollar: key not found: varName=%q key=%s", varName, Show(key)))
-		}
+
+	z := &PPart{
+		Type: typ,
+		Str:  varName,
+		Word: key,
 	}
 	return z, s[i:]
 }
 
-// Might return nonempty <rest> if it finds ']'
-// Returns next command as List (may be empty) (substituting as needed) and remaining string.
-func (fr *Frame) Parse2Cmd(str string) (z *PCmd, s string) {
-	s = str
-	z = &PCmd{
-		words: make([]*PWord, 0, 4),
-	}
+// Returns next command (or else nil) and remaining string.
+func Parse2Cmd(str string) (*PCmd, string) {
+	s := str
+	words := make([]*PWord, 0)
 	var c uint8
 
 Restart:
@@ -374,19 +383,20 @@ Loop:
 		case ']':
 			break Loop
 		case '{': // stupid vim: '}'
-			newresult, rest := fr.Parse2Curly(s)
-			z.words = append(z.words, newresult)
+			newresult, rest := Parse2Curly(s)
+			words = append(words, newresult)
 			s = rest
 		case '[': // stupid vim: ']'
-			newresult, rest := fr.Parse2Square(s)
-			z.words = append(z.words, newresult)
+			part, rest := Parse2Square(s)
+			// TODO: Bug if word is [foo][bar]
+			words = append(words, &PWord{Parts: []*PPart{part}})
 			s = rest
 		case '"':
-			newresult, rest := fr.Parse2Quote(s)
-			z.words = append(z.words, newresult)
+			newresult, rest := Parse2Quote(s)
+			words = append(words, newresult)
 			s = rest
 		case '#':
-			if len(z.words) == 0 {
+			if len(words) == 0 {
 				eol := strings.Index(s, "\n")
 				if eol >= 0 {
 					s = s[eol:]
@@ -397,8 +407,8 @@ Loop:
 			}
 			fallthrough
 		default:
-			newresult, rest := fr.ParseWord(s)
-			z.words = append(z.words, newresult)
+			newresult, rest := Parse2Word(s)
+			words = append(words, newresult)
 			s = rest
 		}
 
@@ -427,24 +437,25 @@ Loop:
 			break Loop // end of cmd
 		}
 	} // End Loop
-	return
+	if len(words) == 0 {
+		return nil, s
+	}
+	return &PCmd{Words: words}, s
 }
 
-func (fr *Frame) Parse2Seq(str string) (*PSeq, string) {
+func Parse2Seq(str string) (*PSeq, string) {
 	rest := str
 	z := &PSeq{
-		cmds: make([]*PCmd, 0, 4),
+		Cmds: make([]*PCmd, 0, 4),
 	}
 Loop:
 	for {
 		var cmd *PCmd
-		cmd, rest = fr.Parse2Cmd(rest)
+		cmd, rest = Parse2Cmd(rest)
 		if cmd == nil {
 			break Loop
 		}
-		z.cmds = append(z.cmds, cmd)
+		z.Cmds = append(z.Cmds, cmd)
 	}
 	return z, rest
 }
-
-*/

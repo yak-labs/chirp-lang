@@ -19,7 +19,6 @@ func TestT2(t *testing.T) {
 	if len(a) != 3 {
 		panic("len not 3")
 	}
-	println(Repr(a))
 	MustA(3, len(a))
 	MustST("one", a[0])
 	MustST(" number two ", a[1])
