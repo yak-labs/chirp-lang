@@ -382,7 +382,7 @@ func MustNoSp(a, b interface{}) {
 func DropSpaces(s string) string {
 	z := ""
 	for _, c := range s {
-		if (c != ' ') {
+		if c != ' ' {
 			z += string(c)
 		}
 	}
