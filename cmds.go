@@ -541,6 +541,44 @@ func cmdLIndex(fr *Frame, argv []T) T {
 	return list[i]
 }
 
+func cmdLRange(fr *Frame, argv []T) T {
+	tlist, tbegin, tend := Arg3(argv)
+	list := tlist.List()
+	begin := tbegin.Int()
+	endStr := tend.String()
+	//Say("begin", begin)
+	//Say("endStr", endStr)
+
+	var end int64
+	if endStr == "end" {
+		end = (int64)(len(list) - 1)
+	} else if len(endStr) > 4 && endStr[:3] == "end-" {
+		panic("unimplemented: lrange ends with 'end-N'")
+	} else {
+		end = tend.Int()
+	}
+
+	// Now convert to C++ style end, which points to slot after the last one.
+	end++
+	//Say("end++", end)
+
+	if begin < 0 || begin > int64(len(list)) {
+		panic(Sprintf("lindex: bad index: len(list)=%d but begin=%d", len(list), begin))
+	}
+	if end < 0 || end > int64(len(list)) {
+		panic(Sprintf("lindex: bad index: len(list)=%d but end=%d", len(list), end))
+	}
+	if end <= begin {
+		return Empty
+	}
+	n := (int)(end-begin)
+	z := make([]T, n)
+	for i := 0; i < n; i++ {
+		z[i] = list[ (int)(begin) + i ]
+	}
+	return MkList(z)
+}
+
 func cmdLSort(fr *Frame, argv []T) T {
 	tlist := Arg1(argv)
 	list := tlist.List()
@@ -1567,6 +1605,7 @@ func init() {
 	Safes["notnull"] = cmdNotNull
 	Safes["list"] = cmdList
 	Safes["lindex"] = cmdLIndex
+	Safes["lrange"] = cmdLRange
 	Safes["lsort"] = cmdLSort
 	Safes["llength"] = cmdLLen
 	Safes["http_handler"] = cmdHttpHandler
