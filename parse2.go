@@ -16,6 +16,14 @@ type PSeq struct {
 	Cmds []*PCmd
 }
 
+func (me *PSeq) Eval(fr *Frame) T {
+	var z T = Empty
+	for _, cmd := range me.Cmds {
+		z = cmd.Eval(fr)
+	}
+	return z
+}
+
 func (me *PSeq) Show() string {
 	z := "PSeq{ "
 	for _, e := range me.Cmds {
@@ -30,6 +38,14 @@ type PCmd struct {
 	Words []*PWord
 }
 
+func (me *PCmd) Eval(fr *Frame) T {
+	words := make([]T, len(me.Words))
+	for i, w := range me.Words {
+		words[i] = w.Eval(fr)
+	}
+	return fr.Apply(words)
+}
+
 func (me *PCmd) Show() string {
 	z := "PCmd{ "
 	for _, e := range me.Words {
@@ -42,6 +58,20 @@ func (me *PCmd) Show() string {
 // One words, composed of parts that may require substitions.
 type PWord struct {
 	Parts []*PPart
+}
+
+func (me *PWord) Eval(fr *Frame) T {
+	switch len(me.Parts) {
+	case 0:
+		return Empty
+	case 1:
+		return me.Parts[0].Eval(fr)
+	}
+	buf := bytes.NewBuffer(nil)
+	for _, part := range me.Parts {
+		buf.WriteString(part.Eval(fr).String())
+	}
+	return MkString(buf.String())
 }
 
 func (me *PWord) Show() string {
@@ -67,6 +97,30 @@ type PPart struct {
 	Word *PWord // for DOLLAR2
 	Seq  *PSeq  // for SQUARE
 	Type PartType
+}
+
+func (me *PPart) Eval(fr *Frame) T {
+	switch me.Type {
+	case BARE:
+		return MkString(me.Str)
+	case SQUARE:
+		return me.Seq.Eval(fr)
+	case DOLLAR1:
+		return fr.GetVar(me.Str)
+	case DOLLAR2:
+		v := fr.GetVar(me.Str)
+		h := v.Hash()
+		if h == nil {
+			panic(Sprintf("(*PWord.Eval.DOLLAR2*) Variable %q is not a hash.", me.Str))
+		}
+		k := me.Seq.Eval(fr).String()
+		z := h[k]
+		if z == nil {
+			panic(Sprintf("(*PWord.Eval.DOLLAR2*) Variable %q: Key not found", me.Str))
+		}
+		return z
+	}
+	panic(Sprintf("(*PWord.Eval*) Unknown PartType: %d", me.Type))
 }
 
 func (me *PPart) Show() string {

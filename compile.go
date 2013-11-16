@@ -14,10 +14,10 @@ import (
 
 // interfaces
 
-// A Stmt is some piece of code that can be evaluated.
+// A Evaler is some piece of code that can be evaluated.
 // It may be a single command (Words) or a sequence
 // of commands (Seq).
-type Stmt interface {
+type Evaler interface {
 	Eval(fr *Frame) T
 }
 
@@ -32,14 +32,14 @@ type Word interface {
 // Seq is a list of Stmts that can be evaluated.
 // The value is usually the value of the last one.
 // If empty, the value is Empty.
-type Seq struct { // implements Stmt
-	stmts []Stmt
+type Seq struct { // implements Evaler
+	stmts []Evaler
 }
 
 // Words is a single command statement;
 // it cannot be an empty list.
 // The first word usually names the command.
-type Words struct { // * implements Stmt
+type Words struct { // * implements Evaler
 	words []Word
 }
 
@@ -61,7 +61,7 @@ type Dollar2 struct { // * implements Word // TODO
 }
 
 type Square struct { // * implements Word // TODO
-	body Stmt
+	body Evaler
 }
 
 // Eval each member of the sequence, returning the last result.
@@ -112,11 +112,11 @@ var MatchDumbDollar = regexp.MustCompile("^" + DumbDollarPattern + "$")
 // e.g.   proc doublePlus11 {x} { set a 10 ; + $x $x 1 $a }
 //    or  proc f {x} { /fmt/Sprintf %e $x }
 // If it finds something it doesn't grok, it panics.
-func dumbCompileSequence(fr *Frame, s string) Stmt {
+func dumbCompileSequence(fr *Frame, s string) Evaler {
 	s = strings.Replace(s, "\t", " ", -1) // get rid of tabs
 	s = strings.Replace(s, ";", "\n", -1) // get rid of semicolons
 
-	seq := &Seq{stmts: make([]Stmt, 0, 4)}
+	seq := &Seq{stmts: make([]Evaler, 0, 4)}
 	lines := strings.Split(s, "\n")
 
 	for _, line := range lines {
@@ -151,7 +151,7 @@ func dumbCompileSequence(fr *Frame, s string) Stmt {
 
 // CompileSequence uses dumbCompileSequence.
 // If dumbCompileSequence panics, we recover and return nil.
-func CompileSequence(fr *Frame, s string) (z Stmt) {
+func CompileSequence(fr *Frame, s string) (z Evaler) {
 	defer func() {
 		recover() // z stays nil
 	}()

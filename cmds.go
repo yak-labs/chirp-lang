@@ -263,7 +263,7 @@ func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 		longMixinName = captureMixinNameDefining + "~" + nameStr
 	}
 
-	var compiled Stmt
+	var compiled Evaler
 	if !body.IsPreservedByList() { // TODO: reconsider this test.
 		compiled = CompileSequence(fr, body.String())
 	}
