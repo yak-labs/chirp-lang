@@ -41,15 +41,15 @@ func main() {
 		return
 	}
 
-	if len(flag.Args()) > 1 {
-		fname := flag.Arg(1)
+	if len(flag.Args()) > 0 {
+		fname := flag.Arg(0)
 		contents, err := ioutil.ReadFile(fname)
 		if err != nil {
 			Fprintf(os.Stderr, "Cannot read file %s: %v", fname, err)
 			os.Exit(2)
 			return
 		}
-		saveArgvStarting(fr, 2)
+		saveArgvStarting(fr, 1)
 		fr.Eval(chirp.MkString(string(contents)))
 		return
 	}
