@@ -69,7 +69,11 @@ func (me *PWord) Eval(fr *Frame) T {
 	}
 	buf := bytes.NewBuffer(nil)
 	for _, part := range me.Parts {
-		buf.WriteString(part.Eval(fr).String())
+		if part.Type == BARE {  // Optimization: avoid creating a T.
+			buf.WriteString(part.Str)
+		} else {
+			buf.WriteString(part.Eval(fr).String())
+		}
 	}
 	return MkString(buf.String())
 }

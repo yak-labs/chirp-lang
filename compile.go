@@ -153,7 +153,20 @@ func dumbCompileSequence(fr *Frame, s string) Evaler {
 // If dumbCompileSequence panics, we recover and return nil.
 func CompileSequence(fr *Frame, s string) (z Evaler) {
 	defer func() {
-		recover() // z stays nil
+		ex := recover() // z stays nil
+		if ex != nil {
+			Say("CompileSequence BAD", s)
+		}
 	}()
-	return dumbCompileSequence(fr, s)
+
+	// Older Dumber version:
+	// return dumbCompileSequence(fr, s)
+
+	z, rest := Parse2Seq(s)
+	if rest != "" {
+		Sayf("CompileSequence Non-Empty rest: %q", s)
+		return nil
+	}
+	// Say("CompileSequence GOOD", s, z)
+	return z
 }
