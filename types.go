@@ -54,10 +54,11 @@ type terpValue struct { // Implements T.
 // terpMulti is a Tcl value holding several pre-compiled representations,
 // which were parsed from a string.
 type terpMulti struct { // Implements T.
-	s	terpString
-	f	*terpFloat
-	l	*terpList
-	c	*PSeq
+	s               terpString
+	preservedByList bool
+	f               *terpFloat
+	l               *terpList
+	c               *PSeq
 }
 
 // terpGenerator holds a channel for reading from a generator (yproc command).
@@ -117,11 +118,11 @@ func MkValue(a R.Value) terpValue {
 }
 func MkMulti(a string) terpMulti {
 	var s terpString = MkString(a)
-	m := terpMulti{s: s}
+	m := terpMulti{s: s, preservedByList: s.IsPreservedByList()}
 
 	func() {
 		defer func() {
-			_ = recover();
+			_ = recover()
 		}()
 		x := MkFloat(s.Float())
 		m.f = &x
@@ -129,7 +130,7 @@ func MkMulti(a string) terpMulti {
 
 	func() {
 		defer func() {
-			_ = recover();
+			_ = recover()
 		}()
 		x := MkList(s.List())
 		m.l = &x
@@ -714,10 +715,7 @@ func (t terpMulti) IsQuickNumber() bool {
 	return t.s.IsQuickNumber()
 }
 func (t terpMulti) IsPreservedByList() bool {
-	if t.l != nil {
-		return t.l.IsPreservedByList()
-	}
-	return t.s.IsPreservedByList()
+	return t.preservedByList
 }
 func (t terpMulti) List() []T {
 	if t.l != nil {
@@ -731,6 +729,16 @@ func (t terpMulti) HeadTail() (hd, tl T) {
 	}
 	return t.s.HeadTail()
 }
+func (t terpMulti) Hash() Hash {
+	panic("terpMulti: String is not a Hash")
+}
+func (t terpMulti) GetAt(key T) T {
+	panic("terpMulti: String is not a Hash")
+}
+func (t terpMulti) PutAt(value T, key T) {
+	panic("terpMulti: String is not a Hash")
+}
+func (t terpMulti) QuickReflectValue() R.Value { return InvalidValue }
 
 ///////////////////////////////////////////////////////////////////////
 

@@ -274,13 +274,11 @@ func (fr *Frame) DefineUpVar(name string, remFr *Frame, remName string) {
 
 func (fr *Frame) FindCommand(name T, callSuper bool) Command {
 	// Some day we will not require terpString; for now, it helps debug.
-	cmdName, ok := name.(terpString)
-	if !ok {
-		panic(Sprintf("Restriction: Command must be a string: %#v", name))
-	}
+	// TODO: Optimize with terpMulti.
+	cmdName := name.String()
 
 	var fn Command
-	cmdNode, ok := fr.G.Cmds[cmdName.s]
+	cmdNode, ok := fr.G.Cmds[cmdName]
 	if ok {
 		if callSuper {
 			maxMixinLevel := fr.MixinLevel - 1
@@ -299,9 +297,9 @@ func (fr *Frame) FindCommand(name T, callSuper bool) Command {
 	}
 
 	// Mixin Local Commands:
-	if !ok && fr.MixinLevel > 0 && !IsGlobal(cmdName.s) {
+	if !ok && fr.MixinLevel > 0 && !IsGlobal(cmdName) {
 		// Use long name for mixin local fn.
-		localCmdName := fr.MixinName + "~" + cmdName.s
+		localCmdName := fr.MixinName + "~" + cmdName
 		var localNode *CmdNode
 		localNode, ok = fr.G.Cmds[localCmdName]
 		if ok {
@@ -310,7 +308,7 @@ func (fr *Frame) FindCommand(name T, callSuper bool) Command {
 	}
 
 	if !ok {
-		panic(Sprintf("FindCommand: command not found: %q", cmdName.s))
+		panic(Sprintf("FindCommand: command not found: %q", cmdName))
 	}
 	return fn
 }

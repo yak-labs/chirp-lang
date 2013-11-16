@@ -58,6 +58,7 @@ func (me *PCmd) Show() string {
 // One words, composed of parts that may require substitions.
 type PWord struct {
 	Parts []*PPart
+	Multi *terpMulti // If not null, value is fixed and precompiled.
 }
 
 func (me *PWord) Eval(fr *Frame) T {
@@ -65,11 +66,19 @@ func (me *PWord) Eval(fr *Frame) T {
 	case 0:
 		return Empty
 	case 1:
+		if me.Multi != nil {
+			//Say("me.Parts[0]: ", me.Parts[0])
+			//Say("  me.Multi: ", *me.Multi)
+			//if me.Multi.l != nil {
+			//	Say("    me.Multi.l", *me.Multi.l)
+			//}
+			return *me.Multi
+		}
 		return me.Parts[0].Eval(fr)
 	}
 	buf := bytes.NewBuffer(nil)
 	for _, part := range me.Parts {
-		if part.Type == BARE {  // Optimization: avoid creating a T.
+		if part.Type == BARE { // Optimization: avoid creating a T.
 			buf.WriteString(part.Str)
 		} else {
 			buf.WriteString(part.Eval(fr).String())
@@ -189,13 +198,16 @@ Loop:
 	}
 	i++
 
+	x := buf.String()
+	multi := MkMulti(x)
 	result := &PWord{
 		Parts: []*PPart{
 			&PPart{
-				Str:  buf.String(),
+				Str:  x,
 				Type: BARE,
 			},
 		},
+		Multi: &multi,
 	}
 	return result, s[i:]
 }
@@ -327,7 +339,12 @@ Loop:
 		}
 	}
 	parts, buf = finishBarePart(parts, buf)
-	return &PWord{Parts: parts}, s[i:]
+	z := &PWord{Parts: parts}
+	if len(parts) == 1 && parts[0].Type == BARE {
+		multi := MkMulti(parts[0].Str) // Optimize for fixed bare value.
+		z.Multi = &multi
+	}
+	return z, s[i:]
 }
 
 // Parse the Key for a Dollar with Parens, e.g. $x(key).
