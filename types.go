@@ -51,6 +51,15 @@ type terpValue struct { // Implements T.
 	v R.Value
 }
 
+// terpMulti is a Tcl value holding several pre-compiled representations,
+// which were parsed from a string.
+type terpMulti struct { // Implements T.
+	s	terpString
+	f	*terpFloat
+	l	*terpList
+	c	*PSeq
+}
+
 // terpGenerator holds a channel for reading from a generator (yproc command).
 type terpGeneratorGuts struct { // Mutable.
 	readerChan <-chan Either
@@ -105,6 +114,28 @@ func MkStringList(a []string) terpList {
 }
 func MkValue(a R.Value) terpValue {
 	return terpValue{v: a}
+}
+func MkMulti(a string) terpMulti {
+	var s terpString = MkString(a)
+	m := terpMulti{s: s}
+
+	func() {
+		defer func() {
+			_ = recover();
+		}()
+		x := MkFloat(s.Float())
+		m.f = &x
+	}()
+
+	func() {
+		defer func() {
+			_ = recover();
+		}()
+		x := MkList(s.List())
+		m.l = &x
+	}()
+
+	return m
 }
 func MkT(a interface{}) T {
 	// Very specific type cases.
@@ -633,6 +664,75 @@ func (t terpValue) List() []T {
 func (t terpValue) HeadTail() (hd, tl T) {
 	return MkList(t.List()).HeadTail()
 }
+
+///////////////////////////////////////////////////////////////////////
+// terpMulti implements T
+
+func (t terpMulti) Raw() interface{} {
+	return t.s.Raw()
+}
+func (t terpMulti) String() string {
+	return t.s.String()
+}
+func (t terpMulti) ListElementString() string {
+	return t.s.ListElementString()
+}
+func (t terpMulti) Bool() bool {
+	if t.f != nil {
+		return t.f.Bool()
+	}
+	return t.s.Bool()
+}
+func (t terpMulti) IsEmpty() bool {
+	if t.l != nil {
+		return t.l.IsEmpty()
+	}
+	return t.s.IsEmpty()
+}
+func (t terpMulti) Float() float64 {
+	if t.f != nil {
+		return t.f.Float()
+	}
+	return t.s.Float()
+}
+func (t terpMulti) Int() int64 {
+	if t.f != nil {
+		return t.f.Int()
+	}
+	return t.s.Int()
+}
+func (t terpMulti) Uint() uint64 {
+	if t.f != nil {
+		return t.f.Uint()
+	}
+	return t.s.Uint()
+}
+func (t terpMulti) IsQuickNumber() bool {
+	if t.f != nil {
+		return t.f.IsQuickNumber()
+	}
+	return t.s.IsQuickNumber()
+}
+func (t terpMulti) IsPreservedByList() bool {
+	if t.l != nil {
+		return t.l.IsPreservedByList()
+	}
+	return t.s.IsPreservedByList()
+}
+func (t terpMulti) List() []T {
+	if t.l != nil {
+		return t.l.List()
+	}
+	return t.s.List()
+}
+func (t terpMulti) HeadTail() (hd, tl T) {
+	if t.l != nil {
+		return t.l.HeadTail()
+	}
+	return t.s.HeadTail()
+}
+
+///////////////////////////////////////////////////////////////////////
 
 func NeedsOctalEscape(b byte) bool {
 	switch b {
