@@ -18,6 +18,7 @@ import (
 	"github.com/yak-labs/chirp-lang"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
 var cFlag = flag.String("c", "", "Immediate command to execute.")
@@ -31,9 +32,21 @@ func saveArgvStarting(fr *chirp.Frame, i int) {
 	fr.SetVar("argv", chirp.MkList(argv))
 }
 
+func setEnvironInChirp(fr *chirp.Frame, varName string) {
+	h := make(chirp.Hash)
+	for _, s := range os.Environ() {
+		kv := strings.SplitN(s, "=", 2)
+		if len(kv) == 2 {
+			h[kv[0]] = chirp.MkString(kv[1])
+		}
+	}
+	fr.SetVar(varName, chirp.MkHash(h))
+}
+
 func main() {
 	flag.Parse()
 	fr := chirp.New()
+	setEnvironInChirp(fr, "Env")
 
 	if cFlag != nil && *cFlag != "" {
 		saveArgvStarting(fr, 1)
