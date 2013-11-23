@@ -12,11 +12,6 @@ const (
 	TokNumber
 	TokOther // Non-Ascii or not special.
 
-	// " "
-	// [ ]
-	// { }
-	// ( )
-
 	TokBoolOr  // ||
 	TokBoolAnd // &&
 
@@ -34,20 +29,8 @@ const (
 	TokStrGt
 	TokStrGe
 
-	// !
-	// ~
-
-	// +
-	// -
-	// *
-	// /
-	// %
-
-	// &
-	// |
-	// ^
-	TokShiftLeft
-	TokShiftRight
+	TokShiftLeft  // <<
+	TokShiftRight // >>
 )
 
 type Lex struct {
@@ -123,11 +106,6 @@ func (x *Lex) Advance() {
 		x.Next += bounds[1]
 		x.Type = TokAlfaNum
 		return
-	case '"', '[', ']', '{', '}', '(', ')':
-		goto single
-
-	case '+', '*', '/', '%', '^', '~':
-		goto single
 
 	case '!':
 		if d == '=' {
@@ -161,10 +139,16 @@ func (x *Lex) Advance() {
 			goto pair
 		}
 		goto single
-	}
-	// Fall through to other.
 
-other: // Anything else goes here, consuming 1 char.
+	default:
+		if '!' <= c && c <= '~' {
+			// Other printable ASCII stuff returns theselves as Type.
+			goto single
+		}
+		// else fall through to other.
+	}
+
+other: // Nonprintable or nonASCII, consuming 1 char.
 	x.Type = TokOther
 	x.Next++
 	return
