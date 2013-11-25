@@ -155,7 +155,7 @@ func CompileSequence(fr *Frame, s string) (z Evaler) {
 	defer func() {
 		ex := recover() // z stays nil
 		if ex != nil {
-			Say("CompileSequence BAD", s)
+			Say("CompileSequence BAD", s, ex)
 		}
 	}()
 

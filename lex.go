@@ -57,6 +57,7 @@ func NewLex(s string) *Lex {
 
 func MustTok(a, b Token) {
 	if a != b {
+		Say("MustTok BAD: " + string(a) + " .vs. " + string(b))
 		panic(Sprintf("Wrong Token in MustTok: %u vs %u", a, b))
 	}
 }

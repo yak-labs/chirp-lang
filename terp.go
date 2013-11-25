@@ -319,7 +319,7 @@ func (fr *Frame) FindCommand(name T, callSuper bool) Command {
 func (fr *Frame) Apply(argv []T) T {
 	Sayf("@Apply@   %s", argv[0])
 	for i, e := range argv[1:] {
-		Sayf("      .%d.  %s", i, e)
+		Sayf("      .%d.  %s", i + 1, e)
 	}
 
 	defer func() {

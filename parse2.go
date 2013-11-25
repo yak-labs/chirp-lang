@@ -240,8 +240,8 @@ Loop:
 			lex.Advance() // to Token('[')
 			MustTok(Token('['), lex.Tok)
 			r := Parse2Square(lex)
+			MustTok(Token(']'), lex.Tok)
 			parts = append(parts, r)
-			lex.Stretch1()
 		case ']':
 			panic("Parse2Quote: CloseSquareBracket inside Quote")
 		case '$':
@@ -258,6 +258,7 @@ Loop:
 			lex.Stretch1()
 		}
 	}
+	Say("Exit Parse2Quote", lex)
 	parts, buf = finishBarePart(parts, buf)
 	return &PWord{Parts: parts}
 }
@@ -281,7 +282,7 @@ Loop:
 			// Mid-word, squares should return stringlike result.
 			r := Parse2Square(lex)
 			parts = append(parts, r)
-			MustTok(lex.Tok, Token(']'))
+			MustTok(Token(']'), lex.Tok)
 			lex.Stretch1() // Step just past the ]
 
 		case ']':
@@ -457,6 +458,7 @@ Loop:
 		case Token('"'):
 			r := Parse2Quote(lex)
 			words = append(words, r)
+			Say("DID Parse2Quote GOT", r, lex)
 			MustTok(Token('"'), lex.Tok)
 			lex.Advance()
 		case Token('#'):
