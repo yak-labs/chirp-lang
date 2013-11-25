@@ -162,11 +162,12 @@ func CompileSequence(fr *Frame, s string) (z Evaler) {
 	// Older Dumber version:
 	// return dumbCompileSequence(fr, s)
 
-	z, rest := Parse2Seq(s)
-	if rest != "" {
+	lex := NewLex(s)
+	z = Parse2Seq(lex)
+	if lex.Tok != TokEnd {
 		Sayf("CompileSequence Non-Empty rest: %q", s)
 		return nil
 	}
-	// Say("CompileSequence GOOD", s, z)
-	return z
+	Say("CompileSequence GOOD", s, z)
+	return
 }

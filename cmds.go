@@ -571,10 +571,10 @@ func cmdLRange(fr *Frame, argv []T) T {
 	if end <= begin {
 		return Empty
 	}
-	n := (int)(end-begin)
+	n := (int)(end - begin)
 	z := make([]T, n)
 	for i := 0; i < n; i++ {
-		z[i] = list[ (int)(begin) + i ]
+		z[i] = list[(int)(begin)+i]
 	}
 	return MkList(z)
 }

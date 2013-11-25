@@ -8,7 +8,7 @@ package chirp
 import (
 	"bytes"
 	. "fmt"
-	"strings"
+	_ "strings"
 )
 
 // Any piece of tcl code, a sequence of commands.
@@ -150,55 +150,18 @@ func (me *PPart) Show() string {
 	return Sprintf("PPart{?%d?} ", me.Type)
 }
 
-// Parse nested curlies, returning contents and new position
-func Parse2Curly(s string) (*PWord, string) {
-	if s[0] != '{' {
+// Parse nested curlies, returning contents.
+func Parse2Curly(lex *Lex) *PWord {
+	Say("Enter Parse2Curly", lex)
+	if lex.Tok != '{' {
 		panic("Parse2Curly should begin at open curly")
 	} // vim: '}'
-	n := len(s)
-	i := 1
 
-	buf := bytes.NewBuffer(nil)
-	c := s[i]
-	b := 1 // brace depth
-Loop:
-	for i < n {
-		c = s[i]
-		switch c {
-		case '{':
-			b++
-		case '}':
-			b--
-		case '\\':
-			// In curly braces, only 3 specific things can be backslash-escaped.
-			// Followed by anything else, no escaping happens.
-			switch s[i+1] {
-			case '\\':
-				c = '\\'
-				i++
-			case '{':
-				c = '{'
-				i++
-			case '}':
-				c = '}'
-				i++
-			default:
-				// Keep that backslash, it's real.
-			}
-		}
-		if b == 0 {
-			break Loop
-		}
-		buf.WriteByte(c)
-		i++
-	}
-	// vim: '{'
-	if c != '}' {
-		panic("Parse2Curly: missing end curly:" + Repr(c))
-	}
-	i++
+	x := lex.AdvanceCurly()
+	// Next is now on the close-curly.
+	// Let set Tok to the close-curly:
+	lex.Advance()
 
-	x := buf.String()
 	multi := MkMulti(x)
 	result := &PWord{
 		Parts: []*PPart{
@@ -209,7 +172,7 @@ Loop:
 		},
 		Multi: &multi,
 	}
-	return result, s[i:]
+	return result
 }
 
 // finishBarePart turns the buffer into a BARE PPart and appends it to the slice, unless the buffer is empty.
@@ -221,316 +184,312 @@ func finishBarePart(parts []*PPart, buf *bytes.Buffer) ([]*PPart, *bytes.Buffer)
 			Type: BARE,
 			Str:  buf.String(),
 		}
-		return append(parts, bare), bytes.NewBuffer(nil)
+		parts = append(parts, bare)
+		Say("finishBarePart +->", parts)
+		return parts, bytes.NewBuffer(nil)
 	}
+	Say("finishBarePart ---", parts)
 	return parts, buf
 }
 
 // Parse Square Bracketed subcommand, returning result and new position
-func Parse2Square(s string) (*PPart, string) {
-	if s[0] != '[' {
+func Parse2Square(lex *Lex) *PPart {
+	Say("Enter Parse2Square", lex)
+	if lex.Tok != Token('[') {
 		panic("Parse2Square should begin at open square")
 	}
-	rest := s[1:]
+	lex.Advance()
 	cmds := make([]*PCmd, 0)
 
 Loop:
 	for {
 		var cmd *PCmd
-		cmd, rest = Parse2Cmd(rest)
+		cmd = Parse2Cmd(lex)
 		if cmd == nil {
 			break Loop
 		}
 		cmds = append(cmds, cmd)
 	}
 
-	if len(rest) == 0 || rest[0] != ']' {
-		panic("Parse2Square: missing end bracket: s=" + Repr(s))
+	if lex.Tok != Token(']') {
+		panic(Sprintf("Parse2Square: missing end bracket: rest=%q" + lex.Str[lex.Next:]))
 	}
-	rest = rest[1:]
-	return &PPart{Type: SQUARE, Seq: &PSeq{Cmds: cmds}}, rest
+	return &PPart{Type: SQUARE, Seq: &PSeq{Cmds: cmds}}
 }
 
-func Parse2Quote(s string) (*PWord, string) {
-	if s[0] != '"' {
-		panic("Parse2Quote should begin at open Quote")
+func Parse2Quote(lex *Lex) *PWord {
+	Say("Enter Parse2Quote", lex)
+	if lex.Tok != Token('"') {
+		panic("@@@@@ Parse2Quote should begin at open Quote")
 	}
-	i := 1
-	n := len(s)
 	buf := bytes.NewBuffer(nil)
 	parts := make([]*PPart, 0)
+
 Loop:
-	for i < n {
-		c := s[i]
+	for lex.Next < lex.Len {
+		c := lex.Str[lex.Next]
+		Say("Switch Parse2Quote:", string(c))
 		switch c {
+		case '"':
+			// lex.Stretch1()
+			lex.Advance() // focus on close-quote.
+			break Loop
 		case '[':
 			parts, buf = finishBarePart(parts, buf)
 			// Mid-word, squares should return stringlike result.
-			newresult, rest := Parse2Square(s[i:])
-			parts = append(parts, newresult)
-			s = rest
-			n = len(s)
-			i = 0
+			lex.Advance() // to Token('[')
+			MustTok(Token('['), lex.Tok)
+			r := Parse2Square(lex)
+			parts = append(parts, r)
+			lex.Stretch1()
 		case ']':
 			panic("Parse2Quote: CloseSquareBracket inside Quote")
 		case '$':
 			parts, buf = finishBarePart(parts, buf)
-			newresult3, rest3 := Parse2Dollar(s[i:])
-			parts = append(parts, newresult3)
-			s = rest3
-			n = len(s)
-			i = 0
-		case '"':
-			i++
-			break Loop
+			lex.Advance() // to Token('$')
+			MustTok(Token('$'), lex.Tok)
+			r := Parse2Dollar(lex)
+			parts = append(parts, r)
 		case '\\':
-			c, i = consumeBackslashEscaped(s, i)
+			c = lex.StretchBackslashEscaped()
 			buf.WriteByte(c)
 		default:
 			buf.WriteByte(c)
-			i++
+			lex.Stretch1()
 		}
 	}
 	parts, buf = finishBarePart(parts, buf)
-	return &PWord{Parts: parts}, s[i:]
+	return &PWord{Parts: parts}
 }
 
 // Parse a word, returning result and new position
-func Parse2Word(s string) (*PWord, string) {
-	i := 0
-	n := len(s)
+func Parse2Word(lex *Lex) *PWord {
+	Say("Enter Parse2Word", lex)
 	buf := bytes.NewBuffer(nil)
 	parts := make([]*PPart, 0)
 
 Loop:
-	for i < n {
-		c := s[i]
-		switch c {
+	for lex.Tok != TokEnd {
+		Say("..... Parse2Word case", lex.Tok)
+
+		// Use the normal Tok lexer to start,
+		// but finish with Next pointing to the next unconsumed thing,
+		// either more parts to the word, or white space.
+		switch lex.Tok {
 		case '[':
 			parts, buf = finishBarePart(parts, buf)
 			// Mid-word, squares should return stringlike result.
-			newresult2, rest2 := Parse2Square(s[i:])
-			parts = append(parts, newresult2)
+			r := Parse2Square(lex)
+			parts = append(parts, r)
+			MustTok(lex.Tok, Token(']'))
+			lex.Stretch1() // Step just past the ]
 
-			s = rest2
-			n = len(s)
-			i = 0
 		case ']':
+			// The close-bracket is not part of the word;
+			// it terminates an outer seq of cmds.
+			// Break with focus still on the bracket.
 			break Loop
+
 		case '$':
 			parts, buf = finishBarePart(parts, buf)
-			newresult3, rest3 := Parse2Dollar(s[i:])
-			parts = append(parts, newresult3)
+			r := Parse2Dollar(lex)
+			parts = append(parts, r)
+			// Next should be just after the whole DOLLAR thing.
 
-			s = rest3
-			n = len(s)
-			i = 0
 		case ' ', '\t', '\n', '\r', ';':
 			parts, buf = finishBarePart(parts, buf)
+			lex.Advance() // Advance to the next word.
 			break Loop
+
 		case '"':
 			panic("Parse2Word: DoubleQuote inside word")
+
 		case '\\':
-			c, i = consumeBackslashEscaped(s, i)
+			c := lex.StretchBackslashEscaped()
 			buf.WriteByte(c)
+
 		default:
-			buf.WriteByte(c)
-			i++
+			buf.WriteString(lex.Current())
 		}
+
+		// Peek to see if white space is next.
+		if lex.Next < lex.Len {
+			switch lex.Str[lex.Next] {
+			case ' ', '\t', '\n', '\r', ';':
+				// If white space, then this Word is over.  Break.
+				parts, buf = finishBarePart(parts, buf)
+				lex.Advance() // Advance past this white space to next thing before break.
+				break Loop
+			}
+		}
+
+		// Not at white space; there is more.
+		// Pos will become Next.  Already made sure not at white space.
+		// This will focus on the next thing in the Word.
+		lex.Advance() // MAYBE.
 	}
+
 	parts, buf = finishBarePart(parts, buf)
 	z := &PWord{Parts: parts}
 	if len(parts) == 1 && parts[0].Type == BARE {
 		multi := MkMulti(parts[0].Str) // Optimize for fixed bare value.
 		z.Multi = &multi
 	}
-	return z, s[i:]
+	return z
 }
 
 // Parse the Key for a Dollar with Parens, e.g. $x(key).
 // Dollar, Square, and Backslash substitutions occur.
 // White space and DQuotes are not special.
 // Terminates with ")".
-func Parse2DollarKey(s string) (*PWord, string) {
-	i := 0
-	n := len(s)
+func Parse2DollarKey(lex *Lex) *PWord {
+	Say("Enter Parse2DollarKey", lex)
 	buf := bytes.NewBuffer(nil)
 	parts := make([]*PPart, 0)
 
+	MustB('(', lex.Str[lex.Next])
+	lex.Stretch1()
+
 Loop:
-	for i < n {
-		c := s[i]
+	for lex.Next < lex.Len {
+		c := lex.PeekNext()
 		switch c {
 		case ')':
-			i++ // Skip over ')'
 			break Loop
 		case '[':
 			parts, buf = finishBarePart(parts, buf)
 			// Mid-word, squares should return stringlike result.
-			newresult2, rest2 := Parse2Square(s[i:])
-			parts = append(parts, newresult2)
-			s = rest2
-			n = len(s)
-			i = 0
+			lex.Advance()
+			MustTok(Token('['), lex.Tok)
+			r := Parse2Square(lex)
+			parts = append(parts, r)
+			MustTok(Token(']'), lex.Tok)
 		case '$':
 			parts, buf = finishBarePart(parts, buf)
-			newresult3, rest3 := Parse2Dollar(s[i:])
-			parts = append(parts, newresult3)
-			s = rest3
-			n = len(s)
-			i = 0
+			lex.Advance()
+			MustTok(Token('$'), lex.Tok)
+			r := Parse2Dollar(lex)
+			parts = append(parts, r)
 		case '\\':
-			c, i = consumeBackslashEscaped(s, i)
+			c = lex.StretchBackslashEscaped()
 			buf.WriteByte(c)
 		default:
 			buf.WriteByte(c)
-			i++
+			lex.Stretch1()
 		}
 	}
+	lex.Advance()
+	MustTok(Token(')'), lex.Tok)
+
 	parts, buf = finishBarePart(parts, buf)
-	return &PWord{Parts: parts}, s[i:]
+	return &PWord{Parts: parts}
 }
 
-// Parse a variable name after a '$', returning result and new position
-func Parse2Dollar(s string) (*PPart, string) {
-	var key *PWord // nil unless Key exists.
-	if '$' != s[0] {
+// Parse a variable name after a '$', returning *PPart.
+func Parse2Dollar(lex *Lex) *PPart {
+	Say("Enter Parse2Dollar", lex)
+	if lex.Tok != Token('$') {
 		panic("Expected $ at beginning of Parse2Dollar")
 	}
-	i := 1
-	n := len(s)
-	buf := bytes.NewBuffer(nil)
-	typ := DOLLAR1
-Loop:
-	for i < n {
-		c := s[i]
-		if c == '(' {
-			i++
-			key, s = Parse2DollarKey(s[i:])
-			n = len(s)
-			i = 0
-			typ = DOLLAR2
-			break Loop
-		} else if 'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || '0' <= c && c <= '9' || c == '_' {
-			buf.WriteByte(c)
-			i++
-		} else {
-			break Loop
+
+	lex.AdvanceIfAlfaNum()
+	if lex.Tok != TokAlfaNum {
+		panic("Expected a varname after $")
+	}
+	name := lex.Current()
+
+	// lex.Advance() // DONT Advance-- white matters.
+
+	if lex.PeekNext() == '(' {
+		key := Parse2DollarKey(lex)
+		MustTok(Token(')'), lex.Tok)
+		// DONT lex.Stretch1()
+		return &PPart{
+			Type: DOLLAR2,
+			Str:  name,
+			Word: key,
 		}
 	}
-
-	varName := buf.String()
-	if len(varName) < 1 {
-		panic(Sprintf("Parse2Dollar: Empty Variable Name after $ here: %q", s))
+	// else:
+	return &PPart{
+		Type: DOLLAR1,
+		Str:  name,
 	}
-
-	z := &PPart{
-		Type: typ,
-		Str:  varName,
-		Word: key,
-	}
-	return z, s[i:]
 }
 
-// Returns next command (or else nil) and remaining string.
-func Parse2Cmd(str string) (*PCmd, string) {
-	s := str
+// Returns next command, or else nil.
+func Parse2Cmd(lex *Lex) *PCmd {
+	Say("Enter Parse2Cmd", lex)
 	words := make([]*PWord, 0)
-	var c uint8
 
 Restart:
-	// skip space or ;
-	i := 0
-	n := len(s)
-	for i < n {
-		c = s[i]
-		if !WhiteOrSemi(s[i]) {
-			break
-		}
-		i++
+	// skip initial newlines and ';'s (as well as white space)
+	for lex.Tok == Token(';') || lex.Tok == TokNewline {
+		lex.Advance()
 	}
-	s = s[i:]
 
 Loop:
-	for len(s) > 0 {
-		// found non-white
-		switch s[0] {
-		case ']':
+	// Ways break Loop: TokEnd, TokNewline, Token(';'), Token(']').
+	// We leave the lex.Tok at one of those four when we return.
+	for lex.Tok != TokEnd {
+		switch lex.Tok {
+		case TokNewline, Token(';'):
+			lex.Advance()
 			break Loop
-		case '{': // stupid vim: '}'
-			newresult, rest := Parse2Curly(s)
-			words = append(words, newresult)
-			s = rest
-		case '[': // stupid vim: ']'
-			part, rest := Parse2Square(s)
+		case Token(']'):
+			// DONT lex.Advance() -- leave this at the end-bracket.
+			break Loop
+		case Token('{'): // vim: '}'
+			r := Parse2Curly(lex)
+			words = append(words, r)
+			// vim: '{'
+			MustTok(Token('}'), lex.Tok)
+			// TODO: Must Be Followed By White Or End
+			lex.Advance()
+		case Token('['):
+			part := Parse2Square(lex)
 			// TODO: Bug if word is [foo][bar]
 			words = append(words, &PWord{Parts: []*PPart{part}})
-			s = rest
-		case '"':
-			newresult, rest := Parse2Quote(s)
-			words = append(words, newresult)
-			s = rest
-		case '#':
+			// vim: '['
+			MustTok(Token(']'), lex.Tok)
+			// TODO: MIGHT NOT Be Followed By White Or End
+			lex.Advance()
+		case Token('"'):
+			r := Parse2Quote(lex)
+			words = append(words, r)
+			MustTok(Token('"'), lex.Tok)
+			lex.Advance()
+		case Token('#'):
 			if len(words) == 0 {
-				eol := strings.Index(s, "\n")
-				if eol >= 0 {
-					s = s[eol:]
-					goto Restart
-				}
-				s = ""
+				lex.SkipComment()
 				goto Restart
 			}
-			fallthrough
+			fallthrough // # is not special if not at beginning of command.
 		default:
-			newresult, rest := Parse2Word(s)
-			words = append(words, newresult)
-			s = rest
-		}
-
-		// skip white
-		n = len(s)
-		i = 0
-	Skip:
-		for i < n {
-			switch s[i] {
-			case ' ', '\t', '\r':
-				i++
-				continue Skip
-			case ';', '\n':
-				break Skip
-			default:
-				break Skip
-			}
-		}
-		s = s[i:]
-		if len(s) == 0 {
-			break Loop // end of string
-		}
-		c = s[0]
-		if c == ';' || c == '\n' {
-			s = s[1:]  // Omit the semicolon or newline
-			break Loop // end of cmd
+			r := Parse2Word(lex)
+			words = append(words, r)
 		}
 	} // End Loop
+
 	if len(words) == 0 {
-		return nil, s
+		return nil
 	}
-	return &PCmd{Words: words}, s
+	return &PCmd{Words: words}
 }
 
-func Parse2Seq(str string) (*PSeq, string) {
-	rest := str
+func Parse2Seq(lex *Lex) *PSeq {
+	Say("Enter Parse2Seq", lex)
 	z := &PSeq{
-		Cmds: make([]*PCmd, 0, 4),
+		Cmds: make([]*PCmd, 0),
 	}
 Loop:
 	for {
-		var cmd *PCmd
-		cmd, rest = Parse2Cmd(rest)
+		cmd := Parse2Cmd(lex)
 		if cmd == nil {
 			break Loop
 		}
 		z.Cmds = append(z.Cmds, cmd)
+		Say("Append Parse2Seq z", z)
 	}
-	return z, rest
+	return z
 }

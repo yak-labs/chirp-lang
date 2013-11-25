@@ -5,7 +5,7 @@ import (
 )
 
 func nextMustLex(x *Lex, t Token, s string) {
-	MustA(t, x.Type)
+	MustA(t, x.Tok)
 	MustA(s, x.Current())
 	x.Advance()
 }
@@ -13,7 +13,7 @@ func nextMustLex(x *Lex, t Token, s string) {
 func TestLex1(a *testing.T) {
 	x := NewLex(` 10 + 20 - 30 * nil <<(4!=3)`)
 
-	MustA(TokNumber, x.Type)
+	MustA(TokNumber, x.Tok)
 	MustA(1, x.Pos)
 	MustA(3, x.Next)
 	x.Advance()

@@ -5,7 +5,9 @@ import (
 	. "fmt"
 	"go/ast"
 	"log"
+	"path"
 	R "reflect"
+	"runtime"
 	"strings"
 	"sync"
 )
@@ -315,6 +317,11 @@ func (fr *Frame) FindCommand(name T, callSuper bool) Command {
 
 // Apply a command with its arguments.
 func (fr *Frame) Apply(argv []T) T {
+	Sayf("@Apply@   %s", argv[0])
+	for i, e := range argv[1:] {
+		Sayf("      .%d.  %s", i, e)
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			if re, ok := r.(error); ok {
@@ -367,13 +374,24 @@ func MustST(a string, b T) {
 // MustA takes Any 2 values, and compares their Repr()s.
 func MustA(a, b interface{}) {
 	if Repr(a) != Repr(b) {
+		log.Printf("[A]: %s", Repr(a))
+		log.Printf("[B]: %s", Repr(b))
 		panic(Repr(a) + " .vs. " + Repr(b))
+	}
+}
+
+// MustB takes two bytes.
+func MustB(a, b byte) {
+	if a != b {
+		panic(Sprintf("MustB Fails: %d %q .vs. %d %q", a, string(a), b, string(b)))
 	}
 }
 
 // MustSp takes Any 2 values, and compares their Repr()s, without spaces.
 func MustNoSp(a, b interface{}) {
 	if DropSpaces(Repr(a)) != DropSpaces(Repr(b)) {
+		log.Printf("[A]: %s", DropSpaces(Repr(a)))
+		log.Printf("[B]: %s", DropSpaces(Repr(b)))
 		panic(Repr(a) + " .vs. " + Repr(b))
 	}
 }
@@ -402,17 +420,44 @@ func Showv(a []T) string {
 	return buf.String()
 }
 
+func Where() string {
+	sb := bytes.NewBuffer(nil)
+	for skip := 6; skip > 1; skip-- {
+		_, file, line, ok := runtime.Caller(skip)
+		if ok {
+			base := path.Base(file)
+			n := len(base)
+			if base[n-3:] == ".go" {
+				base = base[:n-3] // Strip trailing .go
+			}
+			sb.WriteString(Sprintf(" %s:%d", base, line))
+		}
+	}
+	return sb.String()
+}
+
 // Quick internal logging function that needs no Frame.
 func Say(args ...interface{}) {
-	prefix := "Say "
+	log.Println(Sprintf("Say --->%s --->", Where()))
+	prefix := ": "
 	for _, a := range args {
 		switch t := a.(type) {
 		case Shower:
 			log.Println(Sprintf("%s%s", prefix, t.Show()))
 		default:
-			log.Println(Sprintf("%s%#v", prefix, a))
+			rv := R.ValueOf(a)
+			rvt := rv.Type()
+			if rvt.Kind() == R.Slice && rvt.Elem().Kind() == R.Ptr {
+				log.Println(Sprintf("%s SLICE [%d] %s ........", prefix, rv.Len(), rvt))
+				for i := 0; i < rv.Len(); i++ {
+					elem := rv.Index(i)
+					Say(Sprintf("...... Index[%d]", i), elem.Interface())
+				}
+			} else {
+				log.Println(Sprintf("%s%#v", prefix, a))
+			}
 		}
-		prefix += "::: "
+		prefix += "  : "
 	}
 }
 func Sayf(format string, args ...interface{}) {
