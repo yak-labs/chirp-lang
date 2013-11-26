@@ -15,6 +15,7 @@ func WhiteOrSemi(ch uint8) bool {
 }
 
 func (fr *Frame) Eval(a T) (result T) {
+	FrameEvalTCounter.Incr()
 	defer func() {
 		if r := recover(); r != nil {
 			if re, ok := r.(error); ok {
@@ -35,6 +36,7 @@ func (fr *Frame) Eval(a T) (result T) {
 	result = Empty // In case of empty eval.
 
 	if a.IsPreservedByList() {
+		FrameEvalTQuickApplyCounter.Incr()
 		return fr.Apply(a.List())
 	}
 
@@ -49,6 +51,7 @@ Loop:
 		result = fr.Apply(words)
 	}
 	if len(rest) > 0 {
+		FrameEvalTShortCounter.Incr()
 		panic(Sprintf("Eval: Did not eval entire string: rest=<%q>", rest))
 	}
 	return
@@ -312,6 +315,7 @@ Loop:
 // Might return nonempty <rest> if it finds ']'
 // Returns next command as List (may be empty) (substituting as needed) and remaining string.
 func (fr *Frame) ParseCmd(str string) (zwords []T, s string) {
+	ParseCmdCounter.Incr()
 	s = str
 	zwords = make([]T, 0, 4)
 	var c uint8
@@ -562,4 +566,20 @@ func ParseList(s string) []T {
 		z = append(z, MkString(buf.String()))
 	}
 	return z
+}
+
+var ParseCmdCounter Counter
+var SubstStringCounter Counter
+var FrameEvalTCounter Counter
+var FrameEvalTQuickApplyCounter Counter
+var FrameEvalTShortCounter Counter
+var ParseListCounter Counter
+
+func init() {
+	ParseCmdCounter.Register("ParseCmd")
+	SubstStringCounter.Register("SubstString")
+	FrameEvalTCounter.Register("FrameEvalT")
+	FrameEvalTQuickApplyCounter.Register("FrameEvalTQuickApply")
+	FrameEvalTShortCounter.Register("FrameEvalTShort")
+	ParseListCounter.Register("ParseList")
 }

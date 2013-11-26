@@ -319,7 +319,7 @@ func (fr *Frame) FindCommand(name T, callSuper bool) Command {
 func (fr *Frame) Apply(argv []T) T {
 	Sayf("@Apply@   %s", argv[0])
 	for i, e := range argv[1:] {
-		Sayf("      .%d.  %s", i + 1, e)
+		Sayf("      .%d.  %s", i+1, e)
 	}
 
 	defer func() {
@@ -436,6 +436,10 @@ func Where() string {
 	return sb.String()
 }
 
+func Logf(fmt string, args ...interface{}) {
+	log.Println(Sprintf(fmt, args...))
+}
+
 // Quick internal logging function that needs no Frame.
 func Say(args ...interface{}) {
 	log.Println(Sprintf("Say --->%s --->", Where()))
@@ -462,4 +466,49 @@ func Say(args ...interface{}) {
 }
 func Sayf(format string, args ...interface{}) {
 	log.Println(Sprintf(format, args...))
+}
+
+type Counter struct {
+	count int64
+	name  string
+	next  *Counter
+}
+
+var Counters *Counter
+
+func (p *Counter) Incr() {
+	p.count++
+}
+
+func (p *Counter) Show() string {
+	return Sprintf("%d %s", p.count, p.name)
+}
+
+func (p *Counter) Register(name string) {
+	p.name = name
+	p.next = Counters
+	Counters = p
+	Say("Counter Register: " + name)
+	LogAllCounters()
+}
+
+func LogAllCounters() {
+	for p := Counters; p != nil; p = p.next {
+		Logf("Counter: %s", p.Show())
+	}
+}
+
+func ClearAllCounters() {
+	for p := Counters; p != nil; p = p.next {
+		p.count = 0
+	}
+}
+
+func ShowAllCounters() string {
+	buf := bytes.NewBuffer(nil)
+	for p := Counters; p != nil; p = p.next {
+		buf.WriteString(p.Show())
+		buf.WriteByte('\n')
+	}
+	return buf.String()
 }

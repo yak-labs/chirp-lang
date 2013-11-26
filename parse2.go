@@ -17,6 +17,7 @@ type PSeq struct {
 }
 
 func (me *PSeq) Eval(fr *Frame) T {
+	Parse2SeqEvalCounter.Incr()
 	var z T = Empty
 	for _, cmd := range me.Cmds {
 		z = cmd.Eval(fr)
@@ -39,6 +40,7 @@ type PCmd struct {
 }
 
 func (me *PCmd) Eval(fr *Frame) T {
+	Parse2CmdEvalCounter.Incr()
 	words := make([]T, len(me.Words))
 	for i, w := range me.Words {
 		words[i] = w.Eval(fr)
@@ -62,6 +64,7 @@ type PWord struct {
 }
 
 func (me *PWord) Eval(fr *Frame) T {
+	Parse2WordEvalCounter.Incr()
 	switch len(me.Parts) {
 	case 0:
 		return Empty
@@ -194,6 +197,7 @@ func finishBarePart(parts []*PPart, buf *bytes.Buffer) ([]*PPart, *bytes.Buffer)
 
 // Parse Square Bracketed subcommand, returning result and new position
 func Parse2Square(lex *Lex) *PPart {
+	Parse2SquareCounter.Incr()
 	Say("Enter Parse2Square", lex)
 	if lex.Tok != Token('[') {
 		panic("Parse2Square should begin at open square")
@@ -218,6 +222,7 @@ Loop:
 }
 
 func Parse2Quote(lex *Lex) *PWord {
+	Parse2QuoteCounter.Incr()
 	Say("Enter Parse2Quote", lex)
 	if lex.Tok != Token('"') {
 		panic("@@@@@ Parse2Quote should begin at open Quote")
@@ -388,6 +393,7 @@ Loop:
 
 // Parse a variable name after a '$', returning *PPart.
 func Parse2Dollar(lex *Lex) *PPart {
+	Parse2DollarCounter.Incr()
 	Say("Enter Parse2Dollar", lex)
 	if lex.Tok != Token('$') {
 		panic("Expected $ at beginning of Parse2Dollar")
@@ -420,6 +426,7 @@ func Parse2Dollar(lex *Lex) *PPart {
 
 // Returns next command, or else nil.
 func Parse2Cmd(lex *Lex) *PCmd {
+	Parse2CmdCounter.Incr()
 	Say("Enter Parse2Cmd", lex)
 	words := make([]*PWord, 0)
 
@@ -480,6 +487,7 @@ Loop:
 }
 
 func Parse2Seq(lex *Lex) *PSeq {
+	Parse2SeqCounter.Incr()
 	Say("Enter Parse2Seq", lex)
 	z := &PSeq{
 		Cmds: make([]*PCmd, 0),
@@ -494,4 +502,24 @@ Loop:
 		Say("Append Parse2Seq z", z)
 	}
 	return z
+}
+
+var Parse2CmdCounter Counter
+var Parse2DollarCounter Counter
+var Parse2SquareCounter Counter
+var Parse2QuoteCounter Counter
+var Parse2SeqCounter Counter
+var Parse2SeqEvalCounter Counter
+var Parse2CmdEvalCounter Counter
+var Parse2WordEvalCounter Counter
+
+func init() {
+	Parse2CmdCounter.Register("Parse2Cmd")
+	Parse2DollarCounter.Register("Parse2Dollar")
+	Parse2SquareCounter.Register("Parse2Square")
+	Parse2QuoteCounter.Register("Parse2Quote")
+	Parse2SeqCounter.Register("Parse2Seq")
+	Parse2SeqEvalCounter.Register("Parse2SeqEval")
+	Parse2CmdEvalCounter.Register("Parse2CmdEval")
+	Parse2WordEvalCounter.Register("Parse2WordEval")
 }

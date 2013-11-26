@@ -21,6 +21,7 @@ import (
 	"strings"
 )
 
+var vFlag = flag.Int("v", 1, "Verbosity Level.")
 var cFlag = flag.String("c", "", "Immediate command to execute.")
 var panicFlag = flag.Bool("panic", false, "Don't catch panic in REPL.")
 
@@ -51,7 +52,7 @@ func main() {
 	if cFlag != nil && *cFlag != "" {
 		saveArgvStarting(fr, 1)
 		fr.Eval(chirp.MkString(*cFlag))
-		return
+		goto End
 	}
 
 	if len(flag.Args()) > 0 {
@@ -64,33 +65,44 @@ func main() {
 		}
 		saveArgvStarting(fr, 1)
 		fr.Eval(chirp.MkString(string(contents)))
-		return
+		goto End
 	}
 
-	bio := bufio.NewReader(os.Stdin)
-	for {
-		Fprint(os.Stderr, "chirp% ") // Prompt to stderr.
-		line, isPrefix, err := bio.ReadLine()
-		if err != nil {
-			if err.Error() == "EOF" { // TODO: better way?
-				return
-			}
-			Fprintf(os.Stderr, "ERROR in ReadLine: %s\n", err.Error())
-			return
-		}
-		fullLine := line
-		for isPrefix {
-			line, isPrefix, err = bio.ReadLine()
+	{
+		bio := bufio.NewReader(os.Stdin)
+		for {
+			Fprint(os.Stderr, "chirp% ") // Prompt to stderr.
+			line, isPrefix, err := bio.ReadLine()
 			if err != nil {
+				if err.Error() == "EOF" { // TODO: better way?
+					goto End
+				}
 				Fprintf(os.Stderr, "ERROR in ReadLine: %s\n", err.Error())
-				return
+				goto End
 			}
-			fullLine = append(fullLine, line...)
+			fullLine := line
+			for isPrefix {
+				line, isPrefix, err = bio.ReadLine()
+				if err != nil {
+					Fprintf(os.Stderr, "ERROR in ReadLine: %s\n", err.Error())
+					goto End
+				}
+				fullLine = append(fullLine, line...)
+			}
+			result := EvalStringOrPrintError(fr, string(fullLine))
+			if result != "" { // Traditionally, if result is empty, tclsh doesn't print.
+				Println(result)
+			}
 		}
-		result := EvalStringOrPrintError(fr, string(fullLine))
-		if result != "" { // Traditionally, if result is empty, tclsh doesn't print.
-			Println(result)
-		}
+	}
+
+End:
+	logAllCounters()
+}
+
+func logAllCounters() {
+	if *vFlag > 1 {
+		chirp.LogAllCounters()
 	}
 }
 
