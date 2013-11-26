@@ -360,8 +360,10 @@ var cmdTests = `
 `
 
 func TestFoo(a *testing.T) {
+	ClearAllCounters()
 	fr := New()
 	fr.Eval(MkString(cmdTests))
+	LogAllCounters()
 }
 
 func TestStringMatchExact(t *testing.T) {

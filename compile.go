@@ -168,6 +168,5 @@ func CompileSequence(fr *Frame, s string) (z Evaler) {
 		Sayf("CompileSequence Non-Empty rest: %q", s)
 		return nil
 	}
-	Say("CompileSequence GOOD", s, z)
 	return
 }

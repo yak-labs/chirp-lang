@@ -40,21 +40,38 @@ func (fr *Frame) Eval(a T) (result T) {
 		return fr.Apply(a.List())
 	}
 
-	rest := a.String()
-Loop:
-	for {
-		var words []T
-		words, rest = fr.ParseCmd(rest)
-		if len(words) == 0 {
-			break Loop
+	if true {
+		// New code, using parse2.
+
+		src := a.String()
+		lex := NewLex(src)
+		seq := Parse2Seq(lex)
+		if lex.Tok != TokEnd {
+			Sayf("INCOMPLETE PARSE: Non-Empty rest: <%q>", src)
+			return nil
 		}
-		result = fr.Apply(words)
+
+		result = seq.Eval(fr)
+		return
+
+	} else {
+		// Old code, using parse.
+		rest := a.String()
+	Loop:
+		for {
+			var words []T
+			words, rest = fr.ParseCmd(rest)
+			if len(words) == 0 {
+				break Loop
+			}
+			result = fr.Apply(words)
+		}
+		if len(rest) > 0 {
+			FrameEvalTShortCounter.Incr()
+			panic(Sprintf("Eval: Did not eval entire string: rest=<%q>", rest))
+		}
+		return
 	}
-	if len(rest) > 0 {
-		FrameEvalTShortCounter.Incr()
-		panic(Sprintf("Eval: Did not eval entire string: rest=<%q>", rest))
-	}
-	return
 }
 
 // Parse nested curlies, returning contents and new position

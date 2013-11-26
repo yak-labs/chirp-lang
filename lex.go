@@ -49,7 +49,6 @@ func (x *Lex) Show() string {
 }
 
 func NewLex(s string) *Lex {
-	Say("NewLex <- %v", s)
 	t := &Lex{Str: s, Len: len(s)}
 	t.Advance()
 	return t
@@ -57,8 +56,7 @@ func NewLex(s string) *Lex {
 
 func MustTok(a, b Token) {
 	if a != b {
-		Say("MustTok BAD: " + string(a) + " .vs. " + string(b))
-		panic(Sprintf("Wrong Token in MustTok: %u vs %u", a, b))
+		panic(Sprintf("PANIC: MustTok: %u <%s> vs %u <%s>", a, string(a), b, string(b)))
 	}
 }
 
@@ -70,12 +68,11 @@ func (x *Lex) Current() string {
 }
 
 func (x *Lex) SkipComment() {
-	Say("Lex SkipComment")
 	if x.Tok != Token('#') {
 		panic("not # in SkipComment")
 	}
 	for x.Next < x.Len {
-		if x.Next == '\n' {
+		if x.Str[x.Next] == '\n' {
 			break
 		}
 		x.Next++
@@ -92,7 +89,6 @@ func (x *Lex) PeekNext() byte {
 
 // AdvanceIfAlfaNum will either take a TokAlfaNum (no white space first), or not advance.
 func (x *Lex) AdvanceIfAlfaNum() {
-	Say("Lex AdvanceIfAlfaNum", x)
 	bounds := alfaNumRegexp.FindStringIndex(x.Str[x.Next:])
 	if bounds == nil {
 		return
@@ -103,7 +99,6 @@ func (x *Lex) AdvanceIfAlfaNum() {
 }
 
 func (x *Lex) Advance() {
-	Say("Lex Advance", x)
 	// Skip over white space.
 	for x.Next < x.Len {
 		c := x.Str[x.Next]
@@ -131,19 +126,15 @@ func (x *Lex) Advance() {
 	}
 
 	var bounds []int
-	Say("lex-advance-switch: ", x)
-	Say("lex-advance-switch: " + string(c))
 	switch c {
 	case '-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 		bounds = numberRegexp.FindStringIndex(x.Str[x.Next:])
-		// Say("number bounds", bounds)
 		if bounds != nil {
 			x.Next += bounds[1]
 			x.Tok = TokNumber
 			return
 		}
 		if c == '-' {
-			// Say("minus", c)
 			goto single
 		}
 		fallthrough
@@ -152,7 +143,6 @@ func (x *Lex) Advance() {
 		'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
 		'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z':
 		bounds = alfaNumRegexp.FindStringIndex(x.Str[x.Next:])
-		// Say("alfa bounds", c)
 		if bounds == nil {
 			panic("alfaNumRegexp.FindStringIndex bounds cannot be nil.")
 		}
@@ -286,9 +276,12 @@ func (lex *Lex) Stretch1() {
 // StretchBackslashEscaped stretches the Next pointer across \C or \ooo for octal.
 func (lex *Lex) StretchBackslashEscaped() byte {
 	s := lex.Str
+	MustB('\\', lex.PeekNext())
+
 	if lex.Next+1 >= lex.Len {
 		panic("EOS after escaping backslash")
 	}
+
 	switch s[lex.Next+1] {
 	case 'a':
 		lex.Next += 2
@@ -315,8 +308,10 @@ func (lex *Lex) StretchBackslashEscaped() byte {
 		panic("Hexadecimal Backslash Escapes not supported (yet)")
 	}
 	if s[lex.Next+1] < '0' || s[lex.Next+1] > '7' {
+		// Default for all other cases is the escaped char.
+		z := s[lex.Next+1]
 		lex.Next += 2
-		return s[lex.Next+1] // Default for all other cases is the escaped char.
+		return z
 	}
 	if lex.Next+3 >= lex.Len {
 		panic("EOS in octal escape")

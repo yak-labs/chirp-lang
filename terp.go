@@ -12,6 +12,8 @@ import (
 	"sync"
 )
 
+var Debug [256]bool
+
 type Shower interface {
 	Show() string
 }
@@ -317,9 +319,11 @@ func (fr *Frame) FindCommand(name T, callSuper bool) Command {
 
 // Apply a command with its arguments.
 func (fr *Frame) Apply(argv []T) T {
-	Sayf("@Apply@   %s", argv[0])
-	for i, e := range argv[1:] {
-		Sayf("      .%d.  %s", i+1, e)
+	if Debug['a'] {
+		Sayf("Apply:  <%q>", argv[0])
+		for i, e := range argv[1:] {
+			Sayf(".....:  arg%d=<%q>", i+1, e)
+		}
 	}
 
 	defer func() {
@@ -353,7 +357,13 @@ func (fr *Frame) Apply(argv []T) T {
 
 	head := argv[0]
 	fn := fr.FindCommand(head, false) // false: Don't call super.
+	if fn == nil {
+		panic("fr.FindCommand returned nil")
+	}
 	z := fn(fr, argv)
+	if Debug['a'] {
+		Sayf("Apply...returns <%q>", z.String())
+	}
 	return z
 }
 
@@ -488,8 +498,6 @@ func (p *Counter) Register(name string) {
 	p.name = name
 	p.next = Counters
 	Counters = p
-	Say("Counter Register: " + name)
-	LogAllCounters()
 }
 
 func LogAllCounters() {

@@ -40,12 +40,19 @@ type PCmd struct {
 }
 
 func (me *PCmd) Eval(fr *Frame) T {
+	if Debug['w'] {
+		Say("PCmd.Eval: ", me.Show())
+	}
 	Parse2CmdEvalCounter.Incr()
 	words := make([]T, len(me.Words))
 	for i, w := range me.Words {
 		words[i] = w.Eval(fr)
 	}
-	return fr.Apply(words)
+	z := fr.Apply(words)
+	if Debug['w'] {
+		Say("PCmd.Eval: Return: ", z)
+	}
+	return z
 }
 
 func (me *PCmd) Show() string {
@@ -63,31 +70,35 @@ type PWord struct {
 	Multi *terpMulti // If not null, value is fixed and precompiled.
 }
 
-func (me *PWord) Eval(fr *Frame) T {
+func (me *PWord) Eval(fr *Frame) (z T) {
+	if Debug['w'] {
+		Say("PWord.Eval: ", me.Show())
+	}
 	Parse2WordEvalCounter.Incr()
 	switch len(me.Parts) {
 	case 0:
-		return Empty
+		z = Empty
 	case 1:
 		if me.Multi != nil {
-			//Say("me.Parts[0]: ", me.Parts[0])
-			//Say("  me.Multi: ", *me.Multi)
-			//if me.Multi.l != nil {
-			//	Say("    me.Multi.l", *me.Multi.l)
-			//}
-			return *me.Multi
-		}
-		return me.Parts[0].Eval(fr)
-	}
-	buf := bytes.NewBuffer(nil)
-	for _, part := range me.Parts {
-		if part.Type == BARE { // Optimization: avoid creating a T.
-			buf.WriteString(part.Str)
+			z = *me.Multi
 		} else {
-			buf.WriteString(part.Eval(fr).String())
+			z = me.Parts[0].Eval(fr)
 		}
+	default:
+		buf := bytes.NewBuffer(nil)
+		for _, part := range me.Parts {
+			if part.Type == BARE { // Optimization: avoid creating a T.
+				buf.WriteString(part.Str)
+			} else {
+				buf.WriteString(part.Eval(fr).String())
+			}
+		}
+		z = MkString(buf.String())
 	}
-	return MkString(buf.String())
+	if Debug['w'] {
+		Say("PWord.Eval: Returns:", me.Show())
+	}
+	return z
 }
 
 func (me *PWord) Show() string {
@@ -122,14 +133,22 @@ func (me *PPart) Eval(fr *Frame) T {
 	case SQUARE:
 		return me.Seq.Eval(fr)
 	case DOLLAR1:
-		return fr.GetVar(me.Str)
+		v := fr.GetVar(me.Str)
+		if v == nil {
+			panic(Sprintf("(* PWord.Eval.DOLLAR1 *) Variable does not exist.", me.Str))
+		}
+		return v
 	case DOLLAR2:
 		v := fr.GetVar(me.Str)
+		if v == nil {
+			panic(Sprintf("(* PWord.Eval.DOLLAR2 *) Variable does not exist.", me.Str))
+		}
 		h := v.Hash()
 		if h == nil {
-			panic(Sprintf("(*PWord.Eval.DOLLAR2*) Variable %q is not a hash.", me.Str))
+			panic(Sprintf("(* PWord.Eval.DOLLAR2 *) Variable %q is not a hash.", me.Str))
 		}
-		k := me.Seq.Eval(fr).String()
+
+		k := me.Word.Eval(fr).String()
 		z := h[k]
 		if z == nil {
 			panic(Sprintf("(*PWord.Eval.DOLLAR2*) Variable %q: Key not found", me.Str))
@@ -155,7 +174,6 @@ func (me *PPart) Show() string {
 
 // Parse nested curlies, returning contents.
 func Parse2Curly(lex *Lex) *PWord {
-	Say("Enter Parse2Curly", lex)
 	if lex.Tok != '{' {
 		panic("Parse2Curly should begin at open curly")
 	} // vim: '}'
@@ -188,17 +206,14 @@ func finishBarePart(parts []*PPart, buf *bytes.Buffer) ([]*PPart, *bytes.Buffer)
 			Str:  buf.String(),
 		}
 		parts = append(parts, bare)
-		Say("finishBarePart +->", parts)
 		return parts, bytes.NewBuffer(nil)
 	}
-	Say("finishBarePart ---", parts)
 	return parts, buf
 }
 
 // Parse Square Bracketed subcommand, returning result and new position
 func Parse2Square(lex *Lex) *PPart {
 	Parse2SquareCounter.Incr()
-	Say("Enter Parse2Square", lex)
 	if lex.Tok != Token('[') {
 		panic("Parse2Square should begin at open square")
 	}
@@ -223,9 +238,8 @@ Loop:
 
 func Parse2Quote(lex *Lex) *PWord {
 	Parse2QuoteCounter.Incr()
-	Say("Enter Parse2Quote", lex)
 	if lex.Tok != Token('"') {
-		panic("@@@@@ Parse2Quote should begin at open Quote")
+		panic("PANIC: Parse2Quote should begin at open Quote")
 	}
 	buf := bytes.NewBuffer(nil)
 	parts := make([]*PPart, 0)
@@ -233,7 +247,6 @@ func Parse2Quote(lex *Lex) *PWord {
 Loop:
 	for lex.Next < lex.Len {
 		c := lex.Str[lex.Next]
-		Say("Switch Parse2Quote:", string(c))
 		switch c {
 		case '"':
 			// lex.Stretch1()
@@ -263,20 +276,17 @@ Loop:
 			lex.Stretch1()
 		}
 	}
-	Say("Exit Parse2Quote", lex)
 	parts, buf = finishBarePart(parts, buf)
 	return &PWord{Parts: parts}
 }
 
 // Parse a word, returning result and new position
 func Parse2Word(lex *Lex) *PWord {
-	Say("Enter Parse2Word", lex)
 	buf := bytes.NewBuffer(nil)
 	parts := make([]*PPart, 0)
 
 Loop:
 	for lex.Tok != TokEnd {
-		Say("..... Parse2Word case", lex.Tok)
 
 		// Use the normal Tok lexer to start,
 		// but finish with Next pointing to the next unconsumed thing,
@@ -288,7 +298,6 @@ Loop:
 			r := Parse2Square(lex)
 			parts = append(parts, r)
 			MustTok(Token(']'), lex.Tok)
-			lex.Stretch1() // Step just past the ]
 
 		case ']':
 			// The close-bracket is not part of the word;
@@ -311,6 +320,7 @@ Loop:
 			panic("Parse2Word: DoubleQuote inside word")
 
 		case '\\':
+			lex.Next = lex.Pos // StretchBackslashEscaped wants Next to point to the backslash.
 			c := lex.StretchBackslashEscaped()
 			buf.WriteByte(c)
 
@@ -349,7 +359,6 @@ Loop:
 // White space and DQuotes are not special.
 // Terminates with ")".
 func Parse2DollarKey(lex *Lex) *PWord {
-	Say("Enter Parse2DollarKey", lex)
 	buf := bytes.NewBuffer(nil)
 	parts := make([]*PPart, 0)
 
@@ -394,7 +403,6 @@ Loop:
 // Parse a variable name after a '$', returning *PPart.
 func Parse2Dollar(lex *Lex) *PPart {
 	Parse2DollarCounter.Incr()
-	Say("Enter Parse2Dollar", lex)
 	if lex.Tok != Token('$') {
 		panic("Expected $ at beginning of Parse2Dollar")
 	}
@@ -427,7 +435,6 @@ func Parse2Dollar(lex *Lex) *PPart {
 // Returns next command, or else nil.
 func Parse2Cmd(lex *Lex) *PCmd {
 	Parse2CmdCounter.Incr()
-	Say("Enter Parse2Cmd", lex)
 	words := make([]*PWord, 0)
 
 Restart:
@@ -465,7 +472,6 @@ Loop:
 		case Token('"'):
 			r := Parse2Quote(lex)
 			words = append(words, r)
-			Say("DID Parse2Quote GOT", r, lex)
 			MustTok(Token('"'), lex.Tok)
 			lex.Advance()
 		case Token('#'):
@@ -488,7 +494,6 @@ Loop:
 
 func Parse2Seq(lex *Lex) *PSeq {
 	Parse2SeqCounter.Incr()
-	Say("Enter Parse2Seq", lex)
 	z := &PSeq{
 		Cmds: make([]*PCmd, 0),
 	}
@@ -499,7 +504,6 @@ Loop:
 			break Loop
 		}
 		z.Cmds = append(z.Cmds, cmd)
-		Say("Append Parse2Seq z", z)
 	}
 	return z
 }
