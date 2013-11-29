@@ -21,6 +21,7 @@ import (
 	"strings"
 )
 
+var dFlag = flag.String("d", "", "Debugging flags, each a single letter.")
 var vFlag = flag.Int("v", 1, "Verbosity Level.")
 var cFlag = flag.String("c", "", "Immediate command to execute.")
 var panicFlag = flag.Bool("panic", false, "Don't catch panic in REPL.")
@@ -48,6 +49,10 @@ func main() {
 	flag.Parse()
 	fr := chirp.New()
 	setEnvironInChirp(fr, "Env")
+
+	for _, ch := range *dFlag {
+		chirp.Debug[ch] = true
+	}
 
 	if cFlag != nil && *cFlag != "" {
 		saveArgvStarting(fr, 1)
