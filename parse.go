@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+var _ = strings.Index
+
 func White(ch uint8) bool {
 	return ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n'
 }
@@ -14,8 +16,8 @@ func WhiteOrSemi(ch uint8) bool {
 	return ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n' || ch == ';'
 }
 
-func (fr *Frame) Eval(a T) (result T) {
-	FrameEvalTCounter.Incr()
+func (fr *Frame) EvalSeqWithErrorLocation(seq *PSeq) (result T) {
+	EvalSeqWithErrorLocationCounter.Incr()
 	defer func() {
 		if r := recover(); r != nil {
 			if re, ok := r.(error); ok {
@@ -23,57 +25,24 @@ func (fr *Frame) Eval(a T) (result T) {
 			}
 			if rs, ok := r.(string); ok {
 				// TODO: Require debug level for the Eval arg.
-				as := a.String()
-				if len(as) > 100 {
-					as = as[:100] + "..."
+				src := seq.Src
+				if len(src) > 100 {
+					src = src[:100] + "..."
 				}
-				r = rs + Sprintf("\n\tin Eval\n\t\t%q", as)
+				r = rs + Sprintf("\n\tin Eval\n\t\t%q", src)
 			}
 			panic(r)
 		}
 	}()
 
-	result = Empty // In case of empty eval.
-
-	if a.IsPreservedByList() {
-		FrameEvalTQuickApplyCounter.Incr()
-		return fr.Apply(a.List())
-	}
-
-	if true {
-		// New code, using parse2.
-
-		src := a.String()
-		lex := NewLex(src)
-		seq := Parse2Seq(lex)
-		if lex.Tok != TokEnd {
-			Sayf("INCOMPLETE PARSE: Non-Empty rest: <%q>", src)
-			return nil
-		}
-
-		result = seq.Eval(fr)
-		return
-
-	} else {
-		// Old code, using parse.
-		rest := a.String()
-	Loop:
-		for {
-			var words []T
-			words, rest = fr.ParseCmd(rest)
-			if len(words) == 0 {
-				break Loop
-			}
-			result = fr.Apply(words)
-		}
-		if len(rest) > 0 {
-			FrameEvalTShortCounter.Incr()
-			panic(Sprintf("Eval: Did not eval entire string: rest=<%q>", rest))
-		}
-		return
-	}
+	return seq.Eval(fr)
 }
 
+func (fr *Frame) Eval(a T) (result T) {
+	return a.EvalSeq(fr)
+}
+
+/*
 // Parse nested curlies, returning contents and new position
 func (fr *Frame) ParseCurly(s string) (result T, rest string) {
 	if s[0] != '{' {
@@ -329,7 +298,6 @@ Loop:
 	return z, s[i:]
 }
 
-// Might return nonempty <rest> if it finds ']'
 // Returns next command as List (may be empty) (substituting as needed) and remaining string.
 func (fr *Frame) ParseCmd(str string) (zwords []T, s string) {
 	ParseCmdCounter.Incr()
@@ -412,6 +380,7 @@ Loop:
 	} // End Loop
 	return
 }
+*/
 
 func consumeBackslashEscaped(s string, i int) (byte, int) {
 	switch s[i+1] {
@@ -455,59 +424,37 @@ const (
 	NoBackslash
 )
 
-// SubstString does Square, Dollar, and Backslash substitutions on a string.
 func (fr *Frame) SubstString(s string, flags SubstFlags) string {
-	i := 0
-	n := len(s)
+	lex := NewLex(s)
+	lex.Pos = 0  // Rewind after the builtin Advance()
+	lex.Next = 0 // Rewind after the builtin Advance()
 	buf := bytes.NewBuffer(nil)
-
-Loop:
-	for i < n {
-		c := s[i]
-		switch c {
-		case '[':
-			if (flags & NoSquare) == NoSquare {
-				goto Default
-			}
-			// Mid-word, squares should return stringlike result.
-			newresult2, rest2 := fr.ParseSquare(s[i:])
-			buf.WriteString(newresult2.String())
-			s = rest2
-			n = len(s)
-			i = 0
-			continue Loop
-		case ']':
-			if (flags & NoSquare) == NoSquare {
-				goto Default
-			}
-			break Loop
-		case '$':
-			if (flags & NoDollar) == NoDollar {
-				goto Default
-			}
-			newresult3, rest3 := fr.ParseDollar(s[i:])
-			buf.WriteString(newresult3.String())
-			s = rest3
-			n = len(s)
-			i = 0
-			continue Loop
-		case '\\':
-			if (flags & NoBackslash) == NoBackslash {
-				goto Default
-			}
-			c, i = consumeBackslashEscaped(s, i)
+	for lex.Next < lex.Len {
+		var c byte = lex.Str[lex.Next]
+		if c == '[' && (flags&NoSquare) == 0 {
+			lex.Pos = lex.Next // Refocus on the open square.
+			lex.Next = lex.Pos + 1
+			lex.Tok = '['
+			part := Parse2Square(lex)
+			MustTok(Token(']'), lex.Tok)
+			str := part.Eval(fr).String()
+			buf.WriteString(str)
+		} else if c == '$' && (flags&NoDollar) == 0 {
+			lex.Pos = lex.Next // Refocus on the dollar.
+			lex.Next = lex.Pos + 1
+			lex.Tok = '$'
+			part := Parse2Dollar(lex)
+			str := part.Eval(fr).String()
+			buf.WriteString(str)
+		} else if c == '\\' && (flags&NoBackslash) == 0 {
+			c = lex.StretchBackslashEscaped()
 			buf.WriteByte(c)
-			continue Loop
+		} else {
+			lex.Stretch1()
+			buf.WriteByte(c)
 		}
-	Default:
-		buf.WriteByte(c)
-		i++
 	}
-	if i != n {
-		panic(Sprintf("Syntax error in subst: %q", s))
-	}
-	z := buf.String()
-	return z
+	return buf.String()
 }
 
 func ParseListOrRecover(s string) (recs []T, err interface{}) {
@@ -519,6 +466,7 @@ func ParseListOrRecover(s string) (recs []T, err interface{}) {
 }
 
 func ParseList(s string) []T {
+	ParseListCounter.Incr()
 	n := len(s)
 	i := 0
 	z := make([]T, 0, 4)
@@ -591,6 +539,7 @@ var FrameEvalTCounter Counter
 var FrameEvalTQuickApplyCounter Counter
 var FrameEvalTShortCounter Counter
 var ParseListCounter Counter
+var EvalSeqWithErrorLocationCounter Counter
 
 func init() {
 	ParseCmdCounter.Register("ParseCmd")
@@ -599,4 +548,5 @@ func init() {
 	FrameEvalTQuickApplyCounter.Register("FrameEvalTQuickApply")
 	FrameEvalTShortCounter.Register("FrameEvalTShort")
 	ParseListCounter.Register("ParseList")
+	EvalSeqWithErrorLocationCounter.Register("EvalSeqWithErrorLocation")
 }

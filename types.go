@@ -28,6 +28,8 @@ type T interface {
 	GetAt(key T) T
 	PutAt(value T, key T)
 	QuickReflectValue() R.Value
+	EvalSeq(fr *Frame) T
+	EvalExpr(fr *Frame) T
 }
 
 // terpFloat is a Tcl value holding a float64.
@@ -51,14 +53,15 @@ type terpValue struct { // Implements T.
 	v R.Value
 }
 
-// terpMulti is a Tcl value holding several pre-compiled representations,
+// *terpMulti is a Tcl value holding several pre-compiled representations,
 // which were parsed from a string.
 type terpMulti struct { // Implements T.
 	s               terpString
 	preservedByList bool
 	f               *terpFloat
 	l               *terpList
-	c               *PSeq
+	seq             *PSeq
+	expr            *PExpr
 }
 
 // terpGenerator holds a channel for reading from a generator (yproc command).
@@ -116,9 +119,9 @@ func MkStringList(a []string) terpList {
 func MkValue(a R.Value) terpValue {
 	return terpValue{v: a}
 }
-func MkMulti(a string) terpMulti {
+func MkMulti(a string) *terpMulti {
 	var s terpString = MkString(a)
-	m := terpMulti{s: s, preservedByList: s.IsPreservedByList()}
+	m := &terpMulti{s: s, preservedByList: s.IsPreservedByList()}
 
 	func() {
 		defer func() {
@@ -336,6 +339,8 @@ func (t terpHash) PutAt(value T, key T) {
 	t.h[key.String()] = value
 }
 func (t terpHash) QuickReflectValue() R.Value { return InvalidValue }
+func (t terpHash) EvalSeq(fr *Frame) T        { return Parse2EvalSeqStr(fr, t.String()) }
+func (t terpHash) EvalExpr(fr *Frame) T       { return Parse2EvalExprStr(fr, t.String()) }
 
 // terpGenerator implements T
 
@@ -409,6 +414,8 @@ func (t terpGenerator) PutAt(value T, key T) {
 	panic("terpGenerator is not a Hash")
 }
 func (t terpGenerator) QuickReflectValue() R.Value { return InvalidValue }
+func (t terpGenerator) EvalSeq(fr *Frame) T        { return Parse2EvalSeqStr(fr, t.String()) }
+func (t terpGenerator) EvalExpr(fr *Frame) T       { return Parse2EvalExprStr(fr, t.String()) }
 
 // terpFloat implements T
 
@@ -454,6 +461,8 @@ func (t terpFloat) PutAt(value T, key T) {
 	panic("terpFloat is not a Hash")
 }
 func (t terpFloat) QuickReflectValue() R.Value { return InvalidValue }
+func (t terpFloat) EvalSeq(fr *Frame) T        { return Parse2EvalSeqStr(fr, t.String()) }
+func (t terpFloat) EvalExpr(fr *Frame) T       { return t } // Numbers are self-Expr-eval'ing.
 
 // terpString implements T
 
@@ -514,6 +523,8 @@ func (t terpString) PutAt(value T, key T) {
 	panic("terpString is not a Hash")
 }
 func (t terpString) QuickReflectValue() R.Value { return InvalidValue }
+func (t terpString) EvalSeq(fr *Frame) T        { return Parse2EvalSeqStr(fr, t.String()) }
+func (t terpString) EvalExpr(fr *Frame) T       { return Parse2EvalExprStr(fr, t.String()) }
 
 // terpList implements T
 
@@ -590,6 +601,8 @@ func (t terpList) PutAt(value T, key T) {
 	panic("terpList is not a Hash")
 }
 func (t terpList) QuickReflectValue() R.Value { return InvalidValue }
+func (t terpList) EvalSeq(fr *Frame) T        { return Parse2EvalSeqStr(fr, t.String()) }
+func (t terpList) EvalExpr(fr *Frame) T       { return Parse2EvalExprStr(fr, t.String()) }
 
 // terpValue implements T
 
@@ -667,78 +680,96 @@ func (t terpValue) HeadTail() (hd, tl T) {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// terpMulti implements T
+// *terpMulti implements T
 
-func (t terpMulti) Raw() interface{} {
+func (t *terpMulti) Raw() interface{} {
 	return t.s.Raw()
 }
-func (t terpMulti) String() string {
+func (t *terpMulti) String() string {
 	return t.s.String()
 }
-func (t terpMulti) ListElementString() string {
+func (t *terpMulti) ListElementString() string {
 	return t.s.ListElementString()
 }
-func (t terpMulti) Bool() bool {
+func (t *terpMulti) Bool() bool {
 	if t.f != nil {
 		return t.f.Bool()
 	}
 	return t.s.Bool()
 }
-func (t terpMulti) IsEmpty() bool {
+func (t *terpMulti) IsEmpty() bool {
 	if t.l != nil {
 		return t.l.IsEmpty()
 	}
 	return t.s.IsEmpty()
 }
-func (t terpMulti) Float() float64 {
+func (t *terpMulti) Float() float64 {
 	if t.f != nil {
 		return t.f.Float()
 	}
 	return t.s.Float()
 }
-func (t terpMulti) Int() int64 {
+func (t *terpMulti) Int() int64 {
 	if t.f != nil {
 		return t.f.Int()
 	}
 	return t.s.Int()
 }
-func (t terpMulti) Uint() uint64 {
+func (t *terpMulti) Uint() uint64 {
 	if t.f != nil {
 		return t.f.Uint()
 	}
 	return t.s.Uint()
 }
-func (t terpMulti) IsQuickNumber() bool {
+func (t *terpMulti) IsQuickNumber() bool {
 	if t.f != nil {
 		return t.f.IsQuickNumber()
 	}
 	return t.s.IsQuickNumber()
 }
-func (t terpMulti) IsPreservedByList() bool {
+func (t *terpMulti) IsPreservedByList() bool {
 	return t.preservedByList
 }
-func (t terpMulti) List() []T {
+func (t *terpMulti) List() []T {
 	if t.l != nil {
 		return t.l.List()
 	}
 	return t.s.List()
 }
-func (t terpMulti) HeadTail() (hd, tl T) {
+func (t *terpMulti) HeadTail() (hd, tl T) {
 	if t.l != nil {
 		return t.l.HeadTail()
 	}
 	return t.s.HeadTail()
 }
-func (t terpMulti) Hash() Hash {
+func (t *terpMulti) Hash() Hash {
 	panic("terpMulti: String is not a Hash")
 }
-func (t terpMulti) GetAt(key T) T {
+func (t *terpMulti) GetAt(key T) T {
 	panic("terpMulti: String is not a Hash")
 }
-func (t terpMulti) PutAt(value T, key T) {
+func (t *terpMulti) PutAt(value T, key T) {
 	panic("terpMulti: String is not a Hash")
 }
-func (t terpMulti) QuickReflectValue() R.Value { return InvalidValue }
+func (t *terpMulti) QuickReflectValue() R.Value { return InvalidValue }
+func (t *terpMulti) EvalSeq(fr *Frame) T {
+	MultiEvalSeqCounter.Incr()
+	if t.seq == nil {
+		MultiEvalSeqCompileCounter.Incr()
+		// Lazily compile the first time it is eval'ed as a Seq.
+		t.seq = Parse2SeqStr(t.s.s)
+	}
+	return fr.EvalSeqWithErrorLocation(t.seq)
+}
+func (t *terpMulti) EvalExpr(fr *Frame) T {
+	MultiEvalExprCounter.Incr()
+	if t.expr == nil {
+		MultiEvalExprCompileCounter.Incr()
+		// Lazily compile the first time it is eval'ed as an Expr.
+		t.expr = Parse2ExprStr(t.s.s)
+	}
+	return t.expr.Eval(fr)
+}
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -801,6 +832,8 @@ func (t terpValue) PutAt(value T, key T) {
 	panic("terpValue is not a Hash")
 }
 func (t terpValue) QuickReflectValue() R.Value { return t.v }
+func (t terpValue) EvalSeq(fr *Frame) T        { return Parse2EvalSeqStr(fr, t.String()) }
+func (t terpValue) EvalExpr(fr *Frame) T       { return Parse2EvalExprStr(fr, t.String()) }
 
 func (g *Global) MintMixinSerial() int {
 	g.Mu.Lock()
@@ -868,4 +901,16 @@ func NonEmpty(v []string) []string {
 		}
 	}
 	return z
+}
+
+var MultiEvalSeqCounter Counter
+var MultiEvalSeqCompileCounter Counter
+var MultiEvalExprCounter Counter
+var MultiEvalExprCompileCounter Counter
+
+func init() {
+	MultiEvalSeqCounter.Register("MultiEvalSeq")
+	MultiEvalSeqCompileCounter.Register("MultiEvalSeqCompile")
+	MultiEvalExprCounter.Register("MultiEvalExpr")
+	MultiEvalExprCompileCounter.Register("MultiEvalExprCompile")
 }

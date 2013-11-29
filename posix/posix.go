@@ -68,6 +68,8 @@ func (t *terpFile) PutAt(value T, key T) {
 func (t *terpFile) QuickReflectValue() R.Value {
 	panic("a terpFile cannot QuickReflectValue")
 }
+func (t terpFile) EvalSeq(fr *Frame) T { return Parse2EvalSeqStr(fr, t.String()) }
+func (t terpFile) EvalExpr(fr *Frame) T { return Parse2EvalExprStr(fr, t.String()) }
 
 func cmdOpen(fr *Frame, argv []T) T {
 	nameT, args := Arg1v(argv)

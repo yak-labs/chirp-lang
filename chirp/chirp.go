@@ -22,7 +22,6 @@ import (
 )
 
 var dFlag = flag.String("d", "", "Debugging flags, each a single letter.")
-var vFlag = flag.Int("v", 1, "Verbosity Level.")
 var cFlag = flag.String("c", "", "Immediate command to execute.")
 var panicFlag = flag.Bool("panic", false, "Don't catch panic in REPL.")
 
@@ -106,7 +105,7 @@ End:
 }
 
 func logAllCounters() {
-	if *vFlag > 1 {
+	if chirp.Debug['c'] {
 		chirp.LogAllCounters()
 	}
 }

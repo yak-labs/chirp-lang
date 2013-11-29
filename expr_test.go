@@ -78,15 +78,3 @@ func TestExpr(a *testing.T) {
 	fr := New()
 	fr.Eval(MkString(exprTests))
 }
-
-func TestExprGeGt(a *testing.T) {
-	// Debug['a'] = true
-	// Debug['e'] = true
-	// Debug['w'] = true
-	// Debug['p'] = true
-	// Debug['l'] = true
-	fr := New()
-	z := fr.Eval(MkString("expr 3 >= 3 && 24 > 3"))
-	Say("TestExprQ: z ->", z)
-	Must(MkInt(1), z)
-}

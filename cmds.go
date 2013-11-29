@@ -1547,6 +1547,7 @@ func Log(fr *Frame, levelStr string, message string) {
 	}
 
 	message = SubstStringOrOrig(fr, message)
+
 	fr.G.Logger.Println(message)
 
 	if panicky {

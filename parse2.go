@@ -111,6 +111,7 @@ func (me *PExpr) Show() string {
 // Any piece of tcl code, a sequence of commands.
 type PSeq struct {
 	Cmds []*PCmd
+	Src  string
 }
 
 func (me *PSeq) Eval(fr *Frame) T {
@@ -174,14 +175,17 @@ func (me *PWord) Eval(fr *Frame) (z T) {
 	Parse2WordEvalCounter.Incr()
 	switch len(me.Parts) {
 	case 0:
+		Parse2WordEvalFastCounter.Incr()
 		z = Empty
 	case 1:
+		Parse2WordEvalFastCounter.Incr()
 		if me.Multi != nil {
-			z = *me.Multi
+			z = me.Multi
 		} else {
 			z = me.Parts[0].Eval(fr)
 		}
 	default:
+		Parse2WordEvalSlowCounter.Incr()
 		buf := bytes.NewBuffer(nil)
 		for _, part := range me.Parts {
 			if part.Type == BARE { // Optimization: avoid creating a T.
@@ -288,7 +292,7 @@ func Parse2Curly(lex *Lex) *PWord {
 				Type: BARE,
 			},
 		},
-		Multi: &multi,
+		Multi: multi,
 	}
 	return result
 }
@@ -321,6 +325,7 @@ func Parse2Square(lex *Lex) *PPart {
 		panic("Parse2Square should begin at open square")
 	}
 	lex.Advance()
+	begin := lex.Pos
 	cmds := make([]*PCmd, 0)
 
 Loop:
@@ -336,7 +341,8 @@ Loop:
 	if lex.Tok != Token(']') {
 		panic(Sprintf("Parse2Square: missing end bracket: rest=%q" + lex.Str[lex.Next:]))
 	}
-	return &PPart{Type: SQUARE, Seq: &PSeq{Cmds: cmds}}
+	end := lex.Pos
+	return &PPart{Type: SQUARE, Seq: &PSeq{Cmds: cmds, Src: lex.Str[begin:end]}}
 }
 
 func Parse2Quote(lex *Lex) *PWord {
@@ -462,7 +468,7 @@ Loop:
 	z := &PWord{Parts: parts}
 	if len(parts) == 1 && parts[0].Type == BARE {
 		multi := MkMulti(parts[0].Str) // Optimize for fixed bare value.
-		z.Multi = &multi
+		z.Multi = multi
 	}
 	if Debug['p'] {
 		Say("Word: z ->", z)
@@ -611,6 +617,7 @@ Loop:
 
 func Parse2Seq(lex *Lex) *PSeq {
 	Parse2SeqCounter.Incr()
+	begin := lex.Pos
 	z := &PSeq{
 		Cmds: make([]*PCmd, 0),
 	}
@@ -622,6 +629,8 @@ Loop:
 		}
 		z.Cmds = append(z.Cmds, cmd)
 	}
+	end := lex.Pos
+	z.Src = lex.Str[begin:end]
 	return z
 }
 
@@ -764,6 +773,29 @@ func Parse2ExprStr(s string) *PExpr {
 	return z
 }
 
+func Parse2SeqStr(s string) *PSeq {
+	lex := NewLex(s)
+	seq := Parse2Seq(lex)
+	MustTok(TokEnd, lex.Tok)
+	return seq
+}
+
+func Parse2EvalSeqStr(fr *Frame, s string) T {
+	lex := NewLex(s)
+	seq := Parse2Seq(lex)
+	MustTok(TokEnd, lex.Tok)
+	z := seq.Eval(fr)
+	return z
+}
+
+func Parse2EvalExprStr(fr *Frame, s string) T {
+	lex := NewLex(s)
+	expr := Parse2ExprTop(lex)
+	MustTok(TokEnd, lex.Tok)
+	z := expr.Eval(fr)
+	return z
+}
+
 var Parse2CmdCounter Counter
 var Parse2DollarCounter Counter
 var Parse2SquareCounter Counter
@@ -772,6 +804,8 @@ var Parse2SeqCounter Counter
 var Parse2SeqEvalCounter Counter
 var Parse2CmdEvalCounter Counter
 var Parse2WordEvalCounter Counter
+var Parse2WordEvalFastCounter Counter
+var Parse2WordEvalSlowCounter Counter
 
 var Parse2ExprTopCounter Counter
 var Parse2ExprEvalCounter Counter
@@ -785,6 +819,8 @@ func init() {
 	Parse2SeqEvalCounter.Register("Parse2SeqEval")
 	Parse2CmdEvalCounter.Register("Parse2CmdEval")
 	Parse2WordEvalCounter.Register("Parse2WordEval")
+	Parse2WordEvalFastCounter.Register("Parse2WordEvalFast")
+	Parse2WordEvalSlowCounter.Register("Parse2WordEvalSlow")
 	Parse2ExprTopCounter.Register("Parse2ExprTop")
 	Parse2ExprEvalCounter.Register("Parse2ExprEval")
 }
