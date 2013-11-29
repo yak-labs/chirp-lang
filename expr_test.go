@@ -28,7 +28,7 @@ var exprTests = `
   must 0 [expr { 4 <= 3 }]
   must 1 [expr { 3 <= 4 }]
   must 1 [expr { 3 <= 3 }]
-  must 1 [expr { 4 > 3 }]
+  must 1 [expr { 14 > 3 }]
   must 0 [expr { 3 > 4 }]
   must 0 [expr { 3 > 3 }]
   must 1 [expr { 4 >= 3 }]
@@ -36,18 +36,18 @@ var exprTests = `
   must 1 [expr { 3 >= 3 }]
 
   set conjLazy 123
-  must 1 [expr 3 >= 3 && 4 > 3]
+  must 1 [expr 3 >= 3 && 24 > 3]
   must 0 [expr 3 >= 3 && 4 < 3]
-  must 0 [expr 3 > 3 && 4 > 3]
+  must 0 [expr 3 > 3 && 34 > 3]
   must 0 [expr 3 > 3 && 4 < 3]
   must 1 [expr {$conjLazy == 123 && [set conjLazy 567] == 567}]
   must 0 [expr {$conjLazy == 123 && [set conjLazy 789] == 789}]
   must 567 $conjLazy
 
   set disjLazy 123
-  must 1 [expr 3 >= 3 || 4 > 3]
+  must 1 [expr 3 >= 3 || 44 > 3]
   must 1 [expr 3 >= 3 || 4 < 3]
-  must 1 [expr 3 > 3 || 4 > 3]
+  must 1 [expr 3 > 3 || 54 > 3]
   must 0 [expr 3 > 3 || 4 < 3]
   must 1 [expr {$disjLazy != 123 || [set disjLazy 567] == 567}]
   must 1 [expr {$disjLazy == 567 || [set disjLazy 789] == 789}]
@@ -72,6 +72,21 @@ var exprTests = `
 `
 
 func TestExpr(a *testing.T) {
+	// Debug['a'] = true
+	// Debug['e'] = true
+	// Debug['w'] = true
 	fr := New()
 	fr.Eval(MkString(exprTests))
+}
+
+func TestExprGeGt(a *testing.T) {
+	// Debug['a'] = true
+	// Debug['e'] = true
+	// Debug['w'] = true
+	// Debug['p'] = true
+	// Debug['l'] = true
+	fr := New()
+	z := fr.Eval(MkString("expr 3 >= 3 && 24 > 3"))
+	Say("TestExprQ: z ->", z)
+	Must(MkInt(1), z)
 }

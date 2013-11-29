@@ -137,6 +137,8 @@ type UpSlot struct {
 	RemoteName string
 }
 
+type BitsWord uint32 // We cannot fit uint64 into the float -- until we support actual uint64, we must use shorter BitsWords.
+
 var Empty = MkString("")
 var InvalidValue = *new(R.Value)
 

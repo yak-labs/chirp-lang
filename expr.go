@@ -62,9 +62,15 @@ func isOperator(ch uint8) bool {
 
 // Takes the string that represents an expression and returns the result.
 func (fr *Frame) ParseExpression(s string) (result T) {
-	t, _ := fr.ParseExprCond(s)
-
-	return t
+	if true {
+		// NEW WAY
+		expr := Parse2ExprStr(s)
+		return expr.Eval(fr)
+	} else {
+		// OLD WAY
+		t, _ := fr.ParseExprCond(s)
+		return t
+	}
 }
 
 func (fr *Frame) ParseExprCond(s string) (T, string) {

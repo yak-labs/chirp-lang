@@ -20,9 +20,7 @@ const (
 
 	TokNumEq // ==
 	TokNumNe
-	TokNumLt
 	TokNumLe
-	TokNumGt
 	TokNumGe
 
 	TokStrEq // eq
@@ -34,6 +32,8 @@ const (
 
 	TokShiftLeft  // <<
 	TokShiftRight // >>
+
+	// There must be fewer than 32 of these, because we also use single-printable ASCII codes as Token.
 )
 
 type Lex struct {
@@ -61,6 +61,7 @@ func MustTok(a, b Token) {
 }
 
 var numberRegexp *regexp.Regexp = regexp.MustCompile("^[-]?[0-9]+[.]?[0-9]*([-+]?[Ee][0-9]+)?")
+var strRelRegexp *regexp.Regexp = regexp.MustCompile("^(eq|ne|lt|le|gt|ge)\\b")
 var alfaNumRegexp *regexp.Regexp = regexp.MustCompile("^[A-Za-z0-9_]+")
 
 func (x *Lex) Current() string {
@@ -142,6 +143,29 @@ func (x *Lex) Advance() {
 		'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '_',
 		'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
 		'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z':
+		// First check for the 6 str relops (eq, ne, ...) which have alfaNum syntax.
+		// Code expecting alfaNum (e.g. variable names) should allow these as well.
+		bounds = strRelRegexp.FindStringIndex(x.Str[x.Next:])
+		if bounds != nil {
+			switch x.Str[x.Next : x.Next+2] {
+			case "eq":
+				x.Tok = TokStrEq
+			case "ne":
+				x.Tok = TokStrNe
+			case "lt":
+				x.Tok = TokStrLt
+			case "le":
+				x.Tok = TokStrLe
+			case "gt":
+				x.Tok = TokStrGt
+			case "ge":
+				x.Tok = TokStrGe
+			default:
+				panic("PANIC weird strRelRegexp")
+			}
+			x.Next += 2
+			return
+		}
 		bounds = alfaNumRegexp.FindStringIndex(x.Str[x.Next:])
 		if bounds == nil {
 			panic("alfaNumRegexp.FindStringIndex bounds cannot be nil.")
@@ -153,6 +177,18 @@ func (x *Lex) Advance() {
 		x.Tok = TokAlfaNum
 		return
 
+	case '&':
+		if d == '&' {
+			x.Tok = TokBoolAnd
+			goto pair
+		}
+		goto single
+	case '|':
+		if d == '|' {
+			x.Tok = TokBoolOr
+			goto pair
+		}
+		goto single
 	case '!':
 		if d == '=' {
 			x.Tok = TokNumNe
@@ -201,20 +237,32 @@ func (x *Lex) Advance() {
 other: // Nonprintable or nonASCII, consuming 1 char.
 	x.Tok = TokOther
 	x.Next++
+	if Debug['l'] {
+		Say("====> other", x.Tok, x.Current())
+	}
 	return
 
 single:
 	x.Tok = Token(c) // Use actual char value as Token.
 	x.Next++
+	if Debug['l'] {
+		Say("====> single", x.Tok, x.Current())
+	}
 	return
 
 pair: // Consume a pair of chars.
 	x.Next += 2
+	if Debug['l'] {
+		Say("====> pair", x.Tok, x.Current())
+	}
 	return
 
 newline:
 	x.Tok = TokNewline
 	x.Next++
+	if Debug['l'] {
+		Say("====> newline", x.Tok, x.Current())
+	}
 	return
 }
 

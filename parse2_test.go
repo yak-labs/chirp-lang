@@ -32,6 +32,21 @@ func testParse2Part(f func(*Lex) *PPart, input, expect, rest string) {
 	MustA(rest, lex.Str[lex.Pos:])
 }
 
+func testParse2Expr(input, expect, rest string) {
+	lex := NewLex(input)
+	expr := Parse2ExprTop(lex)
+	MustNoSp(expect, expr.Show())
+	MustA(rest, lex.Str[lex.Pos:])
+}
+
+func test2EvalExpr(fr *Frame, input string, expect T) {
+	lex := NewLex(input)
+	expr := Parse2ExprTop(lex)
+	MustTok(TokEnd, lex.Tok)
+	z := expr.Eval(fr)
+	Must(expect, z)
+}
+
 func Test2Dollar1(t *testing.T) {
 	expect := "PCmd{ PWord{ BARE{\"one\"} } PWord{ DOLLAR1{\"two\"} } PWord{ BARE{\"three\"} DOLLAR1{\"four\"} } } "
 	testParse2Cmd(" one $two three$four ", expect, "")
@@ -78,4 +93,21 @@ func Test2Seq(t *testing.T) {
 
 	input = " one two\nthree] FOO"
 	testParse2Seq(input, expect, "] FOO")
+}
+
+func Test2ExprTop(t *testing.T) {
+	expect := "PExpr{ op+ PExpr{ op\" PWord{ BARE{\"38\"} } } PExpr{ op\" PWord{ BARE{\"4\"} } } } "
+	input := " 38 + 4 "
+	testParse2Expr(input, expect, "")
+
+	expect = "PExpr{op?PExpr{op7PExpr{op\"PWord{DOLLAR1{\"a\"}}}PExpr{op\"PWord{DOLLAR2{\"b\",PWord{BARE{\"z\"}}}}}}PExpr{op+PExpr{op\"PWord{BARE{\"38\"}}}PExpr{op\"PWord{BARE{\"4\"}}}}PExpr{op11PExpr{op\"PWord{BARE{\"abcde\"}}}PExpr{op\"PWord{BARE{\"wxyz\"}}}}}"
+	input = " $a == $b(z) ? 38 + 4 : \"abcde\" eq {wxyz} "
+	testParse2Expr(input, expect, "")
+
+	fr := New()
+	fr.SetVar("x", MkInt(10))
+	fr.SetVar("y", MkInt(20))
+	fr.SetVar("z", MkInt(30))
+	input = " $x < $y ? {YES} : $z "
+	test2EvalExpr(fr, input, MkString("YES"))
 }

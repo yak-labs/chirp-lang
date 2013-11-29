@@ -11,6 +11,103 @@ import (
 	_ "strings"
 )
 
+// An expr command
+type PExpr struct {
+	Op      Token
+	A, B, C *PExpr
+	Word    *PWord // Op '"': for Primatives: "quoted", [square], 3.14 literal, {literal}, $var, $var(index).
+}
+
+func (me *PExpr) Eval(fr *Frame) T {
+	Parse2ExprEvalCounter.Incr()
+	switch me.Op {
+	case '+':
+		return MkFloat(me.A.Eval(fr).Float() + me.B.Eval(fr).Float())
+	case '-':
+		if me.B == nil {
+			// Unary minus, if me.B is missing.
+			return MkFloat(-me.A.Eval(fr).Float())
+		}
+		return MkFloat(me.A.Eval(fr).Float() - me.B.Eval(fr).Float())
+	case '*':
+		return MkFloat(me.A.Eval(fr).Float() * me.B.Eval(fr).Float())
+	case '/':
+		return MkFloat(me.A.Eval(fr).Float() / me.B.Eval(fr).Float())
+	case '%':
+		return MkInt(me.A.Eval(fr).Int() % me.B.Eval(fr).Int())
+	case '&':
+		return MkUint(uint64(BitsWord(me.A.Eval(fr).Uint()) % BitsWord(me.B.Eval(fr).Uint())))
+	case '|':
+		return MkUint(uint64(BitsWord(me.A.Eval(fr).Uint()) | BitsWord(me.B.Eval(fr).Uint())))
+	case '^':
+		return MkUint(uint64(BitsWord(me.A.Eval(fr).Uint()) ^ BitsWord(me.B.Eval(fr).Uint())))
+	case TokBoolAnd:
+		return MkBool(me.A.Eval(fr).Bool() && me.B.Eval(fr).Bool())
+	case TokBoolOr:
+		return MkBool(me.A.Eval(fr).Bool() || me.B.Eval(fr).Bool())
+	case '!':
+		return MkBool(!me.A.Eval(fr).Bool())
+	case '~':
+		return MkUint(uint64(^BitsWord(me.A.Eval(fr).Uint())))
+	case '"': // For "quoted" and {curlied} and $Var and $Var(index)
+		return me.Word.Eval(fr)
+	case '?':
+		if me.A.Eval(fr).Bool() {
+			return me.B.Eval(fr)
+		} else {
+			return me.C.Eval(fr)
+		}
+	case '<':
+		return MkBool(me.A.Eval(fr).Float() < me.B.Eval(fr).Float())
+	case '>':
+		return MkBool(me.A.Eval(fr).Float() > me.B.Eval(fr).Float())
+	case TokNumEq:
+		return MkBool(me.A.Eval(fr).Float() == me.B.Eval(fr).Float())
+	case TokNumNe:
+		return MkBool(me.A.Eval(fr).Float() != me.B.Eval(fr).Float())
+	case TokNumLe:
+		return MkBool(me.A.Eval(fr).Float() <= me.B.Eval(fr).Float())
+	case TokNumGe:
+		return MkBool(me.A.Eval(fr).Float() >= me.B.Eval(fr).Float())
+	case TokStrLt:
+		return MkBool(me.A.Eval(fr).String() < me.B.Eval(fr).String())
+	case TokStrGt:
+		return MkBool(me.A.Eval(fr).String() > me.B.Eval(fr).String())
+	case TokStrEq:
+		return MkBool(me.A.Eval(fr).String() == me.B.Eval(fr).String())
+	case TokStrNe:
+		return MkBool(me.A.Eval(fr).String() != me.B.Eval(fr).String())
+	case TokStrLe:
+		return MkBool(me.A.Eval(fr).String() <= me.B.Eval(fr).String())
+	case TokStrGe:
+		return MkBool(me.A.Eval(fr).String() >= me.B.Eval(fr).String())
+	}
+	panic(Sprintf("PANIC PExpr.Eval unknown op: %d", me.Op))
+}
+
+func (me *PExpr) Show() string {
+	z := "PExpr{ "
+	if me.Op < 33 {
+		z += Sprintf("op%d ", me.Op)
+	} else {
+		z += Sprintf("op%c ", me.Op)
+	}
+	if me.A != nil {
+		z += me.A.Show()
+	}
+	if me.B != nil {
+		z += me.B.Show()
+	}
+	if me.C != nil {
+		z += me.C.Show()
+	}
+	if me.Word != nil {
+		z += me.Word.Show()
+	}
+	z += "} "
+	return z
+}
+
 // Any piece of tcl code, a sequence of commands.
 type PSeq struct {
 	Cmds []*PCmd
@@ -120,7 +217,7 @@ const (
 )
 
 type PPart struct {
-	Str  string
+	Str  string // TODO: make this a T, and use MkMulti.
 	Word *PWord // for DOLLAR2
 	Seq  *PSeq  // for SQUARE
 	Type PartType
@@ -206,7 +303,13 @@ func finishBarePart(parts []*PPart, buf *bytes.Buffer) ([]*PPart, *bytes.Buffer)
 			Str:  buf.String(),
 		}
 		parts = append(parts, bare)
+		if Debug['p'] {
+			Say("finishBarePart ->", buf.String(), parts)
+		}
 		return parts, bytes.NewBuffer(nil)
+	}
+	if Debug['p'] {
+		Say("finishBarePart -> empty ->", parts)
 	}
 	return parts, buf
 }
@@ -287,6 +390,11 @@ func Parse2Word(lex *Lex) *PWord {
 
 Loop:
 	for lex.Tok != TokEnd {
+		if Debug['p'] {
+			Say("Word: LOOP: buf", buf.String())
+			Say("Word: LOOP: Tok=", lex.Tok)
+			Say("Word: LOOP: show=", lex)
+		}
 
 		// Use the normal Tok lexer to start,
 		// but finish with Next pointing to the next unconsumed thing,
@@ -311,9 +419,9 @@ Loop:
 			parts = append(parts, r)
 			// Next should be just after the whole DOLLAR thing.
 
-		case ' ', '\t', '\n', '\r', ';':
+		case TokNewline:
 			parts, buf = finishBarePart(parts, buf)
-			lex.Advance() // Advance to the next word.
+			// lex.Advance() // MAYBE
 			break Loop
 
 		case '"':
@@ -325,16 +433,21 @@ Loop:
 			buf.WriteByte(c)
 
 		default:
+			if Debug['p'] {
+				Say("Word: Loop: DEFAULT: Tok=", lex.Tok)
+				Say("Word: Loop: DEFAULT: Show=", lex.Show())
+				Say("Word: Loop: DEFAULT: Current=", lex.Current())
+			}
 			buf.WriteString(lex.Current())
 		}
 
 		// Peek to see if white space is next.
 		if lex.Next < lex.Len {
 			switch lex.Str[lex.Next] {
-			case ' ', '\t', '\n', '\r', ';':
+			case ' ', '\t', '\r', '\v', '\n', ';':
 				// If white space, then this Word is over.  Break.
 				parts, buf = finishBarePart(parts, buf)
-				lex.Advance() // Advance past this white space to next thing before break.
+				lex.Advance() // Advance past this white space (but not past \n or ;) to next thing before break.
 				break Loop
 			}
 		}
@@ -342,7 +455,7 @@ Loop:
 		// Not at white space; there is more.
 		// Pos will become Next.  Already made sure not at white space.
 		// This will focus on the next thing in the Word.
-		lex.Advance() // MAYBE.
+		lex.Advance()
 	}
 
 	parts, buf = finishBarePart(parts, buf)
@@ -350,6 +463,9 @@ Loop:
 	if len(parts) == 1 && parts[0].Type == BARE {
 		multi := MkMulti(parts[0].Str) // Optimize for fixed bare value.
 		z.Multi = &multi
+	}
+	if Debug['p'] {
+		Say("Word: z ->", z)
 	}
 	return z
 }
@@ -400,7 +516,7 @@ Loop:
 	return &PWord{Parts: parts}
 }
 
-// Parse a variable name after a '$', returning *PPart.
+// Parse a variable name after a '$', returning *PPart.  Leaves Next immediately after the consumed part.
 func Parse2Dollar(lex *Lex) *PPart {
 	Parse2DollarCounter.Incr()
 	if lex.Tok != Token('$') {
@@ -408,12 +524,13 @@ func Parse2Dollar(lex *Lex) *PPart {
 	}
 
 	lex.AdvanceIfAlfaNum()
-	if lex.Tok != TokAlfaNum {
+	switch lex.Tok {
+	case TokAlfaNum, TokStrEq, TokStrNe, TokStrLt, TokStrLe, TokStrGt, TokStrGe:
+
+	default:
 		panic("Expected a varname after $")
 	}
 	name := lex.Current()
-
-	// lex.Advance() // DONT Advance-- white matters.
 
 	if lex.PeekNext() == '(' {
 		key := Parse2DollarKey(lex)
@@ -508,6 +625,145 @@ Loop:
 	return z
 }
 
+func Parse2ExprPrimative(lex *Lex) *PExpr {
+	switch lex.Tok {
+	case '"':
+		word := Parse2Quote(lex)
+		lex.Advance()
+		return &PExpr{Op: '"', Word: word}
+	case '[':
+		part := Parse2Square(lex)
+		lex.Advance()
+		word := &PWord{Parts: []*PPart{part}}
+		return &PExpr{Op: '"', Word: word}
+	case '{':
+		word := Parse2Curly(lex)
+		lex.Advance()
+		return &PExpr{Op: '"', Word: word}
+	case TokNumber:
+		// TODO: use MkMulti, and change Str to a T.
+		part := &PPart{Str: lex.Current(), Type: BARE}
+		lex.Advance()
+		word := &PWord{Parts: []*PPart{part}}
+		return &PExpr{Op: '"', Word: word}
+	case '$':
+		part := Parse2Dollar(lex) // Leaves Next.
+		lex.Advance()             // Advance to next Tok.
+		word := &PWord{Parts: []*PPart{part}}
+		return &PExpr{Op: '"', Word: word}
+	case '(':
+		lex.Advance()
+		inner := Parse2ExprTop(lex)
+		MustTok(')', lex.Tok)
+		lex.Advance()
+		return inner
+	}
+	panic(Sprintf("Expected Primative in Expr: %s", lex.Show()))
+}
+
+func Parse2ExprUnary(lex *Lex) *PExpr {
+	switch lex.Tok {
+	case '!', '~', '-':
+		t := lex.Tok
+		lex.Advance()
+		b := Parse2ExprUnary(lex)
+		return &PExpr{Op: t, A: b}
+	}
+	return Parse2ExprPrimative(lex)
+}
+
+func Parse2ExprProduct(lex *Lex) *PExpr {
+	z := Parse2ExprUnary(lex)
+	switch lex.Tok {
+	case '*', '/', '%', '&', TokShiftLeft, TokShiftRight:
+		t := lex.Tok
+		lex.Advance()
+		b := Parse2ExprProduct(lex)
+		z = &PExpr{Op: t, A: z, B: b}
+	}
+	return z
+}
+
+func Parse2ExprSum(lex *Lex) *PExpr {
+	z := Parse2ExprProduct(lex)
+	switch lex.Tok {
+	case '+', '-', '|', '^':
+		t := lex.Tok
+		lex.Advance()
+		b := Parse2ExprSum(lex)
+		z = &PExpr{Op: t, A: z, B: b}
+	}
+	return z
+}
+
+func Parse2ExprRelation(lex *Lex) *PExpr {
+	z := Parse2ExprSum(lex)
+	switch lex.Tok {
+	case TokNumEq, TokNumNe, '<', TokNumLe, '>', TokNumGe,
+		TokStrEq, TokStrNe, TokStrLt, TokStrLe, TokStrGt, TokStrGe:
+		t := lex.Tok
+		lex.Advance()
+		b := Parse2ExprRelation(lex)
+		z = &PExpr{Op: t, A: z, B: b}
+	}
+	return z
+}
+
+func Parse2ExprConjunction(lex *Lex) *PExpr {
+	z := Parse2ExprRelation(lex)
+	if lex.Tok == TokBoolAnd {
+		lex.Advance()
+		b := Parse2ExprConjunction(lex)
+		z = &PExpr{Op: TokBoolAnd, A: z, B: b}
+	}
+	return z
+}
+
+func Parse2ExprDisjunction(lex *Lex) *PExpr {
+	z := Parse2ExprConjunction(lex)
+	if lex.Tok == TokBoolOr {
+		lex.Advance()
+		b := Parse2ExprDisjunction(lex)
+		z = &PExpr{Op: TokBoolOr, A: z, B: b}
+	}
+	return z
+}
+
+func Parse2ExprTop(lex *Lex) *PExpr {
+	Parse2ExprTopCounter.Incr()
+	z := Parse2ExprDisjunction(lex)
+	if Debug['x'] {
+		Say("Top -> z", z, lex, lex.Tok, string(lex.Tok))
+	}
+
+	if lex.Tok == '?' {
+		lex.Advance()
+		b := Parse2ExprTop(lex)
+		if Debug['x'] {
+			Say("Top -> -> z, b", z, b, lex, lex.Tok, string(lex.Tok))
+		}
+		MustTok(Token(':'), lex.Tok)
+		lex.Advance()
+		c := Parse2ExprTop(lex)
+		z = &PExpr{Op: '?', A: z, B: b, C: c}
+		if Debug['x'] {
+			Say("Top -> -> -> c, z", c, z, lex, lex.Tok, string(lex.Tok))
+		}
+	}
+	// NOT// We must finish either at the End or at '}'
+	// if lex.Tok != TokEnd && lex.Tok != '}' && lex.Tok != ')' {
+	//	panic(Sprintf("Extra stuff after expression: %s", lex.Show()))
+	// }
+	return z
+}
+
+func Parse2ExprStr(s string) *PExpr {
+	lex := NewLex(s)
+	z := Parse2ExprTop(lex)
+	MustTok(TokEnd, lex.Tok)
+	return z
+}
+
 var Parse2CmdCounter Counter
 var Parse2DollarCounter Counter
 var Parse2SquareCounter Counter
@@ -516,6 +772,9 @@ var Parse2SeqCounter Counter
 var Parse2SeqEvalCounter Counter
 var Parse2CmdEvalCounter Counter
 var Parse2WordEvalCounter Counter
+
+var Parse2ExprTopCounter Counter
+var Parse2ExprEvalCounter Counter
 
 func init() {
 	Parse2CmdCounter.Register("Parse2Cmd")
@@ -526,4 +785,6 @@ func init() {
 	Parse2SeqEvalCounter.Register("Parse2SeqEval")
 	Parse2CmdEvalCounter.Register("Parse2CmdEval")
 	Parse2WordEvalCounter.Register("Parse2WordEval")
+	Parse2ExprTopCounter.Register("Parse2ExprTop")
+	Parse2ExprEvalCounter.Register("Parse2ExprEval")
 }
