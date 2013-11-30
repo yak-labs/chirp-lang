@@ -60,3 +60,18 @@ Total: 5692 samples
       54   0.9%  69.8%     5224  91.8% github.com/yak-labs/chirp-lang.(*PSeq).Eval
       52   0.9%  70.7%       54   0.9% newdefer
 
+$ date
+Fri Nov 29 22:32:07 PST 2013
+
+$ git log --oneline  | head 
+15bec06 NOTES.pprof.txt
+79451e2 eval_with_profile
+8c55ebf some demo .tcl files
+714a2e2 Delete obsolete ParseCmd and friends
+aad1afd Make "subst" work again, rewritten with Lex
+9fe1949 chirp.go flag -d="" to set Debug[] flags
+f9e4590 Parse2 Expr; enabled for all exprs
+5c10e55 runs all new parse2; cleanup Say
+952f0c0 Parse & Eval Counters
+6d13f05 bug in Parse2Quote; now nothing compiles BAD
+
