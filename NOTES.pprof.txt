@@ -1,0 +1,62 @@
+$ time ~/gowork/bin/chirp  -d=c -c='proc fib {n} { if {$n < 2} { return $n } else {expr {[fib [expr {$n - 1}]] + [fib [expr {$n - 2}]] } } } ; puts [eval_with_profile /tmp/p { fib 30 }]' 
+832040
+2013/11/29 22:22:36 Counter: 4 MultiEvalExprCompile
+2013/11/29 22:22:36 Counter: 6731341 MultiEvalExpr
+2013/11/29 22:22:36 Counter: 3 MultiEvalSeqCompile
+2013/11/29 22:22:36 Counter: 2692538 MultiEvalSeq
+2013/11/29 22:22:36 Counter: 20194023 Parse2ExprEval
+2013/11/29 22:22:36 Counter: 4 Parse2ExprTop
+2013/11/29 22:22:36 Counter: 0 Parse2WordEvalSlow9
+2013/11/29 22:22:36 Counter: 17501488 Parse2WordEvalSlow1
+2013/11/29 22:22:36 Counter: 25579108 Parse2WordEvalFast1
+2013/11/29 22:22:36 Counter: 0 Parse2WordEvalFast0
+2013/11/29 22:22:36 Counter: 10770150 Parse2CmdEval
+2013/11/29 22:22:36 Counter: 10770149 Parse2SeqEval
+2013/11/29 22:22:36 Counter: 5 Parse2Seq
+2013/11/29 22:22:36 Counter: 0 Parse2Quote
+2013/11/29 22:22:36 Counter: 5 Parse2Square
+2013/11/29 22:22:36 Counter: 4 Parse2Dollar
+2013/11/29 22:22:36 Counter: 21 Parse2Cmd
+2013/11/29 22:22:36 Counter: 2692538 EvalSeqWithErrorLocation
+2013/11/29 22:22:36 Counter: 8 ParseList
+2013/11/29 22:22:36 Counter: 0 SubstString
+
+real	1m2.990s
+user	1m2.272s
+sys	0m0.888s
+
+$ /opt/go/misc/pprof ~/gowork/bin/chirp /tmp/p 
+Welcome to pprof!  For help, type 'help'.
+(pprof) top30
+Total: 5692 samples
+     479   8.4%   8.4%     1043  18.3% scanblock
+     368   6.5%  14.9%      368   6.5% flushptrbuf
+     258   4.5%  19.4%      303   5.3% sweepspan
+     254   4.5%  23.9%     2362  41.5% runtime.mallocgc
+     171   3.0%  26.9%      281   4.9% runtime.mapaccess2_faststr
+     165   2.9%  29.8%      569  10.0% runtime.MCache_Alloc
+     157   2.8%  32.5%      166   2.9% runtime.settype_flush
+     148   2.6%  35.1%      148   2.6% runtime.memmove
+     145   2.5%  37.7%      145   2.5% runtime.memclr
+     141   2.5%  40.2%      142   2.5% runtime.markallocated
+     138   2.4%  42.6%      970  17.0% runtime.makeslice
+     134   2.4%  44.9%     5238  92.0% github.com/yak-labs/chirp-lang.(*PExpr).Eval
+     131   2.3%  47.2%     5238  92.0% github.com/yak-labs/chirp-lang.(*PWord).Eval
+     113   2.0%  49.2%     5222  91.7% github.com/yak-labs/chirp-lang.(*PCmd).Eval
+     110   1.9%  51.2%      793  13.9% cnew
+     104   1.8%  53.0%      137   2.4% runtime.gettype
+      94   1.7%  54.6%     5220  91.7% github.com/yak-labs/chirp-lang.(*PPart).Eval
+      90   1.6%  56.2%     5220  91.7% github.com/yak-labs/chirp-lang.(*Frame).Apply
+      86   1.5%  57.7%     5227  91.8% github.com/yak-labs/chirp-lang.func·008
+      79   1.4%  59.1%      110   1.9% MHeap_AllocLocked
+      77   1.4%  60.5%      372   6.5% runtime.MCentral_AllocList
+      76   1.3%  61.8%       76   1.3% flushobjbuf
+      76   1.3%  63.1%       78   1.4% runtime.SizeToClass
+      69   1.2%  64.4%      234   4.1% runtime.settype
+      68   1.2%  65.5%     5227  91.8% github.com/yak-labs/chirp-lang.cmdIf
+      67   1.2%  66.7%       67   1.2% runtime.markspan
+      64   1.1%  67.8%       64   1.1% runtime.memhash
+      59   1.0%  68.9%       59   1.0% strconv.special
+      54   0.9%  69.8%     5224  91.8% github.com/yak-labs/chirp-lang.(*PSeq).Eval
+      52   0.9%  70.7%       54   0.9% newdefer
+
