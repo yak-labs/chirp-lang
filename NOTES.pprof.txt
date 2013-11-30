@@ -75,3 +75,16 @@ f9e4590 Parse2 Expr; enabled for all exprs
 952f0c0 Parse & Eval Counters
 6d13f05 bug in Parse2Quote; now nothing compiles BAD
 
+Performance effect of Mutex in GetVar, SetVar, FindCommand:
+
+Started: -d="c" user: 1m2.272s, 1m2.484s, 1m2.120s, 1m2.840s ->
+Added "if Debug['m'] ...Mu..." code:  -> 1m4.564s, 1m4.176s, 1m4.000s
+With -d="cm": -> 1m5.768s, 1m7.044s, 1m7.132s
+
+67 / 62.5 = 1.072 ;   7.2% slower because of '-d=m'.
+
+But 40% of our time is in memory alloc & GC churn.
+So Mutex is pretty cheap, for what we get.
+And spending time on Memory Allocation reduction is better.
+e.g. get some of our T variables onto the stack.
+
