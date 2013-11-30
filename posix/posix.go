@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	R "reflect"
+	"runtime/pprof"
 	"strings"
 )
 
@@ -68,7 +69,7 @@ func (t *terpFile) PutAt(value T, key T) {
 func (t *terpFile) QuickReflectValue() R.Value {
 	panic("a terpFile cannot QuickReflectValue")
 }
-func (t terpFile) EvalSeq(fr *Frame) T { return Parse2EvalSeqStr(fr, t.String()) }
+func (t terpFile) EvalSeq(fr *Frame) T  { return Parse2EvalSeqStr(fr, t.String()) }
 func (t terpFile) EvalExpr(fr *Frame) T { return Parse2EvalExprStr(fr, t.String()) }
 
 func cmdOpen(fr *Frame, argv []T) T {
@@ -401,7 +402,7 @@ func consumeAndIgnoreReports(n int, notifier <-chan error) {
 	}
 }
 
-// "exec" command.  Supports "< << > >> 2> 2>> &" when they are separte words.  
+// "exec" command.  Supports "< << > >> 2> 2>> &" when they are separte words.
 // TODO:  Pipes.
 func cmdExec(fr *Frame, argv []T) T {
 	argsT := Arg0v(argv)
@@ -555,6 +556,20 @@ func cmdExec(fr *Frame, argv []T) T {
 	return MkString(processes[n-1].outBuf.String())
 }
 
+func cmdEvalWithProfile(fr *Frame, argv []T) T {
+	filenameT, seqT := Arg2(argv)
+	filename := filenameT.String()
+	w, err := os.Create(filename)
+	if err != nil {
+		panic(Sprintf("eval_with_profile: Cannot Create: %s: %s", filename, err.Error()))
+	}
+
+	err = pprof.StartCPUProfile(w)
+	z := fr.Eval(seqT)
+	pprof.StopCPUProfile()
+	return z
+}
+
 func init() {
 	if Unsafes == nil {
 		Unsafes = make(map[string]Command, 333)
@@ -567,4 +582,5 @@ func init() {
 	Unsafes["puts"] = cmdPuts
 	Unsafes["flush"] = cmdFlush
 	Unsafes["exec"] = cmdExec
+	Unsafes["eval_with_profile"] = cmdEvalWithProfile
 }

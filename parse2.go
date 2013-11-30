@@ -172,20 +172,20 @@ func (me *PWord) Eval(fr *Frame) (z T) {
 	if Debug['w'] {
 		Say("PWord.Eval: ", me.Show())
 	}
-	Parse2WordEvalCounter.Incr()
 	switch len(me.Parts) {
 	case 0:
-		Parse2WordEvalFastCounter.Incr()
+		Parse2WordEvalFastCounter0.Incr()
 		z = Empty
 	case 1:
-		Parse2WordEvalFastCounter.Incr()
 		if me.Multi != nil {
+			Parse2WordEvalFastCounter1.Incr()
 			z = me.Multi
 		} else {
+			Parse2WordEvalSlowCounter1.Incr()
 			z = me.Parts[0].Eval(fr)
 		}
 	default:
-		Parse2WordEvalSlowCounter.Incr()
+		Parse2WordEvalSlowCounter9.Incr()
 		buf := bytes.NewBuffer(nil)
 		for _, part := range me.Parts {
 			if part.Type == BARE { // Optimization: avoid creating a T.
@@ -803,9 +803,10 @@ var Parse2QuoteCounter Counter
 var Parse2SeqCounter Counter
 var Parse2SeqEvalCounter Counter
 var Parse2CmdEvalCounter Counter
-var Parse2WordEvalCounter Counter
-var Parse2WordEvalFastCounter Counter
-var Parse2WordEvalSlowCounter Counter
+var Parse2WordEvalFastCounter0 Counter
+var Parse2WordEvalFastCounter1 Counter
+var Parse2WordEvalSlowCounter1 Counter
+var Parse2WordEvalSlowCounter9 Counter
 
 var Parse2ExprTopCounter Counter
 var Parse2ExprEvalCounter Counter
@@ -818,9 +819,10 @@ func init() {
 	Parse2SeqCounter.Register("Parse2Seq")
 	Parse2SeqEvalCounter.Register("Parse2SeqEval")
 	Parse2CmdEvalCounter.Register("Parse2CmdEval")
-	Parse2WordEvalCounter.Register("Parse2WordEval")
-	Parse2WordEvalFastCounter.Register("Parse2WordEvalFast")
-	Parse2WordEvalSlowCounter.Register("Parse2WordEvalSlow")
+	Parse2WordEvalFastCounter0.Register("Parse2WordEvalFast0")
+	Parse2WordEvalFastCounter1.Register("Parse2WordEvalFast1")
+	Parse2WordEvalSlowCounter1.Register("Parse2WordEvalSlow1")
+	Parse2WordEvalSlowCounter9.Register("Parse2WordEvalSlow9")
 	Parse2ExprTopCounter.Register("Parse2ExprTop")
 	Parse2ExprEvalCounter.Register("Parse2ExprEval")
 }
