@@ -81,10 +81,18 @@ Started: -d="c" user: 1m2.272s, 1m2.484s, 1m2.120s, 1m2.840s ->
 Added "if Debug['m'] ...Mu..." code:  -> 1m4.564s, 1m4.176s, 1m4.000s
 With -d="cm": -> 1m5.768s, 1m7.044s, 1m7.132s
 
-67 / 62.5 = 1.072 ;   7.2% slower because of '-d=m'.
+67 / 62.5 = 1.072 ;   so around 7% slower because of '-d=m'.
 
 But 40% of our time is in memory alloc & GC churn.
 So Mutex is pretty cheap, for what we get.
 And spending time on Memory Allocation reduction is better.
 e.g. get some of our T variables onto the stack.
+
+Removing the if Debug['m'] and keeping the Mutex:
+1m5.280s, 1m6.252s, 1m6.308s
+
+66 / 62.5 = 1.056 ; so under 6% now.
+
+
+TODO:  Hash Mutex.
 

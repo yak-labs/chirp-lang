@@ -41,6 +41,7 @@ type CmdNode struct {
 // and a new one is created for each proc or yproc invocation
 // (but not for every Command; non-proc commands do not make Frames).
 type Frame struct {
+	Mu sync.Mutex
 	Vars Scope // local variables
 	Cred Hash  // credentials
 
@@ -86,6 +87,15 @@ func (g *Global) Clone() *Global {
 	}
 
 	z.Fr.G = z
+
+	// Lock Frame before Global.
+	// That is, start low at leaves in tree, lock upward towards root.
+	// TODO:  Why a g.Mu, instead of it's g.Fr.Mu?
+	g.Fr.Mu.Lock()
+	defer g.Fr.Mu.Unlock()
+
+	g.Mu.Lock()
+	defer g.Mu.Unlock()
 
 	for k, v := range g.Cmds {
 		z.Cmds[k] = v
@@ -230,7 +240,10 @@ func (fr *Frame) HasVar(name string) bool {
 	sc := fr.GetVarScope(name)
 	var loc Loc
 	var ok bool
-	if loc, ok = sc[name]; !ok {
+	fr.Mu.Lock()
+	loc, ok = sc[name]
+	fr.Mu.Unlock()
+	if !ok {
 		return false
 	}
 	return loc.Has()
@@ -240,7 +253,10 @@ func (fr *Frame) GetVar(name string) T {
 	sc := fr.GetVarScope(name)
 	var loc Loc
 	var ok bool
-	if loc, ok = sc[name]; !ok {
+	fr.Mu.Lock()
+	loc, ok = sc[name]
+	fr.Mu.Unlock()
+	if !ok {
 		panic(Sprintf("Variable %q does not exist; scope contains %v", name, sc))
 	}
 	return loc.Get()
@@ -263,10 +279,14 @@ func (fr *Frame) SetVar(name string, x T) {
 		return
 	}
 	sc := fr.GetVarScope(name)
-	if sc[name] == nil {
-		sc[name] = new(Slot)
+	fr.Mu.Lock()
+	ptr := sc[name]
+	if ptr == nil {
+		ptr = new(Slot)
+		sc[name] = ptr
 	}
-	sc[name].Set(x)
+	fr.Mu.Unlock()
+	ptr.Set(x)
 }
 
 func (p *UpSlot) Has() bool { return p.Fr.HasVar(p.RemoteName) }
@@ -275,7 +295,9 @@ func (p *UpSlot) Set(t T)   { p.Fr.SetVar(p.RemoteName, t) }
 
 func (fr *Frame) DefineUpVar(name string, remFr *Frame, remName string) {
 	sc := fr.GetVarScope(name)
+	fr.Mu.Lock()
 	sc[name] = &UpSlot{Fr: remFr, RemoteName: remName}
+	fr.Mu.Unlock()
 }
 
 func (fr *Frame) FindCommand(name T, callSuper bool) Command {
@@ -284,7 +306,9 @@ func (fr *Frame) FindCommand(name T, callSuper bool) Command {
 	cmdName := name.String()
 
 	var fn Command
+	fr.Mu.Lock()
 	cmdNode, ok := fr.G.Cmds[cmdName]
+	fr.Mu.Unlock()
 	if ok {
 		if callSuper {
 			maxMixinLevel := fr.MixinLevel - 1
@@ -307,7 +331,9 @@ func (fr *Frame) FindCommand(name T, callSuper bool) Command {
 		// Use long name for mixin local fn.
 		localCmdName := fr.MixinName + "~" + cmdName
 		var localNode *CmdNode
+		fr.Mu.Lock()
 		localNode, ok = fr.G.Cmds[localCmdName]
+		fr.Mu.Unlock()
 		if ok {
 			fn = localNode.Fn // Should be singleton.
 		}
