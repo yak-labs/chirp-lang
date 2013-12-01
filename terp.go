@@ -18,7 +18,7 @@ type Shower interface {
 	Show() string
 }
 
-type Hash map[string]T // TODO: Mutex
+type Hash map[string]T
 
 type Command func(fr *Frame, argv []T) T
 
@@ -41,7 +41,7 @@ type CmdNode struct {
 // and a new one is created for each proc or yproc invocation
 // (but not for every Command; non-proc commands do not make Frames).
 type Frame struct {
-	Mu sync.Mutex
+	Mu   sync.Mutex
 	Vars Scope // local variables
 	Cred Hash  // credentials
 

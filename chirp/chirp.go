@@ -18,6 +18,7 @@ import (
 	"github.com/yak-labs/chirp-lang"
 	"io/ioutil"
 	"os"
+	"runtime/pprof"
 	"strings"
 )
 
@@ -102,6 +103,9 @@ func main() {
 
 End:
 	logAllCounters()
+	if chirp.Debug['h'] {
+		pprof.Lookup("heap").WriteTo(os.Stderr, 0)
+	}
 }
 
 func logAllCounters() {

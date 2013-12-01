@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 // T is an interface to any Tcl value.
@@ -76,40 +77,50 @@ type terpGenerator struct { // Implements T.
 
 // terpHash holds a Hash.
 type terpHash struct { // Implements T.
-	h Hash
+	h  Hash
+	Mu sync.Mutex
 }
 
 func MkHash(h Hash) terpHash {
+	MkHashCounter.Incr()
 	if h == nil {
 		return terpHash{h: make(Hash, 4)}
 	}
 	return terpHash{h: h}
 }
 func MkGenerator(readerChan <-chan Either) terpGenerator {
+	MkGeneratorCounter.Incr()
 	return terpGenerator{guts: &terpGeneratorGuts{readerChan: readerChan}}
 }
 func MkBool(a bool) terpFloat {
+	MkBoolCounter.Incr()
 	if a {
 		return True
 	}
 	return False
 }
 func MkFloat(a float64) terpFloat {
+	MkFloatCounter.Incr()
 	return terpFloat{f: a}
 }
 func MkInt(a int64) terpFloat {
+	MkIntCounter.Incr()
 	return terpFloat{f: float64(a)}
 }
 func MkUint(a uint64) terpFloat {
+	MkUintCounter.Incr()
 	return terpFloat{f: float64(a)}
 }
 func MkString(a string) terpString {
+	MkStringCounter.Incr()
 	return terpString{s: a}
 }
 func MkList(a []T) terpList {
+	MkListCounter.Incr()
 	return terpList{l: a}
 }
 func MkStringList(a []string) terpList {
+	MkStringListCounter.Incr()
 	z := make([]T, len(a))
 	for i, e := range a {
 		z[i] = MkString(e)
@@ -117,9 +128,11 @@ func MkStringList(a []string) terpList {
 	return terpList{l: z}
 }
 func MkValue(a R.Value) terpValue {
+	MkValueCounter.Incr()
 	return terpValue{v: a}
 }
 func MkMulti(a string) *terpMulti {
+	MkMultiCounter.Incr()
 	var s terpString = MkString(a)
 	m := &terpMulti{s: s, preservedByList: s.IsPreservedByList()}
 
@@ -142,6 +155,7 @@ func MkMulti(a string) *terpMulti {
 	return m
 }
 func MkT(a interface{}) T {
+	MkTCounter.Incr()
 	// Very specific type cases.
 	switch x := a.(type) {
 	case T:
@@ -258,6 +272,9 @@ func (t terpHash) Raw() interface{} {
 	return t.h
 }
 func (t terpHash) String() string {
+	t.Mu.Lock()
+	defer t.Mu.Unlock()
+
 	z := make([]T, 0, 2*len(t.h))
 	for k, v := range t.h {
 		if v == nil {
@@ -284,7 +301,10 @@ func (t terpHash) Bool() bool {
 	panic("terpHash cannot be used as Bool")
 }
 func (t terpHash) IsEmpty() bool {
-	return len(t.h) == 0
+	t.Mu.Lock()
+	z := (len(t.h) == 0)
+	t.Mu.Unlock()
+	return z
 }
 
 type SortListByStringTSlice []T
@@ -293,12 +313,11 @@ func (p SortListByStringTSlice) Len() int           { return len(p) }
 func (p SortListByStringTSlice) Less(i, j int) bool { return p[i].String() < p[j].String() }
 func (p SortListByStringTSlice) Swap(i, j int)      { p[j], p[i] = p[i], p[j] }
 
-func SortListByString(list []T) {
-	sort.Sort(SortListByStringTSlice(list))
-}
+// notused // func SortListByString(list []T) {
+// notused // 	sort.Sort(SortListByStringTSlice(list))
+// notused // }
 
 func SortedKeysOfHash(h Hash) []string {
-	// TODO: mutex
 	keys := make([]string, 0, len(h))
 
 	for k, v := range h {
@@ -314,9 +333,12 @@ func SortedKeysOfHash(h Hash) []string {
 func (t terpHash) IsPreservedByList() bool { return true }
 func (t terpHash) IsQuickNumber() bool     { return false }
 func (t terpHash) List() []T {
+	t.Mu.Lock()
+	defer t.Mu.Unlock()
+
 	keys := SortedKeysOfHash(t.h)
 	z := make([]T, 0, 2*len(keys))
-	// TODO: mutex
+
 	for _, k := range keys {
 		v := t.h[k]
 		if v == nil {
@@ -333,10 +355,20 @@ func (t terpHash) Hash() Hash {
 	return t.h
 }
 func (t terpHash) GetAt(key T) T {
-	return t.h[key.String()]
+	k := key.String()
+
+	t.Mu.Lock()
+	z := t.h[k]
+	t.Mu.Unlock()
+
+	return z
 }
 func (t terpHash) PutAt(value T, key T) {
-	t.h[key.String()] = value
+	k := key.String()
+
+	t.Mu.Lock()
+	t.h[k] = value
+	t.Mu.Unlock()
 }
 func (t terpHash) QuickReflectValue() R.Value { return InvalidValue }
 func (t terpHash) EvalSeq(fr *Frame) T        { return Parse2EvalSeqStr(fr, t.String()) }
@@ -907,10 +939,34 @@ var MultiEvalSeqCounter Counter
 var MultiEvalSeqCompileCounter Counter
 var MultiEvalExprCounter Counter
 var MultiEvalExprCompileCounter Counter
+var MkHashCounter Counter
+var MkGeneratorCounter Counter
+var MkBoolCounter Counter
+var MkFloatCounter Counter
+var MkIntCounter Counter
+var MkUintCounter Counter
+var MkStringCounter Counter
+var MkListCounter Counter
+var MkStringListCounter Counter
+var MkValueCounter Counter
+var MkMultiCounter Counter
+var MkTCounter Counter
 
 func init() {
 	MultiEvalSeqCounter.Register("MultiEvalSeq")
 	MultiEvalSeqCompileCounter.Register("MultiEvalSeqCompile")
 	MultiEvalExprCounter.Register("MultiEvalExpr")
 	MultiEvalExprCompileCounter.Register("MultiEvalExprCompile")
+	MkHashCounter.Register("MkHash")
+	MkGeneratorCounter.Register("MkGenerator")
+	MkBoolCounter.Register("MkBool")
+	MkFloatCounter.Register("MkFloat")
+	MkIntCounter.Register("MkInt")
+	MkUintCounter.Register("MkUint")
+	MkStringCounter.Register("MkString")
+	MkListCounter.Register("MkList")
+	MkStringListCounter.Register("MkStringList")
+	MkValueCounter.Register("MkValue")
+	MkMultiCounter.Register("MkMulti")
+	MkTCounter.Register("MkT")
 }
