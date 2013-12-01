@@ -104,7 +104,7 @@ func Test2ExprTop(t *testing.T) {
 	input = " $a == $b(z) ? 38 + 4 : \"abcde\" eq {wxyz} "
 	testParse2Expr(input, expect, "")
 
-	fr := New()
+	fr := NewInterpreter()
 	fr.SetVar("x", MkInt(10))
 	fr.SetVar("y", MkInt(20))
 	fr.SetVar("z", MkInt(30))

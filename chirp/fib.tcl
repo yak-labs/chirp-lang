@@ -9,6 +9,12 @@ proc fib {n} {
 	}
 }
 
-foreach x {3 6 9 12 15 18 21} {
-	puts "$x -> [fib $x]"
+if {[llength $argv] > 1} {
+	foreach x [lrange $argv 1 end] {
+		puts "$x -> [fib $x]"
+	}
+} else {
+	foreach x {3 6 9 12 15 18 21} {
+		puts "$x -> [fib $x]"
+	}
 }

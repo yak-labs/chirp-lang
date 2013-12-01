@@ -6,6 +6,7 @@ package main
 */
 
 import (
+	_ "github.com/yak-labs/chirp-lang/goapi"
 	_ "github.com/yak-labs/chirp-lang/http"
 	_ "github.com/yak-labs/chirp-lang/img"
 	_ "github.com/yak-labs/chirp-lang/posix"
@@ -47,7 +48,7 @@ func setEnvironInChirp(fr *chirp.Frame, varName string) {
 
 func main() {
 	flag.Parse()
-	fr := chirp.New()
+	fr := chirp.NewInterpreter()
 	setEnvironInChirp(fr, "Env")
 
 	for _, ch := range *dFlag {

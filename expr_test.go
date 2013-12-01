@@ -75,6 +75,6 @@ func TestExpr(a *testing.T) {
 	// Debug['a'] = true
 	// Debug['e'] = true
 	// Debug['w'] = true
-	fr := New()
+	fr := NewInterpreter()
 	fr.Eval(MkString(exprTests))
 }

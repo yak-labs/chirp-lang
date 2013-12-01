@@ -5,7 +5,7 @@ import (
 )
 
 func TestRegexp(a *testing.T) {
-	fr := New()
+	fr := NewInterpreter()
 	fr.Eval(MkString(`
 		must 1 [regexp "asdf" "asdf"]
 	`))
@@ -20,7 +20,7 @@ func TestRegexp(a *testing.T) {
 }
 
 func TestRegexpNoCase(a *testing.T) {
-	fr := New()
+	fr := NewInterpreter()
 	fr.Eval(MkString(`
 		must 0 [regexp "asdf" "ASDF"]
 	`))
@@ -31,7 +31,7 @@ func TestRegexpNoCase(a *testing.T) {
 }
 
 func TestRegexpMatchVar(a *testing.T) {
-	fr := New()
+	fr := NewInterpreter()
 	fr.Eval(MkString(`
 		must 1 [regexp owl {cow owl dog bear} owlvar]
 		must owl $owlvar
@@ -44,7 +44,7 @@ func TestRegexpMatchVar(a *testing.T) {
 }
 
 func TestRegexpSubmatchVar(a *testing.T) {
-	fr := New()
+	fr := NewInterpreter()
 	fr.Eval(MkString(`
 		must 1 [regexp http://(yak\.net) {this is http://yak.net} url domain]
 		must http://yak.net $url

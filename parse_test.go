@@ -26,13 +26,13 @@ func TestT2(t *testing.T) {
 }
 
 func TestT3(t *testing.T) {
-	fr := New()
+	fr := NewInterpreter()
 	a := fr.Eval(MkString("list xabc[list def]ghi"))
 	MustA("xabcdefghi", a.String())
 }
 
 func TestParseEscaping(t *testing.T) {
-	fr := New()
+	fr := NewInterpreter()
 	s := `proc p {} {
 		return "0\132\tNumber\n"
 	} ; p`
@@ -51,13 +51,13 @@ func TestSlashEscaping(t *testing.T) {
 }
 
 func TestDollarKey(t *testing.T) {
-	fr := New()
+	fr := NewInterpreter()
 	a := fr.Eval(MkString("set h [hash]; hset $h foo bar;  list aaa$h(foo)zzz"))
 	MustA("aaabarzzz", a.String())
 }
 
 func TestComment(t *testing.T) {
-	fr := New()
+	fr := NewInterpreter()
 	a := fr.Eval(MkString("#list 1; list 2 \n list 3 \n list 4"))
 	MustA("4", a.String())
 

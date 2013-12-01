@@ -11,6 +11,6 @@ var tests = `
 `
 
 func TestHt(a *testing.T) {
-	fr := New()
+	fr := NewInterpreter()
 	fr.Eval(MkString(tests))
 }

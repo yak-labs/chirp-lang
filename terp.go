@@ -5,6 +5,7 @@ import (
 	. "fmt"
 	"go/ast"
 	"log"
+	"os"
 	"path"
 	R "reflect"
 	"runtime"
@@ -153,7 +154,7 @@ var Empty = MkString("")
 var InvalidValue = *new(R.Value)
 
 // Create a new interpreter, and return the global frame pointer.
-func New1(isSafe bool) *Frame {
+func newEitherInterpreter(isSafe bool) *Frame {
 	g := &Global{
 		Cmds: make(CmdScope),
 		Fr: Frame{
@@ -181,18 +182,19 @@ func New1(isSafe bool) *Frame {
 	return &g.Fr
 }
 
-// New() makes a new full interpreter.
-func New() *Frame {
-	return New1(false)
+// NewInterpreter() makes a new full interpreter.
+func NewInterpreter() *Frame {
+	return newEitherInterpreter(false)
 }
 
-// NewSafe() makes a new safe interpreter.
-func NewSafe() *Frame {
-	return New1(true)
+// NewSafeInterpreter() makes a new safe interpreter.
+func NewSafeInterpreter() *Frame {
+	return newEitherInterpreter(true)
 }
 
 // NewFrame makes a frame for calling another proc.
 func (fr *Frame) NewFrame() *Frame {
+	NewFrameCounter.Incr()
 	return &Frame{
 		Vars: make(Scope), // new local var scope
 		Cred: fr.Cred,     // same credentials as caller
@@ -506,6 +508,13 @@ func Sayf(format string, args ...interface{}) {
 	log.Println(Sprintf(format, args...))
 }
 
+func SetDebugFromEnv() {
+	letters := os.Getenv("CHIRP_DEBUG")
+	for _, ch := range letters {
+		Debug[ch] = true
+	}
+}
+
 type Counter struct {
 	count int64
 	name  string
@@ -547,4 +556,10 @@ func ShowAllCounters() string {
 		buf.WriteByte('\n')
 	}
 	return buf.String()
+}
+
+var NewFrameCounter Counter
+
+func init() {
+	NewFrameCounter.Register("NewFrame")
 }

@@ -922,7 +922,7 @@ func cmdInterp(fr *Frame, argv []T) T {
 	Arg0(argv)
 
 	z := &SafeSubInterp{
-		fr: NewSafe(),
+		fr: NewSafeInterpreter(),
 	}
 	return MkT(z)
 }

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"unsafe"
 )
 
 // T is an interface to any Tcl value.
@@ -92,22 +93,38 @@ func MkGenerator(readerChan <-chan Either) terpGenerator {
 	MkGeneratorCounter.Incr()
 	return terpGenerator{guts: &terpGeneratorGuts{readerChan: readerChan}}
 }
-func MkBool(a bool) terpFloat {
+func MkBool(a bool) T {
 	MkBoolCounter.Incr()
 	if a {
 		return True
 	}
 	return False
 }
-func MkFloat(a float64) terpFloat {
+func MkOldFloat(a float64) terpFloat {
 	MkFloatCounter.Incr()
 	return terpFloat{f: a}
 }
-func MkInt(a int64) terpFloat {
+func MkFloat(a float64) T {
+	if Debug['u'] { // if Unsafe Hack
+		return MkHackFloat(a)
+	}
+
+	MkFloatCounter.Incr()
+	return terpFloat{f: a}
+}
+func MkInt(a int64) T {
+	if Debug['u'] { // if Unsafe Hack
+		return MkHackFloat(float64(a))
+	}
+
 	MkIntCounter.Incr()
 	return terpFloat{f: float64(a)}
 }
-func MkUint(a uint64) terpFloat {
+func MkUint(a uint64) T {
+	if Debug['u'] { // if Unsafe Hack
+		return MkHackFloat(float64(a))
+	}
+
 	MkUintCounter.Incr()
 	return terpFloat{f: float64(a)}
 }
@@ -140,7 +157,7 @@ func MkMulti(a string) *terpMulti {
 		defer func() {
 			_ = recover()
 		}()
-		x := MkFloat(s.Float())
+		x := MkOldFloat(s.Float())
 		m.f = &x
 	}()
 
@@ -867,6 +884,74 @@ func (t terpValue) QuickReflectValue() R.Value { return t.v }
 func (t terpValue) EvalSeq(fr *Frame) T        { return Parse2EvalSeqStr(fr, t.String()) }
 func (t terpValue) EvalExpr(fr *Frame) T       { return Parse2EvalExprStr(fr, t.String()) }
 
+////////////////////////////////////////
+// Experimental.
+
+// Experiment with unsafe hacking.
+// First we try to embed a float64 inside one of the two pointers inside interface T.
+
+type hackFloat byte // This definition doesn't matter;  *hackFloat is never dereferenced.
+
+func MkHackFloat(f float64) *hackFloat {
+	MkHackFloatCounter.Incr()
+	var ptr unsafe.Pointer = unsafe.Pointer(&f)
+	var fptr *uintptr = (*uintptr)(ptr)
+	var z unsafe.Pointer = unsafe.Pointer(*fptr)
+	return (*hackFloat)(z)
+}
+
+// *hackFloat implements T
+
+func (t *hackFloat) Raw() interface{} {
+	return t.Float()
+}
+func (t *hackFloat) String() string {
+	return Sprintf("%g", t.Float())
+}
+func (t *hackFloat) ListElementString() string {
+	return t.String()
+}
+func (t *hackFloat) Bool() bool {
+	return t.Float() != 0
+}
+func (t *hackFloat) IsEmpty() bool {
+	return false
+}
+func (t *hackFloat) Float() float64 {
+	var ptr unsafe.Pointer = unsafe.Pointer(&t)
+	var fp *float64 = (*float64)(ptr)
+	return *fp
+}
+func (t *hackFloat) Int() int64 {
+	return int64(t.Float())
+}
+func (t *hackFloat) Uint() uint64 {
+	return uint64(t.Float())
+}
+func (t *hackFloat) IsPreservedByList() bool { return true }
+func (t *hackFloat) IsQuickNumber() bool     { return true }
+func (t *hackFloat) List() []T {
+	return []T{t}
+}
+func (t *hackFloat) HeadTail() (hd, tl T) {
+	return MkList(t.List()).HeadTail()
+}
+func (t *hackFloat) Hash() Hash {
+	panic(" is not a Hash")
+}
+func (t *hackFloat) GetAt(key T) T {
+	panic("*hackFloat is not a Hash")
+}
+func (t *hackFloat) PutAt(value T, key T) {
+	panic("*hackFloat is not a Hash")
+}
+func (t *hackFloat) QuickReflectValue() R.Value { return InvalidValue }
+func (t *hackFloat) EvalSeq(fr *Frame) T        { return Parse2EvalSeqStr(fr, t.String()) }
+func (t *hackFloat) EvalExpr(fr *Frame) T       { return t } // Numbers are self-Expr-eval'ing.
+
+// End Experimental.
+////////////////////////////////////////
+
 func (g *Global) MintMixinSerial() int {
 	g.Mu.Lock()
 	defer g.Mu.Unlock()
@@ -943,6 +1028,7 @@ var MkHashCounter Counter
 var MkGeneratorCounter Counter
 var MkBoolCounter Counter
 var MkFloatCounter Counter
+var MkHackFloatCounter Counter
 var MkIntCounter Counter
 var MkUintCounter Counter
 var MkStringCounter Counter
@@ -961,6 +1047,7 @@ func init() {
 	MkGeneratorCounter.Register("MkGenerator")
 	MkBoolCounter.Register("MkBool")
 	MkFloatCounter.Register("MkFloat")
+	MkHackFloatCounter.Register("MkHackFloat")
 	MkIntCounter.Register("MkInt")
 	MkUintCounter.Register("MkUint")
 	MkStringCounter.Register("MkString")

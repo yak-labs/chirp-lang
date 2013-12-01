@@ -360,8 +360,9 @@ var cmdTests = `
 `
 
 func TestFoo(a *testing.T) {
+	SetDebugFromEnv()
 	ClearAllCounters()
-	fr := New()
+	fr := NewInterpreter()
 	fr.Eval(MkString(cmdTests))
 	LogAllCounters()
 }
