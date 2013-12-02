@@ -2,9 +2,10 @@ package main
 
 /*
 	For debugging exec pipes, try this:
-	go run chirp.go -panic -c='puts [exec ls -l | sed {s/[0-9]/#/g} | tr {a-z} {A-Z} ]' 2>/dev/null | od -c
+	go run chirp.go -recover=0 -c='puts [exec ls -l | sed {s/[0-9]/#/g} | tr {a-z} {A-Z} ]' 2>/dev/null | od -c
 */
 
+// Importing "goapi" adds 40ms to startup time (on a slow machine) and 7M to binary size.
 import (
 	_ "github.com/yak-labs/chirp-lang/goapi"
 	_ "github.com/yak-labs/chirp-lang/http"
@@ -25,7 +26,7 @@ import (
 
 var dFlag = flag.String("d", "", "Debugging flags, each a single letter.")
 var cFlag = flag.String("c", "", "Immediate command to execute.")
-var panicFlag = flag.Bool("panic", false, "Don't catch panic in REPL.")
+var recoverFlag = flag.Bool("recover", true, "Set to false to disable recover in the REPL.")
 
 func saveArgvStarting(fr *chirp.Frame, i int) {
 	argv := []chirp.T{}
@@ -116,7 +117,7 @@ func logAllCounters() {
 }
 
 func EvalStringOrPrintError(fr *chirp.Frame, cmd string) (out string) {
-	if panicFlag != nil {
+	if *recoverFlag {
 		defer func() {
 			if r := recover(); r != nil {
 				Fprintln(os.Stderr, "ERROR: ", r) // Error to stderr.

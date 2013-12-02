@@ -257,11 +257,9 @@ func MkT(a interface{}) T {
 			return Empty
 		}
 
-		/*
-			// This will convert slices to lists.
-			// Is this a good idea?
-			return terpValue{v: v}.terpList()
-		*/
+		//	// This will convert slices to lists.
+		//	// Is this a good idea?
+		//	return terpValue{v: v}.terpList()
 
 		var pointerToT *T
 		switch v.Type().Elem() {
