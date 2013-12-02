@@ -146,7 +146,8 @@ func (me *PCmd) Eval(fr *Frame) T {
 	for i, w := range me.Words {
 		words[i] = w.Eval(fr)
 	}
-	z := fr.Apply(words)
+	// Send Apply to the first word.
+	z := words[0].Apply(fr, words)
 	if Debug['w'] {
 		Say("PCmd.Eval: Return: ", z)
 	}

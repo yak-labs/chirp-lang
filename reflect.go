@@ -10,31 +10,39 @@ import (
 
 var (
 	// Maps to hold bindings to GO API for Reflection.
-	RFuncs map[string]interface{}	    // Holds functions.
-	RVars map[string]interface{}		// Holds pointers to vars.
-	RTypes map[string]interface{}		// Holds a pointer to a new() instance of the type.
-	RConsts map[string]interface{}		// Holds a reified constant value.
+	RFuncs  map[string]interface{} // Holds functions.
+	RVars   map[string]interface{} // Holds pointers to vars.
+	RTypes  map[string]interface{} // Holds a pointer to a new() instance of the type.
+	RConsts map[string]interface{} // Holds a reified constant value.
+
+	Roots map[string]Applier = make(map[string]Applier)
 )
 
 var errorInterfaceType R.Type = R.TypeOf(errors.New).Out(0)
 
-func findExternalGoFunctionAsValue(name string) R.Value {
-	if len(name) < 2 || name[0] != '/' {
-		panic("Doesnt start with /: " + Repr(name))
-	}
-	var f interface{}
-	var ok bool
-	if f, ok = RFuncs[name]; !ok {
-		panic("External command not found in RFuncs" + Repr(name))
-	}
-	z := R.ValueOf(f)
-	if z.Kind() != R.Func {
-		panic("Element of RFuncs should have been kind Func: " + Repr(name))
-	}
-	return z
+// TODO: This interface could replace Command,
+// or Command could replace this interface?
+type Applier interface {
+	Apply(fr *Frame, args []T) T
+}
+type FuncRoot struct{ Func R.Value }
+type VarRoot struct{ VarPtr R.Value }
+type TypeRoot struct{ T R.Type }
+type ConstRoot struct{ C R.Value }
+
+func (r FuncRoot) Apply(fr *Frame, args []T) T {
+	return commonCall(fr, args[0].String(), r.Func, args, 1)
 }
 
-func  AdaptToValue(fr *Frame, a T, ty R.Type) R.Value {
+func LookupRootAndApply(fr *Frame, rootName string, args []T) T {
+	r, ok := Roots[rootName]
+	if !ok {
+		panic(Sprintf("Root not found: %q", rootName))
+	}
+	return r.Apply(fr, args)
+}
+
+func AdaptToValue(fr *Frame, a T, ty R.Type) R.Value {
 	switch ty.Kind() {
 	case R.Bool:
 		var tmp bool = a.Bool()
@@ -188,32 +196,9 @@ func cmdIndex(fr *Frame, argv []T) T {
 	return MkT(z.Interface())
 }
 
-func cmdCall(fr *Frame, argv []T) T {
-	funcName := argv[1].String()
-	log.Printf("Call fn=%s  len(argv)=%d", funcName, len(argv))
-
-	fn := findExternalGoFunctionAsValue(funcName)
-	return commonCall(fr, funcName, fn, argv[2:])
-}
-
-func cmdSend(fr *Frame, argv []T) T {
-	r, meth, args := Arg2v(argv)
-	log.Printf("----send----receiver = %s", Show(r))
-	methName := meth.String()
-	log.Printf("----send----method = %q", methName)
-
-	rv := r.QuickReflectValue()
-	if !rv.IsValid() {
-		panic("cannot 'go-send' to non-reflect-value")
-	}
-
-	fn := rv.MethodByName(methName)
-	return commonCall(fr, "Method:"+methName+":"+rv.Type().String(), fn, args)
-}
-
 // commonCall is common to both "go-call" and "go-send".
 // args already has function name or receiver and message name stripped; it's just the args.
-func commonCall(fr *Frame, funcName string, fn R.Value, args []T) T {
+func commonCall(fr *Frame, funcName string, fn R.Value, args []T, numFrontArgs int) T {
 	ty := fn.Type()
 
 	log.Printf("... fn <%s> type: <%s> %s", funcName, ty.Kind(), ty)
@@ -232,18 +217,18 @@ func commonCall(fr *Frame, funcName string, fn R.Value, args []T) T {
 
 	// Check num args
 	if vari {
-		if len(args) < nin-1 {
-			panic(Sprintf("command <%s> expected at least %d args but got %d.", funcName, nin-1, len(args)))
+		if len(args)-numFrontArgs < nin-1 {
+			panic(Sprintf("command <%s> expected at least %d args but got %d.", funcName, nin-1, len(args)-numFrontArgs))
 		}
 	} else {
-		if len(args) != nin {
-			panic(Sprintf("command <%s> expected %d args but got %d.", funcName, nin, len(args)))
+		if len(args)-numFrontArgs != nin {
+			panic(Sprintf("command <%s> expected %d args but got %d.", funcName, nin, len(args)-numFrontArgs))
 		}
 	}
 
-	// Convert actual args to Values, into pp. 
-	pp := make([]R.Value, len(args))
-	for i, p := range args {
+	// Convert actual args to Values, into pp.
+	pp := make([]R.Value, len(args)-numFrontArgs)
+	for i, p := range args[numFrontArgs:] {
 		var target R.Type
 		if vari && i >= nin-1 {
 			target = ty.In(nin - 1).Elem() // element type of variadic args...t
@@ -353,11 +338,9 @@ func cmdGoMapToHash(fr *Frame, argv []T) T {
 
 func init() {
 	if Unsafes == nil {
-	    Unsafes = make(map[string]Command, 333)
+		Unsafes = make(map[string]Command, 333)
 	}
 
-	Unsafes["go-call"] = cmdCall
-	Unsafes["go-send"] = cmdSend
 	Unsafes["go-getf"] = cmdGetf
 	Unsafes["go-setf"] = cmdSetf
 	Unsafes["go-get"] = cmdGoGet

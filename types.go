@@ -32,6 +32,7 @@ type T interface {
 	QuickReflectValue() R.Value
 	EvalSeq(fr *Frame) T
 	EvalExpr(fr *Frame) T
+	Apply(fr *Frame, args []T) T
 }
 
 // terpFloat is a Tcl value holding a float64.
@@ -64,6 +65,7 @@ type terpMulti struct { // Implements T.
 	l               *terpList
 	seq             *PSeq
 	expr            *PExpr
+	command         Command
 }
 
 // terpGenerator holds a channel for reading from a generator (yproc command).
@@ -169,8 +171,12 @@ func MkMulti(a string) *terpMulti {
 		m.l = &x
 	}()
 
+	// This is why you cannot rename builtins.
+	m.command = Safes[s.s]
+
 	return m
 }
+
 func MkT(a interface{}) T {
 	MkTCounter.Incr()
 	// Very specific type cases.
@@ -385,9 +391,10 @@ func (t terpHash) PutAt(value T, key T) {
 	t.h[k] = value
 	t.Mu.Unlock()
 }
-func (t terpHash) QuickReflectValue() R.Value { return InvalidValue }
-func (t terpHash) EvalSeq(fr *Frame) T        { return Parse2EvalSeqStr(fr, t.String()) }
-func (t terpHash) EvalExpr(fr *Frame) T       { return Parse2EvalExprStr(fr, t.String()) }
+func (t terpHash) QuickReflectValue() R.Value  { return InvalidValue }
+func (t terpHash) EvalSeq(fr *Frame) T         { return Parse2EvalSeqStr(fr, t.String()) }
+func (t terpHash) EvalExpr(fr *Frame) T        { return Parse2EvalExprStr(fr, t.String()) }
+func (t terpHash) Apply(fr *Frame, args []T) T { panic("Cannot apply terpHash as command") }
 
 // terpGenerator implements T
 
@@ -460,9 +467,10 @@ func (t terpGenerator) GetAt(key T) T {
 func (t terpGenerator) PutAt(value T, key T) {
 	panic("terpGenerator is not a Hash")
 }
-func (t terpGenerator) QuickReflectValue() R.Value { return InvalidValue }
-func (t terpGenerator) EvalSeq(fr *Frame) T        { return Parse2EvalSeqStr(fr, t.String()) }
-func (t terpGenerator) EvalExpr(fr *Frame) T       { return Parse2EvalExprStr(fr, t.String()) }
+func (t terpGenerator) QuickReflectValue() R.Value  { return InvalidValue }
+func (t terpGenerator) EvalSeq(fr *Frame) T         { return Parse2EvalSeqStr(fr, t.String()) }
+func (t terpGenerator) EvalExpr(fr *Frame) T        { return Parse2EvalExprStr(fr, t.String()) }
+func (t terpGenerator) Apply(fr *Frame, args []T) T { panic("Cannot apply terpGenerator as command") }
 
 // terpFloat implements T
 
@@ -507,9 +515,10 @@ func (t terpFloat) GetAt(key T) T {
 func (t terpFloat) PutAt(value T, key T) {
 	panic("terpFloat is not a Hash")
 }
-func (t terpFloat) QuickReflectValue() R.Value { return InvalidValue }
-func (t terpFloat) EvalSeq(fr *Frame) T        { return Parse2EvalSeqStr(fr, t.String()) }
-func (t terpFloat) EvalExpr(fr *Frame) T       { return t } // Numbers are self-Expr-eval'ing.
+func (t terpFloat) QuickReflectValue() R.Value  { return InvalidValue }
+func (t terpFloat) EvalSeq(fr *Frame) T         { return Parse2EvalSeqStr(fr, t.String()) }
+func (t terpFloat) EvalExpr(fr *Frame) T        { return t } // Numbers are self-Expr-eval'ing.
+func (t terpFloat) Apply(fr *Frame, args []T) T { return fr.Apply(args) }
 
 // terpString implements T
 
@@ -569,9 +578,10 @@ func (t terpString) GetAt(key T) T {
 func (t terpString) PutAt(value T, key T) {
 	panic("terpString is not a Hash")
 }
-func (t terpString) QuickReflectValue() R.Value { return InvalidValue }
-func (t terpString) EvalSeq(fr *Frame) T        { return Parse2EvalSeqStr(fr, t.String()) }
-func (t terpString) EvalExpr(fr *Frame) T       { return Parse2EvalExprStr(fr, t.String()) }
+func (t terpString) QuickReflectValue() R.Value  { return InvalidValue }
+func (t terpString) EvalSeq(fr *Frame) T         { return Parse2EvalSeqStr(fr, t.String()) }
+func (t terpString) EvalExpr(fr *Frame) T        { return Parse2EvalExprStr(fr, t.String()) }
+func (t terpString) Apply(fr *Frame, args []T) T { return fr.Apply(args) }
 
 // terpList implements T
 
@@ -647,9 +657,10 @@ func (t terpList) GetAt(key T) T {
 func (t terpList) PutAt(value T, key T) {
 	panic("terpList is not a Hash")
 }
-func (t terpList) QuickReflectValue() R.Value { return InvalidValue }
-func (t terpList) EvalSeq(fr *Frame) T        { return Parse2EvalSeqStr(fr, t.String()) }
-func (t terpList) EvalExpr(fr *Frame) T       { return Parse2EvalExprStr(fr, t.String()) }
+func (t terpList) QuickReflectValue() R.Value  { return InvalidValue }
+func (t terpList) EvalSeq(fr *Frame) T         { return Parse2EvalSeqStr(fr, t.String()) }
+func (t terpList) EvalExpr(fr *Frame) T        { return Parse2EvalExprStr(fr, t.String()) }
+func (t terpList) Apply(fr *Frame, args []T) T { return fr.Apply(args) }
 
 // terpValue implements T
 
@@ -817,6 +828,41 @@ func (t *terpMulti) EvalExpr(fr *Frame) T {
 	}
 	return t.expr.Eval(fr)
 }
+func (t terpMulti) Apply(fr *Frame, args []T) T {
+	if t.command != nil {
+		defer func() {
+			if r := recover(); r != nil {
+				if re, ok := r.(error); ok {
+					r = re.Error() // Convert error to string.
+				}
+				if rs, ok := r.(string); ok {
+					rs = rs + Sprintf("\n\tin (terpMulti)Apply\n\t\t%q", args[0])
+
+					// TODO: Require debug level for the args.
+					for _, ae := range args[1:] {
+						as := ae.String()
+						if len(as) > 40 {
+							as = as[:40] + "..."
+						}
+						rs = rs + Sprintf(" %q", as)
+					}
+
+					if fr.MixinLevel > 0 {
+						rs = rs + Sprintf("\n\t\t(frame's MixinLevel=%d)", fr.MixinLevel)
+					}
+					if len(fr.MixinName) > 0 {
+						rs = rs + Sprintf("\n\t\t(frame's MixinName=%q)", fr.MixinName)
+					}
+					r = rs
+				}
+				panic(r)
+			}
+		}()
+
+		return t.command(fr, args)
+	}
+	return fr.Apply(args)
+}
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -881,6 +927,20 @@ func (t terpValue) PutAt(value T, key T) {
 func (t terpValue) QuickReflectValue() R.Value { return t.v }
 func (t terpValue) EvalSeq(fr *Frame) T        { return Parse2EvalSeqStr(fr, t.String()) }
 func (t terpValue) EvalExpr(fr *Frame) T       { return Parse2EvalExprStr(fr, t.String()) }
+func (t terpValue) Apply(fr *Frame, args []T) T {
+	if len(args) < 2 {
+		panic(Sprintf("Reflected %q as command requires method argument"))
+	}
+	methName := args[1].String()
+	if len(methName) > 1 && methName[0] == '.' { // Allow initial "." syntax.  Later require it?
+		methName = methName[1:]
+	}
+	fn := t.v.MethodByName(methName)
+	if !fn.IsValid() {
+		panic(Sprintf("No such method %q on Reflected %q", methName, t))
+	}
+	return commonCall(fr, methName, fn, args, 2)
+}
 
 ////////////////////////////////////////
 // Experimental.
@@ -943,9 +1003,10 @@ func (t *hackFloat) GetAt(key T) T {
 func (t *hackFloat) PutAt(value T, key T) {
 	panic("*hackFloat is not a Hash")
 }
-func (t *hackFloat) QuickReflectValue() R.Value { return InvalidValue }
-func (t *hackFloat) EvalSeq(fr *Frame) T        { return Parse2EvalSeqStr(fr, t.String()) }
-func (t *hackFloat) EvalExpr(fr *Frame) T       { return t } // Numbers are self-Expr-eval'ing.
+func (t *hackFloat) QuickReflectValue() R.Value  { return InvalidValue }
+func (t *hackFloat) EvalSeq(fr *Frame) T         { return Parse2EvalSeqStr(fr, t.String()) }
+func (t *hackFloat) EvalExpr(fr *Frame) T        { return t } // Numbers are self-Expr-eval'ing.
+func (t *hackFloat) Apply(fr *Frame, args []T) T { return fr.Apply(args) }
 
 // End Experimental.
 ////////////////////////////////////////

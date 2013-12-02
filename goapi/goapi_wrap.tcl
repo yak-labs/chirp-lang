@@ -66,6 +66,7 @@ proc main argv {
 
 	puts "func init() {"
 
+	# OLD STYLE
 	foreach pkg [lsort [array names Funcs]] {
 		set tag $Imports($pkg)
 		foreach name [lsort $Funcs($pkg)] {
@@ -109,6 +110,14 @@ proc main argv {
 			} else {
 				puts "\tRConsts\[`/$pkg/$name`\] = $tag.$name"
 			}
+		}
+	}
+
+	# NEW STYLE
+	foreach pkg [lsort [array names Funcs]] {
+		set tag $Imports($pkg)
+		foreach name [lsort $Funcs($pkg)] {
+			puts "\tRoots\[`/$pkg/$name`\] = FuncRoot{ Func: reflect.ValueOf($tag.$name) }"
 		}
 	}
 

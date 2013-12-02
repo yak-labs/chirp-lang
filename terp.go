@@ -303,7 +303,6 @@ func (fr *Frame) DefineUpVar(name string, remFr *Frame, remName string) {
 }
 
 func (fr *Frame) FindCommand(name T, callSuper bool) Command {
-	// Some day we will not require terpString; for now, it helps debug.
 	// TODO: Optimize with terpMulti.
 	cmdName := name.String()
 
@@ -342,7 +341,7 @@ func (fr *Frame) FindCommand(name T, callSuper bool) Command {
 	}
 
 	if !ok {
-		panic(Sprintf("FindCommand: command not found: %q", cmdName))
+		return nil
 	}
 	return fn
 }
@@ -385,16 +384,25 @@ func (fr *Frame) Apply(argv []T) T {
 		}
 	}()
 
+	// First try to find the Command function.
 	head := argv[0]
 	fn := fr.FindCommand(head, false) // false: Don't call super.
-	if fn == nil {
-		panic("fr.FindCommand returned nil")
+	if fn != nil {
+		// Found it; use it.
+		z := fn(fr, argv)
+		if Debug['a'] {
+			Sayf("Apply...returns <%q>", z.String())
+		}
+		return z
 	}
-	z := fn(fr, argv)
-	if Debug['a'] {
-		Sayf("Apply...returns <%q>", z.String())
+
+	// Next try to find a root.
+	rootName := head.String()
+	if len(rootName) > 0 && rootName[0] == '/' {
+		return LookupRootAndApply(fr, rootName, argv)
 	}
-	return z
+
+	panic(Sprintf("No such command: %q", rootName))
 }
 
 func Repr(a interface{}) string { return Sprintf("REPR<<%#v>>", a) }

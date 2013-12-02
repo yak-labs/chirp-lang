@@ -299,8 +299,12 @@ func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 					}
 					if rs, ok := r.(string); ok {
 						rs = rs + "\n\tin proc " + argv2[0].String()
-						rs = rs + Sprintf("\n\t\t(caller's MixinLevel=%d)", fr2.MixinLevel)
-						rs = rs + Sprintf("\n\t\t(caller's MixinName=%q)", fr2.MixinName)
+						if fr2.MixinLevel > 0 {
+							rs = rs + Sprintf("\n\t\t(caller's MixinLevel=%d)", fr2.MixinLevel)
+						}
+						if fr2.MixinName != "" {
+							rs = rs + Sprintf("\n\t\t(caller's MixinName=%q)", fr2.MixinName)
+						}
 						// TODO: Require debug level for the args.
 						for ai, ae := range argv2[1:] {
 							as := ae.String()
