@@ -50,7 +50,11 @@ proc doLine line {
 proc main argv {
 	global Imports Funcs Ins Outs Vars Types Consts ConstTypes
 	while {[gets stdin line] >= 0} {
-		doLine $line
+		if {[regexp {^pkg ([-A-Za-z0-9_/]+),} $line _ pkg]} {
+			if {[llength $argv] == 0 || [lsearch -glob $argv $pkg] >= 0} {
+				doLine $line
+			}
+		}
 	}
 
 	puts "package goapi"
@@ -66,58 +70,50 @@ proc main argv {
 
 	puts "func init() {"
 
-	# OLD STYLE
 	foreach pkg [lsort [array names Funcs]] {
 		set tag $Imports($pkg)
 		foreach name [lsort $Funcs($pkg)] {
-			puts "\tRFuncs\[`/$pkg/$name`\] = $tag.$name"
+			puts "\tRoots\[`/$pkg/$name`\] = FuncRoot{ Func: reflect.ValueOf($tag.$name) }"
 		}
 	}
 
 	foreach pkg [lsort [array names Vars]] {
 		set tag $Imports($pkg)
 		foreach name [lsort $Vars($pkg)] {
-			puts "\tRVars\[`/$pkg/$name`\] = &$tag.$name"
+			puts "\tRoots\[`/$pkg/$name`\] = VarRoot{ Var: reflect.ValueOf(&$tag.$name) }"
 		}
 	}
 
 	foreach pkg [lsort [array names Types]] {
 		set tag $Imports($pkg)
-		foreach name [lsort -unique $Types($pkg)] {
-			puts "\tRTypes\[`/$pkg/$name`\] = new($tag.$name)"
+		foreach name [lsort $Types($pkg)] {
+			# puts "\tRoots\[`/$pkg/$name`\] = TypeRoot{ Type: reflect.ValueOf(new(*$tag.$name)).Type().Elem().Elem() }"
+			
+
+			puts "	{"
+			puts "	var tmp *$tag.$name"
+			puts "\tRoots\[`/$pkg/$name`\] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }"
+			puts "	}"
 		}
 	}
 
 	foreach pkg [lsort [array names Consts]] {
-
-		if { $pkg == "hash/crc64" } {
-			# Problems e.g. constant 14514072000185962306 overflows int.
-			##continue
-		}
-
 		set tag $Imports($pkg)
 		foreach name [lsort $Consts($pkg)] {
+
 			set type $ConstTypes($pkg,$name)
 
 			# Heuristic for finding Uint64 consts with their high bit set.
 			if { $type == "ideal-int"
 					&& ( [string match {*Uint64} $name] || [string match {*64} $pkg] ) } {
 				# Hope none of these are negative; in version 1.0 they are not.
-				puts "\tRConsts\[`/$pkg/$name`\] = uint64($tag.$name)"
+				puts "\tRoots\[`/$pkg/$name`\] = ConstRoot{ Const: uint64($tag.$name) }"
 			} elseif { $type == "ideal-int" } {
 				# Specify int64 so we can compile when int==int32.
-				puts "\tRConsts\[`/$pkg/$name`\] = int64($tag.$name)"
+				puts "\tRoots\[`/$pkg/$name`\] = ConstRoot{ Const: int64($tag.$name) }"
 			} else {
-				puts "\tRConsts\[`/$pkg/$name`\] = $tag.$name"
+				puts "\tRoots\[`/$pkg/$name`\] = ConstRoot{ Const: $tag.$name }"
 			}
-		}
-	}
-
-	# NEW STYLE
-	foreach pkg [lsort [array names Funcs]] {
-		set tag $Imports($pkg)
-		foreach name [lsort $Funcs($pkg)] {
-			puts "\tRoots\[`/$pkg/$name`\] = FuncRoot{ Func: reflect.ValueOf($tag.$name) }"
 		}
 	}
 

@@ -185,9 +185,9 @@ func MkT(a interface{}) T {
 		// panic(Sprintf("Calling MkT() on a T: <%T> <%#v> %s", x, x, x.String()))
 		return x
 
-	case R.Value:
-		// Some day we'll allow this, but for now, flag an error.
-		panic(Sprintf("Calling MkT() on a R.Value: <%T> <%#v> %s", x, x, x.String()))
+	// case R.Value:
+	// 	// Some day we'll allow this, but for now, flag an error.
+	// 	panic(Sprintf("Calling MkT() on a R.Value: <%T> <%#v> %s", x, x, x.String()))
 
 	case nil:
 		return Empty
@@ -924,23 +924,10 @@ func (t terpValue) GetAt(key T) T {
 func (t terpValue) PutAt(value T, key T) {
 	panic("terpValue is not a Hash")
 }
-func (t terpValue) QuickReflectValue() R.Value { return t.v }
-func (t terpValue) EvalSeq(fr *Frame) T        { return Parse2EvalSeqStr(fr, t.String()) }
-func (t terpValue) EvalExpr(fr *Frame) T       { return Parse2EvalExprStr(fr, t.String()) }
-func (t terpValue) Apply(fr *Frame, args []T) T {
-	if len(args) < 2 {
-		panic(Sprintf("Reflected %q as command requires method argument"))
-	}
-	methName := args[1].String()
-	if len(methName) > 1 && methName[0] == '.' { // Allow initial "." syntax.  Later require it?
-		methName = methName[1:]
-	}
-	fn := t.v.MethodByName(methName)
-	if !fn.IsValid() {
-		panic(Sprintf("No such method %q on Reflected %q", methName, t))
-	}
-	return commonCall(fr, methName, fn, args, 2)
-}
+func (t terpValue) QuickReflectValue() R.Value  { return t.v }
+func (t terpValue) EvalSeq(fr *Frame) T         { return Parse2EvalSeqStr(fr, t.String()) }
+func (t terpValue) EvalExpr(fr *Frame) T        { return Parse2EvalExprStr(fr, t.String()) }
+func (t terpValue) Apply(fr *Frame, args []T) T { return ApplyToReflectedValue(fr, t.v, args, 1) }
 
 ////////////////////////////////////////
 // Experimental.

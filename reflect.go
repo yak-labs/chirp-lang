@@ -8,30 +8,372 @@ import (
 	"unsafe"
 )
 
-var (
-	// Maps to hold bindings to GO API for Reflection.
-	RFuncs  map[string]interface{} // Holds functions.
-	RVars   map[string]interface{} // Holds pointers to vars.
-	RTypes  map[string]interface{} // Holds a pointer to a new() instance of the type.
-	RConsts map[string]interface{} // Holds a reified constant value.
-
-	Roots map[string]Applier = make(map[string]Applier)
-)
+var Roots map[string]Applier = make(map[string]Applier)
 
 var errorInterfaceType R.Type = R.TypeOf(errors.New).Out(0)
 
-// TODO: This interface could replace Command,
-// or Command could replace this interface?
+// TODO: This interface could replace Command, or could Command replace this interface?
 type Applier interface {
 	Apply(fr *Frame, args []T) T
 }
 type FuncRoot struct{ Func R.Value }
-type VarRoot struct{ VarPtr R.Value }
-type TypeRoot struct{ T R.Type }
-type ConstRoot struct{ C R.Value }
+type VarRoot struct{ Var R.Value }
+type TypeRoot struct{ Type R.Type }
+type ConstRoot struct{ Const interface{} }
 
 func (r FuncRoot) Apply(fr *Frame, args []T) T {
 	return commonCall(fr, args[0].String(), r.Func, args, 1)
+}
+
+func (r VarRoot) Apply(fr *Frame, args []T) T {
+	return MkT(r.Var)
+}
+
+func (r TypeRoot) Apply(fr *Frame, args []T) T {
+	if Debug['r'] {
+		Say("ApplyToType <<<", r.Type)
+		Sayf("............... %s", Showv(args))
+	}
+	z := ApplyToType(fr, r.Type, args)
+	if Debug['r'] {
+		Say("ApplyToType >>>", z)
+	}
+	return z
+}
+
+func (r ConstRoot) Apply(fr *Frame, args []T) T {
+	return MkT(r.Const)
+}
+
+func ApplyToType(fr *Frame, typ R.Type, args []T) T {
+	switch len(args) {
+	case 1:
+		// Backwards Compat
+		return MkValue(R.ValueOf(typ))
+	case 2:
+		switch args[1].String() {
+		case "type":
+			return MkValue(R.ValueOf(typ))
+		case "ptrtype":
+			return MkValue(R.ValueOf(R.PtrTo(typ)))
+		case "slicetype":
+			return MkValue(R.ValueOf(R.SliceOf(typ)))
+		case "chantype":
+			return MkValue(R.ValueOf(R.ChanOf(R.BothDir, typ)))
+		case "new":
+			val := R.New(typ)
+			if Debug['z'] {
+				Say("new: CanSet:", val, val.CanSet(), val.Elem().CanSet())
+			}
+			z := MkValue(val)
+			if Debug['z'] {
+				Say("new: CanSet:", z, z.v.Elem().CanSet())
+			}
+			return z
+		case "zero":
+			return MkValue(R.Zero(typ))
+		case "mkslice":
+			return MkValue(R.ValueOf(R.MakeSlice(R.SliceOf(typ), 0, 4)))
+		}
+	case 3:
+		switch args[1].String() {
+		case "chantype":
+			var dir R.ChanDir
+			switch args[2].String()[0] {
+			case 'R', 'r', '1':
+				dir = R.RecvDir
+			case 'S', 's', '2':
+				dir = R.SendDir
+			case 'B', 'b', '3':
+				dir = R.BothDir
+			default:
+				panic(Sprintf("Bad ChanDir in chantype"))
+			}
+			return MkValue(R.ValueOf(R.ChanOf(dir, typ)))
+
+		case "maptype":
+			elemType, ok := args[2].QuickReflectValue().Interface().(R.Type)
+			if !ok {
+				panic(Sprintf("Bad element type in maptype"))
+			}
+			return MkValue(R.ValueOf(R.MapOf(typ, elemType)))
+
+		case "mkmap":
+			typ2, ok := args[2].Raw().(R.Type) // Element type.
+			if !ok {
+				panic(Sprintf("ApplyToType: Expected an element type as argument to 'mkmap' on key type %v", typ))
+			}
+			return MkValue(R.Value(R.MakeMap(R.MapOf(typ, typ2))))
+		case "mkslice":
+			k := int(args[2].Int())
+			return MkValue(R.Value(R.MakeSlice(R.SliceOf(typ), k, 4)))
+		}
+	}
+	panic(Sprintf("ApplyToType: Bad usage of Reflected Type %v", typ))
+}
+
+// ApplyToReflectedValue applies args, starting at i, to terpValue t.
+func ApplyToReflectedValue(fr *Frame, v R.Value, args []T, i int) T {
+	if Debug['r'] {
+		Say("ApplyToReflectedValue <<<", v, i)
+		Sayf("......................... %s", Showv(args))
+	}
+	z := ApplyToReflectedValueRecur(fr, v, args, i)
+	if Debug['r'] {
+		Say("ApplyToReflectedValue >>>", z)
+	}
+	return z
+}
+func ApplyToReflectedValueRecur(fr *Frame, v R.Value, args []T, i int) T {
+	if Debug['z'] {
+		Say("ApplyToReflectedValueRecur  CanSet?", v, v.CanSet())
+	}
+	n := len(args)
+	if n-1 < i { // No more operations left to do.
+		return MkT(v.Interface())
+	}
+	methName := args[i].String()
+	typ := v.Type()
+	kind := v.Kind()
+	switch methName {
+	case "":
+		if len(methName) < 1 {
+			panic(Sprintf("Empty method name called on Reflected %q", v))
+		}
+	case ".":
+		if Debug['z'] {
+			Say("Try .")
+		}
+		v2 := v
+		switch kind {
+		case R.Ptr, R.Interface:
+			if v.IsNil() {
+				panic(Sprintf("Cannot use field %q on NIL pointer", args[i+1].String()))
+			}
+			v2 = v.Elem()
+			if Debug['z'] {
+				Say("Deref . ", v2)
+			}
+		}
+
+		switch v2.Kind() {
+		case R.Struct:
+			if Debug['z'] {
+				Say("case . struct")
+			}
+			if n-1 < i+1 {
+				panic(Sprintf("Missing fieldName after '.' on Reflected %q", v2))
+			}
+			fieldName := args[i+1].String()
+			field := v2.FieldByName(fieldName)
+			if !field.IsValid() {
+				panic(Sprintf("No field named %q on Reflected %q", fieldName, v2))
+			}
+
+			if Debug['z'] {
+				Say("n i args", n, i, args)
+			}
+			if n > i+3 && args[i+2].String() == "=" {
+				if Debug['z'] {
+					Say("case . struct =")
+				}
+				if n-1 != i+3 {
+					panic(Sprintf("Extra args not allowed after: . field = x"))
+				}
+				// case Set Field.
+				x := AdaptToValue(fr, args[i+3], field.Type())
+				if Debug['z'] {
+					Say("AdaptToValue arg field -> x", args[i+3], field, x)
+				}
+				if !x.IsValid() {
+					panic(Sprintf("Cannot Adapt value %s to field named %q on Reflected %q", fieldName, v2))
+				}
+				if Debug['z'] {
+					Say("Setting X, CanSet?", v, field, v.CanSet(), v2.CanSet(), field.CanSet())
+				}
+				field.Set(x)
+				if Debug['z'] {
+					Say("Did Set X")
+				}
+				return MkValue(x)
+
+			} else {
+				if Debug['z'] {
+					Say("case . struct ! =")
+				}
+				// case Get Field.
+				return ApplyToReflectedValueRecur(fr, field, args, i+2)
+			}
+		}
+		if Debug['z'] {
+			Say("drop out .")
+		}
+
+	case "@":
+		if Debug['z'] {
+			Say("try @")
+		}
+		v2 := v
+		switch kind {
+		case R.Ptr, R.Interface:
+			if v.IsNil() {
+				panic(Sprintf("Cannot use @ on NIL pointer"))
+			}
+			v2 = v.Elem()
+			if Debug['z'] {
+				Say("Deref @", v2)
+			}
+		}
+
+		if Debug['z'] {
+			Say("more @", v2.Kind().String())
+		}
+		switch v2.Kind() {
+		case R.Slice:
+			if Debug['z'] {
+				Say("more @ case Slice")
+			}
+			if n-1 < i+1 {
+				panic(Sprintf("Missing fieldName after '.' on Reflected %q", v2))
+			}
+			k := int(args[i+1].Int())
+			target := v2.Index(k)
+			if !target.IsValid() {
+				panic(Sprintf("Failed index %d on Reflected %q", k, v2))
+			}
+			//////
+
+			if n > i+3 && args[i+2].String() == "=" {
+				if Debug['z'] {
+					Say("case @ struct =")
+				}
+				if n-1 != i+3 {
+					panic(Sprintf("Extra args not allowed after: . field = x"))
+				}
+				// case Set Field.
+				x := AdaptToValue(fr, args[i+3], target.Type())
+				if Debug['z'] {
+					Say("AdaptToValue @ arg target -> x", args[i+3], target, x)
+				}
+				if !x.IsValid() {
+					panic(Sprintf("Cannot Adapt value %s to target on Reflected %q", args[i+3], v2))
+				}
+				if Debug['z'] {
+					Say("Setting @ X")
+				}
+				target.Set(x)
+				return MkValue(x)
+			}
+			//////
+			return ApplyToReflectedValue(fr, target, args, i+2)
+
+		case R.Map:
+			if Debug['z'] {
+				Say("more @ case Map")
+			}
+			if n-1 < i+1 {
+				panic(Sprintf("Missing fieldName after '.' on Reflected %q", v2))
+			}
+			k := R.ValueOf(args[i+1].Raw())
+			target := v2.MapIndex(k)
+			if !target.IsValid() {
+				panic(Sprintf("Failed MapIndex() on Reflected %q", v2))
+			}
+			//////
+
+			if n > i+3 && args[i+2].String() == "=" {
+				if Debug['z'] {
+					Say("case map@ struct =")
+				}
+				if n-1 != i+3 {
+					panic(Sprintf("Extra args not allowed after: . field = x"))
+				}
+				// case Set Field.
+				x := AdaptToValue(fr, args[i+3], target.Type())
+				if Debug['z'] {
+					Say("AdaptToValue map@ arg target -> x", args[i+3], target, x)
+				}
+				if !x.IsValid() {
+					panic(Sprintf("Cannot Adapt value %s to target on Reflected %q", args[i+3], v2))
+				}
+				if Debug['z'] {
+					Say("Setting map@ X")
+				}
+				target.Set(x)
+				return MkValue(x)
+			}
+			//////
+			return ApplyToReflectedValueRecur(fr, target, args, i+2)
+		}
+		if Debug['z'] {
+			Say("drop out @")
+		}
+	case "*":
+		switch kind {
+		case R.Ptr, R.Interface:
+			if v.IsNil() {
+				panic(Sprintf("Cannot dereference NIL pointer"))
+			}
+			z := v.Elem()
+			if !z.IsValid() {
+				panic(Sprintf("Failed Elem() on Reflected %q", v))
+			}
+			return ApplyToReflectedValueRecur(fr, z, args, i+1)
+		}
+		if Debug['z'] {
+			Say("drop out *")
+		}
+
+	case "kind":
+		return MkString(kind.String())
+	case "type":
+		return MkValue(R.ValueOf(typ))
+	}
+
+	// default:
+	fn := v.MethodByName(methName)
+	if !fn.IsValid() {
+		v3 := v
+
+		if Debug['z'] {
+			Say("v:", v3)
+		}
+		if Debug['z'] {
+			Say("v3:", v3)
+		}
+		if Debug['z'] {
+			Say("v3.Kind():", v3.Kind())
+		}
+		if Debug['z'] {
+			Say("v3.Type():", v3.Type())
+		}
+		if Debug['z'] {
+			Say("v3.Interface():", v3.Interface())
+		}
+		typeObj, ok := v3.Interface().(R.Type)
+		if ok {
+			if Debug['z'] {
+				Say("ok:ApplyToType", typeObj, args)
+			}
+			return ApplyToType(fr, typeObj, args)
+		}
+		if Debug['z'] {
+			Say("notok", args)
+		}
+
+		switch v.Kind() {
+		case R.Ptr, R.Interface:
+			if v.IsNil() {
+				panic(Sprintf("Cannot call method %q on NIL pointer", methName))
+			}
+			v3 = v.Elem()
+		}
+		fn = v3.MethodByName(methName)
+		if !fn.IsValid() {
+			panic(Sprintf("No such method %q on Reflected %q", methName, v))
+		}
+	}
+	return commonCall(fr, methName, fn, args, i+1)
 }
 
 func LookupRootAndApply(fr *Frame, rootName string, args []T) T {
@@ -168,32 +510,10 @@ func AdaptToValue(fr *Frame, a T, ty R.Type) R.Value {
 	// We haven't checked this is correct;
 	//  cmdCall will reject it, if it won't work.
 	// But maybe we can do better, so log it.
-	log.Printf("AdaptToValue: Default: for type <%s>: %s", ty, Show(a))
+	if Debug['r'] {
+		log.Printf("AdaptToValue: Default: for type <%s>: %s", ty, Show(a))
+	}
 	return R.ValueOf(a.Raw())
-}
-
-func cmdElem(fr *Frame, argv []T) T {
-	p := Arg1(argv)
-
-	rv := p.QuickReflectValue()
-	if !rv.IsValid() {
-		panic("cannot use 'elem' on non-reflect-value")
-	}
-	e := rv.Elem()
-
-	return MkT(e.Interface())
-}
-
-func cmdIndex(fr *Frame, argv []T) T {
-	slice, i := Arg2(argv)
-
-	rv := slice.QuickReflectValue()
-	if !rv.IsValid() {
-		panic("cannot 'index' on non-reflect-value")
-	}
-	z := rv.Index(int(i.Int()))
-
-	return MkT(z.Interface())
 }
 
 // commonCall is common to both "go-call" and "go-send".
@@ -201,7 +521,7 @@ func cmdIndex(fr *Frame, argv []T) T {
 func commonCall(fr *Frame, funcName string, fn R.Value, args []T, numFrontArgs int) T {
 	ty := fn.Type()
 
-	log.Printf("... fn <%s> type: <%s> %s", funcName, ty.Kind(), ty)
+	// log.Printf("... fn <%s> type: <%s> %s", funcName, ty.Kind(), ty)
 
 	nin := ty.NumIn()
 	nout := ty.NumOut()
@@ -209,10 +529,10 @@ func commonCall(fr *Frame, funcName string, fn R.Value, args []T, numFrontArgs i
 
 	// Log the function's expected arguments.
 	for i := 0; i < nin; i++ {
-		log.Printf("... fn expect in[%d] : <%s> %s", i, ty.In(i).Kind(), ty.In(i))
+		// log.Printf("... fn expect in[%d] : <%s> %s", i, ty.In(i).Kind(), ty.In(i))
 	}
 	for i := 0; i < nout; i++ {
-		log.Printf("... fn returns out[%d] : <%s>  %s", i, ty.Out(i).Kind(), ty.Out(i))
+		// log.Printf("... fn returns out[%d] : <%s>  %s", i, ty.Out(i).Kind(), ty.Out(i))
 	}
 
 	// Check num args
@@ -236,30 +556,30 @@ func commonCall(fr *Frame, funcName string, fn R.Value, args []T, numFrontArgs i
 			target = ty.In(i)
 		}
 		pp[i] = AdaptToValue(fr, p, target)
-		log.Printf("........ passing [%d] %s as (%s) %s", i, Show(p), pp[i].Kind().String(), pp[i].Type().String())
+		// log.Printf("........ passing [%d] %s as (%s) %s", i, Show(p), pp[i].Kind().String(), pp[i].Type().String())
 
 	}
 
 	// Call it.
-	log.Printf("...(calling)...  %v  (  %v  )", funcName, pp)
+	// log.Printf("...(calling)...  %v  (  %v  )", funcName, pp)
 	xx := fn.Call(pp)
-	log.Printf("...(called)...")
+	// log.Printf("...(called)...")
 
 	// Convert results from Values into zz.
 	zz := make([]T, len(xx))
 	for i, x := range xx {
 		z := x.Interface()
 		zz[i] = MkT(z)
-		log.Printf("........ result [%d] %s from (%s) %s", i, Show(zz[i]), x.Kind().String(), x.Type().String())
+		// log.Printf("........ result [%d] %s from (%s) %s", i, Show(zz[i]), x.Kind().String(), x.Type().String())
 	}
 
 	// If last arg is type error, remove it if nil, or panic it.
 	if nout > 0 && ty.Out(nout-1).Implements(errorInterfaceType) {
-		log.Printf("Last result implements error; checking it: %#v", zz[nout-1])
+		// log.Printf("Last result implements error; checking it: %#v", zz[nout-1])
 		if !xx[nout-1].IsNil() {
 			panic(Sprintf("call %q returns error: %q", funcName, xx[nout-1].Interface().(error).Error()))
 		}
-		log.Printf("Last result implements error; was nil; dropping it.")
+		// log.Printf("Last result implements error; was nil; dropping it.")
 		zz = zz[:nout-1]
 	}
 
@@ -271,55 +591,6 @@ func commonCall(fr *Frame, funcName string, fn R.Value, args []T, numFrontArgs i
 		return zz[0] // If single result, return it simply.
 	}
 	return MkList(zz) // If multiple results, return a list of them.
-}
-
-func derefChain(fr *Frame, argv []T) R.Value {
-	start, rest := Arg1v(argv)
-	av := R.ValueOf(start.Raw())
-
-	// For additional names, use Fields (or other navigation) to deref.
-	for _, e := range rest {
-		log.Printf("------DEREF <<< type(av)=<%s>%s", av.Kind(), av.Type())
-
-		// TODO: IS IT OKAY TO DEREF Ptr or Interface?
-		if av.Kind() == R.Ptr || av.Kind() == R.Interface {
-			log.Printf("------EXTRA DEREF %s", av.Kind())
-			av = av.Elem()
-		}
-		log.Printf("------DEREF BY %q", e.String())
-		av2 := av.FieldByName(e.String())
-		log.Printf("------DEREF >>> type(av)=<%s>%s", av2.Kind(), av2.Type())
-		if !av2.IsValid() {
-			// Better: ShowValue(av)
-			panic(Sprintf("invalid field %s of %s", e.String(), Show(MkT(av.Interface()))))
-		}
-		av = av2
-	}
-	return av
-}
-
-func cmdGetf(fr *Frame, argv []T) T {
-	z := derefChain(fr, argv).Interface()
-	return MkT(z)
-}
-
-func cmdSetf(fr *Frame, argv []T) T {
-	n := len(argv)
-	loc := derefChain(fr, argv[:n-1]) // Location to assign to.
-	if !loc.CanSet() {
-		panic(Sprintf("set command deref'ed to an Unsetable Location: %q", Showv(argv)))
-	}
-
-	x := argv[n-1] // The value to be assigned.
-	zv := AdaptToValue(fr, x, loc.Type())
-	log.Printf(".... Reflect Set loc <%s> %s = %s", zv.Kind(), zv.Type(), Show(x))
-	loc.Set(zv)
-	return x
-}
-
-func cmdGoGet(fr *Frame, argv []T) T {
-	varT := Arg1(argv)
-	return MkT(RVars[varT.String()])
 }
 
 // TODO: test.
@@ -341,16 +612,5 @@ func init() {
 		Unsafes = make(map[string]Command, 333)
 	}
 
-	Unsafes["go-getf"] = cmdGetf
-	Unsafes["go-setf"] = cmdSetf
-	Unsafes["go-get"] = cmdGoGet
-
-	Unsafes["go-elem"] = cmdElem
-	Unsafes["go-index"] = cmdIndex
 	Unsafes["go-map-to-hash"] = cmdGoMapToHash
-
-	RFuncs = make(map[string]interface{})
-	RVars = make(map[string]interface{})
-	RTypes = make(map[string]interface{})
-	RConsts = make(map[string]interface{})
 }

@@ -150,6 +150,9 @@ type UpSlot struct {
 
 type BitsWord uint32 // We cannot fit uint64 into the float -- until we support actual uint64, we must use shorter BitsWords.
 
+var TypeT = R.TypeOf(MkT(""))
+var TypeType = R.TypeOf(TypeT)
+
 var Empty = MkString("")
 var InvalidValue = *new(R.Value)
 
@@ -488,28 +491,74 @@ func Logf(fmt string, args ...interface{}) {
 	log.Println(Sprintf(fmt, args...))
 }
 
+var SayPrefix = "Say" // TODO: Global Prefix WILL BREAK WITH goROUTINES.
+
 // Quick internal logging function that needs no Frame.
 func Say(args ...interface{}) {
-	log.Println(Sprintf("Say --->%s --->", Where()))
-	prefix := ": "
+	savedPrefix := SayPrefix
+	defer func() { SayPrefix = savedPrefix }()
+
+	if len(SayPrefix) < 4 {
+		log.Println(Sprintf("%s --->%s --->", SayPrefix, Where()))
+	}
+
+	prefix := " :::"
 	for _, a := range args {
 		switch t := a.(type) {
 		case Shower:
-			log.Println(Sprintf("%s%s", prefix, t.Show()))
+			log.Println(Sprintf("%s %s", SayPrefix, t.Show()))
+		case terpValue:
+			view := Sprintf("%v", t.v.Interface())
+			if len(view) > 80 {
+				view = view[:80] + "..."
+			}
+			targetCanSet := " "
+			targAddress := "t@?"
+			switch t.v.Kind() {
+			case R.Ptr, R.Interface:
+				targetCanSet = Sprintf("targCanSet=%v", t.v.Elem().CanSet())
+				if t.v.Elem().CanAddr() {
+					targAddress = Sprintf("t@%x@%x", t.v.Elem().Addr(), t.v.Pointer())
+				}
+			}
+			address := "@?"
+			if t.v.CanAddr() {
+				address = Sprintf("@%x", t.v.Addr())
+			}
+			log.Println(Sprintf("%s terpVALUE{{{CanSet=%v %s %s %s :::%s:::%s::: %s:::%#v}}}", SayPrefix, t.v.CanSet(), targetCanSet, address, targAddress, t.v.Kind(), t.v.Type(), view, t.v))
+		case R.Value:
+			view := Sprintf("%v", t.Interface())
+			if len(view) > 80 {
+				view = view[:80] + "..."
+			}
+			targetCanSet := " "
+			targAddress := "t@?"
+			switch t.Kind() {
+			case R.Ptr, R.Interface:
+				targetCanSet = Sprintf("targCanSet=%v", t.Elem().CanSet())
+				if t.Elem().CanAddr() {
+					targAddress = Sprintf("t@%x@%x", t.Elem().Addr(), t.Pointer())
+				}
+			}
+			address := "@?"
+			if t.CanAddr() {
+				address = Sprintf("@%x", t.Addr())
+			}
+			log.Println(Sprintf("%s VALUE{{{CanSet=%v %s %s %s :::%s:::%s::: %s:::%#v}}}", SayPrefix, t.CanSet(), targetCanSet, address, targAddress, t.Kind(), t.Type(), view, t))
 		default:
 			rv := R.ValueOf(a)
 			rvt := rv.Type()
-			if rvt.Kind() == R.Slice && rvt.Elem().Kind() == R.Ptr {
-				log.Println(Sprintf("%s SLICE [%d] %s ........", prefix, rv.Len(), rvt))
+			if rvt.Kind() == R.Slice {
+				log.Println(Sprintf("%s SLICE [%d] %s ........", SayPrefix, rv.Len(), rvt))
 				for i := 0; i < rv.Len(); i++ {
+					SayPrefix = savedPrefix + Sprintf("SLICE [%d]: ", i)
 					elem := rv.Index(i)
-					Say(Sprintf("...... Index[%d]", i), elem.Interface())
+					Say(elem.Interface())
 				}
 			} else {
-				log.Println(Sprintf("%s%#v", prefix, a))
+				log.Println(Sprintf("%s %#v", prefix, a))
 			}
 		}
-		prefix += "  : "
 	}
 }
 func Sayf(format string, args ...interface{}) {

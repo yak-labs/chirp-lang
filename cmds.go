@@ -748,7 +748,7 @@ func cmdEval(fr *Frame, argv []T) T {
 	return EvalOrApplyLists(fr, argv[1:])
 }
 
-func cmdUplevel(fr *Frame, argv []T) T {
+func cmdUpLevel(fr *Frame, argv []T) T {
 	specArg, rest := Arg1v(argv)
 	spec := specArg.String()
 
@@ -768,25 +768,58 @@ func cmdUplevel(fr *Frame, argv []T) T {
 }
 
 func EvalOrApplyLists(fr *Frame, lists []T) T {
-	// Are they already lists?
-	areLists := true
-	for _, e := range lists {
-		if !e.IsPreservedByList() {
-			areLists = false
-			break
-		}
+	cat := ConcatLists(lists)
+	if len(cat) == 0 {
+		// Because in Tcl, "eval [list]" -> "".
+		return Empty
 	}
 
-	if areLists {
-		return fr.Apply(ConcatLists(lists))
-	}
+	Say("Sending Apply to ", cat[0], cat)
+	z := cat[0].Apply(fr, cat)
+	Say("Sending Apply returns ->", z)
+	return z
 
-	buf := bytes.NewBuffer(nil)
-	for _, e := range lists {
-		buf.WriteString(e.String())
-		buf.WriteRune(' ')
-	}
-	return fr.Eval(MkString(buf.String()))
+	///////// I don't think we care about non-lists;  I've never used concat or eval or uplevel with non-lists.
+	//
+	//	// Are they already lists?
+	//	areLists := true
+	//Say("areLists := true")
+	//	for _, e := range lists {
+	//Say("areLists ?", e)
+	//zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+	//Should try calling List() on each one.
+	//e.IsPreservedByList just means it will be a singleton list.
+	//When we are EvalOrApplyLists, don't we really want a list?
+	//Or does this break something, vs. joining on space?
+	//Shouldn't we break Tcl, if it does?
+	//zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+	//
+	//		if !e.IsPreservedByList() {
+	//Say("areLists := false")
+	//			areLists = false
+	//			break
+	//		}
+	//	}
+	//Say("areLists ->", areLists)
+	//
+	//	if areLists {
+	//		cat := ConcatLists(lists)
+	//		if len(cat) == 0 {
+	//			// Because in Tcl, "eval [list]" -> "".
+	//			return Empty
+	//		}
+	//Say("Sending Apply to ", cat[0])
+	//		z := cat[0].Apply(fr, cat)
+	//Say("Sending Apply returns ->", z)
+	//		return z
+	//	}
+	//
+	//	buf := bytes.NewBuffer(nil)
+	//	for _, e := range lists {
+	//		buf.WriteString(e.String())
+	//		buf.WriteRune(' ')
+	//	}
+	//	return fr.Eval(MkString(buf.String()))
 }
 
 func ConcatLists(lists []T) []T {
@@ -1618,7 +1651,7 @@ func init() {
 	Safes["while"] = cmdWhile
 	Safes["catch"] = cmdCatch
 	Safes["eval"] = cmdEval
-	Safes["uplevel"] = cmdUplevel
+	Safes["uplevel"] = cmdUpLevel
 	Safes["concat"] = cmdConcat
 	Safes["set"] = cmdSet
 	Safes["upvar"] = cmdUpVar
