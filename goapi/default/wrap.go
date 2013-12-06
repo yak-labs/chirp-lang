@@ -2,15 +2,26 @@ package goapi
 
 import . `github.com/yak-labs/chirp-lang`
 import (
+	bufio `bufio`
 	bytes `bytes`
+	encoding_base64 `encoding/base64`
 	fmt `fmt`
+	io_ioutil `io/ioutil`
+	math `math`
 	math_big `math/big`
 	net_http `net/http`
 	os `os`
 	reflect `reflect`
+	regexp `regexp`
+	strings `strings`
 )
 
 func init() {
+	Roots[`/bufio/NewReadWriter`] = FuncRoot{Func: reflect.ValueOf(bufio.NewReadWriter)}
+	Roots[`/bufio/NewReader`] = FuncRoot{Func: reflect.ValueOf(bufio.NewReader)}
+	Roots[`/bufio/NewReaderSize`] = FuncRoot{Func: reflect.ValueOf(bufio.NewReaderSize)}
+	Roots[`/bufio/NewWriter`] = FuncRoot{Func: reflect.ValueOf(bufio.NewWriter)}
+	Roots[`/bufio/NewWriterSize`] = FuncRoot{Func: reflect.ValueOf(bufio.NewWriterSize)}
 	Roots[`/bytes/Compare`] = FuncRoot{Func: reflect.ValueOf(bytes.Compare)}
 	Roots[`/bytes/Contains`] = FuncRoot{Func: reflect.ValueOf(bytes.Contains)}
 	Roots[`/bytes/Count`] = FuncRoot{Func: reflect.ValueOf(bytes.Count)}
@@ -54,6 +65,9 @@ func init() {
 	Roots[`/bytes/TrimRight`] = FuncRoot{Func: reflect.ValueOf(bytes.TrimRight)}
 	Roots[`/bytes/TrimRightFunc`] = FuncRoot{Func: reflect.ValueOf(bytes.TrimRightFunc)}
 	Roots[`/bytes/TrimSpace`] = FuncRoot{Func: reflect.ValueOf(bytes.TrimSpace)}
+	Roots[`/encoding/base64/NewDecoder`] = FuncRoot{Func: reflect.ValueOf(encoding_base64.NewDecoder)}
+	Roots[`/encoding/base64/NewEncoder`] = FuncRoot{Func: reflect.ValueOf(encoding_base64.NewEncoder)}
+	Roots[`/encoding/base64/NewEncoding`] = FuncRoot{Func: reflect.ValueOf(encoding_base64.NewEncoding)}
 	Roots[`/fmt/Errorf`] = FuncRoot{Func: reflect.ValueOf(fmt.Errorf)}
 	Roots[`/fmt/Fprint`] = FuncRoot{Func: reflect.ValueOf(fmt.Fprint)}
 	Roots[`/fmt/Fprintf`] = FuncRoot{Func: reflect.ValueOf(fmt.Fprintf)}
@@ -73,6 +87,74 @@ func init() {
 	Roots[`/fmt/Sscan`] = FuncRoot{Func: reflect.ValueOf(fmt.Sscan)}
 	Roots[`/fmt/Sscanf`] = FuncRoot{Func: reflect.ValueOf(fmt.Sscanf)}
 	Roots[`/fmt/Sscanln`] = FuncRoot{Func: reflect.ValueOf(fmt.Sscanln)}
+	Roots[`/io/ioutil/NopCloser`] = FuncRoot{Func: reflect.ValueOf(io_ioutil.NopCloser)}
+	Roots[`/io/ioutil/ReadAll`] = FuncRoot{Func: reflect.ValueOf(io_ioutil.ReadAll)}
+	Roots[`/io/ioutil/ReadDir`] = FuncRoot{Func: reflect.ValueOf(io_ioutil.ReadDir)}
+	Roots[`/io/ioutil/ReadFile`] = FuncRoot{Func: reflect.ValueOf(io_ioutil.ReadFile)}
+	Roots[`/io/ioutil/TempDir`] = FuncRoot{Func: reflect.ValueOf(io_ioutil.TempDir)}
+	Roots[`/io/ioutil/TempFile`] = FuncRoot{Func: reflect.ValueOf(io_ioutil.TempFile)}
+	Roots[`/io/ioutil/WriteFile`] = FuncRoot{Func: reflect.ValueOf(io_ioutil.WriteFile)}
+	Roots[`/math/Abs`] = FuncRoot{Func: reflect.ValueOf(math.Abs)}
+	Roots[`/math/Acos`] = FuncRoot{Func: reflect.ValueOf(math.Acos)}
+	Roots[`/math/Acosh`] = FuncRoot{Func: reflect.ValueOf(math.Acosh)}
+	Roots[`/math/Asin`] = FuncRoot{Func: reflect.ValueOf(math.Asin)}
+	Roots[`/math/Asinh`] = FuncRoot{Func: reflect.ValueOf(math.Asinh)}
+	Roots[`/math/Atan`] = FuncRoot{Func: reflect.ValueOf(math.Atan)}
+	Roots[`/math/Atan2`] = FuncRoot{Func: reflect.ValueOf(math.Atan2)}
+	Roots[`/math/Atanh`] = FuncRoot{Func: reflect.ValueOf(math.Atanh)}
+	Roots[`/math/Cbrt`] = FuncRoot{Func: reflect.ValueOf(math.Cbrt)}
+	Roots[`/math/Ceil`] = FuncRoot{Func: reflect.ValueOf(math.Ceil)}
+	Roots[`/math/Copysign`] = FuncRoot{Func: reflect.ValueOf(math.Copysign)}
+	Roots[`/math/Cos`] = FuncRoot{Func: reflect.ValueOf(math.Cos)}
+	Roots[`/math/Cosh`] = FuncRoot{Func: reflect.ValueOf(math.Cosh)}
+	Roots[`/math/Dim`] = FuncRoot{Func: reflect.ValueOf(math.Dim)}
+	Roots[`/math/Erf`] = FuncRoot{Func: reflect.ValueOf(math.Erf)}
+	Roots[`/math/Erfc`] = FuncRoot{Func: reflect.ValueOf(math.Erfc)}
+	Roots[`/math/Exp`] = FuncRoot{Func: reflect.ValueOf(math.Exp)}
+	Roots[`/math/Exp2`] = FuncRoot{Func: reflect.ValueOf(math.Exp2)}
+	Roots[`/math/Expm1`] = FuncRoot{Func: reflect.ValueOf(math.Expm1)}
+	Roots[`/math/Float32bits`] = FuncRoot{Func: reflect.ValueOf(math.Float32bits)}
+	Roots[`/math/Float32frombits`] = FuncRoot{Func: reflect.ValueOf(math.Float32frombits)}
+	Roots[`/math/Float64bits`] = FuncRoot{Func: reflect.ValueOf(math.Float64bits)}
+	Roots[`/math/Float64frombits`] = FuncRoot{Func: reflect.ValueOf(math.Float64frombits)}
+	Roots[`/math/Floor`] = FuncRoot{Func: reflect.ValueOf(math.Floor)}
+	Roots[`/math/Frexp`] = FuncRoot{Func: reflect.ValueOf(math.Frexp)}
+	Roots[`/math/Gamma`] = FuncRoot{Func: reflect.ValueOf(math.Gamma)}
+	Roots[`/math/Hypot`] = FuncRoot{Func: reflect.ValueOf(math.Hypot)}
+	Roots[`/math/Ilogb`] = FuncRoot{Func: reflect.ValueOf(math.Ilogb)}
+	Roots[`/math/Inf`] = FuncRoot{Func: reflect.ValueOf(math.Inf)}
+	Roots[`/math/IsInf`] = FuncRoot{Func: reflect.ValueOf(math.IsInf)}
+	Roots[`/math/IsNaN`] = FuncRoot{Func: reflect.ValueOf(math.IsNaN)}
+	Roots[`/math/J0`] = FuncRoot{Func: reflect.ValueOf(math.J0)}
+	Roots[`/math/J1`] = FuncRoot{Func: reflect.ValueOf(math.J1)}
+	Roots[`/math/Jn`] = FuncRoot{Func: reflect.ValueOf(math.Jn)}
+	Roots[`/math/Ldexp`] = FuncRoot{Func: reflect.ValueOf(math.Ldexp)}
+	Roots[`/math/Lgamma`] = FuncRoot{Func: reflect.ValueOf(math.Lgamma)}
+	Roots[`/math/Log`] = FuncRoot{Func: reflect.ValueOf(math.Log)}
+	Roots[`/math/Log10`] = FuncRoot{Func: reflect.ValueOf(math.Log10)}
+	Roots[`/math/Log1p`] = FuncRoot{Func: reflect.ValueOf(math.Log1p)}
+	Roots[`/math/Log2`] = FuncRoot{Func: reflect.ValueOf(math.Log2)}
+	Roots[`/math/Logb`] = FuncRoot{Func: reflect.ValueOf(math.Logb)}
+	Roots[`/math/Max`] = FuncRoot{Func: reflect.ValueOf(math.Max)}
+	Roots[`/math/Min`] = FuncRoot{Func: reflect.ValueOf(math.Min)}
+	Roots[`/math/Mod`] = FuncRoot{Func: reflect.ValueOf(math.Mod)}
+	Roots[`/math/Modf`] = FuncRoot{Func: reflect.ValueOf(math.Modf)}
+	Roots[`/math/NaN`] = FuncRoot{Func: reflect.ValueOf(math.NaN)}
+	Roots[`/math/Nextafter`] = FuncRoot{Func: reflect.ValueOf(math.Nextafter)}
+	Roots[`/math/Pow`] = FuncRoot{Func: reflect.ValueOf(math.Pow)}
+	Roots[`/math/Pow10`] = FuncRoot{Func: reflect.ValueOf(math.Pow10)}
+	Roots[`/math/Remainder`] = FuncRoot{Func: reflect.ValueOf(math.Remainder)}
+	Roots[`/math/Signbit`] = FuncRoot{Func: reflect.ValueOf(math.Signbit)}
+	Roots[`/math/Sin`] = FuncRoot{Func: reflect.ValueOf(math.Sin)}
+	Roots[`/math/Sincos`] = FuncRoot{Func: reflect.ValueOf(math.Sincos)}
+	Roots[`/math/Sinh`] = FuncRoot{Func: reflect.ValueOf(math.Sinh)}
+	Roots[`/math/Sqrt`] = FuncRoot{Func: reflect.ValueOf(math.Sqrt)}
+	Roots[`/math/Tan`] = FuncRoot{Func: reflect.ValueOf(math.Tan)}
+	Roots[`/math/Tanh`] = FuncRoot{Func: reflect.ValueOf(math.Tanh)}
+	Roots[`/math/Trunc`] = FuncRoot{Func: reflect.ValueOf(math.Trunc)}
+	Roots[`/math/Y0`] = FuncRoot{Func: reflect.ValueOf(math.Y0)}
+	Roots[`/math/Y1`] = FuncRoot{Func: reflect.ValueOf(math.Y1)}
+	Roots[`/math/Yn`] = FuncRoot{Func: reflect.ValueOf(math.Yn)}
 	Roots[`/math/big/NewInt`] = FuncRoot{Func: reflect.ValueOf(math_big.NewInt)}
 	Roots[`/math/big/NewRat`] = FuncRoot{Func: reflect.ValueOf(math_big.NewRat)}
 	Roots[`/net/http/CanonicalHeaderKey`] = FuncRoot{Func: reflect.ValueOf(net_http.CanonicalHeaderKey)}
@@ -168,7 +250,62 @@ func init() {
 	Roots[`/reflect/TypeOf`] = FuncRoot{Func: reflect.ValueOf(reflect.TypeOf)}
 	Roots[`/reflect/ValueOf`] = FuncRoot{Func: reflect.ValueOf(reflect.ValueOf)}
 	Roots[`/reflect/Zero`] = FuncRoot{Func: reflect.ValueOf(reflect.Zero)}
+	Roots[`/regexp/Compile`] = FuncRoot{Func: reflect.ValueOf(regexp.Compile)}
+	Roots[`/regexp/CompilePOSIX`] = FuncRoot{Func: reflect.ValueOf(regexp.CompilePOSIX)}
+	Roots[`/regexp/Match`] = FuncRoot{Func: reflect.ValueOf(regexp.Match)}
+	Roots[`/regexp/MatchReader`] = FuncRoot{Func: reflect.ValueOf(regexp.MatchReader)}
+	Roots[`/regexp/MatchString`] = FuncRoot{Func: reflect.ValueOf(regexp.MatchString)}
+	Roots[`/regexp/MustCompile`] = FuncRoot{Func: reflect.ValueOf(regexp.MustCompile)}
+	Roots[`/regexp/MustCompilePOSIX`] = FuncRoot{Func: reflect.ValueOf(regexp.MustCompilePOSIX)}
+	Roots[`/regexp/QuoteMeta`] = FuncRoot{Func: reflect.ValueOf(regexp.QuoteMeta)}
+	Roots[`/strings/Contains`] = FuncRoot{Func: reflect.ValueOf(strings.Contains)}
+	Roots[`/strings/ContainsAny`] = FuncRoot{Func: reflect.ValueOf(strings.ContainsAny)}
+	Roots[`/strings/ContainsRune`] = FuncRoot{Func: reflect.ValueOf(strings.ContainsRune)}
+	Roots[`/strings/Count`] = FuncRoot{Func: reflect.ValueOf(strings.Count)}
+	Roots[`/strings/EqualFold`] = FuncRoot{Func: reflect.ValueOf(strings.EqualFold)}
+	Roots[`/strings/Fields`] = FuncRoot{Func: reflect.ValueOf(strings.Fields)}
+	Roots[`/strings/FieldsFunc`] = FuncRoot{Func: reflect.ValueOf(strings.FieldsFunc)}
+	Roots[`/strings/HasPrefix`] = FuncRoot{Func: reflect.ValueOf(strings.HasPrefix)}
+	Roots[`/strings/HasSuffix`] = FuncRoot{Func: reflect.ValueOf(strings.HasSuffix)}
+	Roots[`/strings/Index`] = FuncRoot{Func: reflect.ValueOf(strings.Index)}
+	Roots[`/strings/IndexAny`] = FuncRoot{Func: reflect.ValueOf(strings.IndexAny)}
+	Roots[`/strings/IndexFunc`] = FuncRoot{Func: reflect.ValueOf(strings.IndexFunc)}
+	Roots[`/strings/IndexRune`] = FuncRoot{Func: reflect.ValueOf(strings.IndexRune)}
+	Roots[`/strings/Join`] = FuncRoot{Func: reflect.ValueOf(strings.Join)}
+	Roots[`/strings/LastIndex`] = FuncRoot{Func: reflect.ValueOf(strings.LastIndex)}
+	Roots[`/strings/LastIndexAny`] = FuncRoot{Func: reflect.ValueOf(strings.LastIndexAny)}
+	Roots[`/strings/LastIndexFunc`] = FuncRoot{Func: reflect.ValueOf(strings.LastIndexFunc)}
+	Roots[`/strings/Map`] = FuncRoot{Func: reflect.ValueOf(strings.Map)}
+	Roots[`/strings/NewReader`] = FuncRoot{Func: reflect.ValueOf(strings.NewReader)}
+	Roots[`/strings/NewReplacer`] = FuncRoot{Func: reflect.ValueOf(strings.NewReplacer)}
+	Roots[`/strings/Repeat`] = FuncRoot{Func: reflect.ValueOf(strings.Repeat)}
+	Roots[`/strings/Replace`] = FuncRoot{Func: reflect.ValueOf(strings.Replace)}
+	Roots[`/strings/Split`] = FuncRoot{Func: reflect.ValueOf(strings.Split)}
+	Roots[`/strings/SplitAfter`] = FuncRoot{Func: reflect.ValueOf(strings.SplitAfter)}
+	Roots[`/strings/SplitAfterN`] = FuncRoot{Func: reflect.ValueOf(strings.SplitAfterN)}
+	Roots[`/strings/SplitN`] = FuncRoot{Func: reflect.ValueOf(strings.SplitN)}
+	Roots[`/strings/Title`] = FuncRoot{Func: reflect.ValueOf(strings.Title)}
+	Roots[`/strings/ToLower`] = FuncRoot{Func: reflect.ValueOf(strings.ToLower)}
+	Roots[`/strings/ToLowerSpecial`] = FuncRoot{Func: reflect.ValueOf(strings.ToLowerSpecial)}
+	Roots[`/strings/ToTitle`] = FuncRoot{Func: reflect.ValueOf(strings.ToTitle)}
+	Roots[`/strings/ToTitleSpecial`] = FuncRoot{Func: reflect.ValueOf(strings.ToTitleSpecial)}
+	Roots[`/strings/ToUpper`] = FuncRoot{Func: reflect.ValueOf(strings.ToUpper)}
+	Roots[`/strings/ToUpperSpecial`] = FuncRoot{Func: reflect.ValueOf(strings.ToUpperSpecial)}
+	Roots[`/strings/Trim`] = FuncRoot{Func: reflect.ValueOf(strings.Trim)}
+	Roots[`/strings/TrimFunc`] = FuncRoot{Func: reflect.ValueOf(strings.TrimFunc)}
+	Roots[`/strings/TrimLeft`] = FuncRoot{Func: reflect.ValueOf(strings.TrimLeft)}
+	Roots[`/strings/TrimLeftFunc`] = FuncRoot{Func: reflect.ValueOf(strings.TrimLeftFunc)}
+	Roots[`/strings/TrimRight`] = FuncRoot{Func: reflect.ValueOf(strings.TrimRight)}
+	Roots[`/strings/TrimRightFunc`] = FuncRoot{Func: reflect.ValueOf(strings.TrimRightFunc)}
+	Roots[`/strings/TrimSpace`] = FuncRoot{Func: reflect.ValueOf(strings.TrimSpace)}
+	Roots[`/bufio/ErrBufferFull`] = VarRoot{Var: reflect.ValueOf(&bufio.ErrBufferFull)}
+	Roots[`/bufio/ErrInvalidUnreadByte`] = VarRoot{Var: reflect.ValueOf(&bufio.ErrInvalidUnreadByte)}
+	Roots[`/bufio/ErrInvalidUnreadRune`] = VarRoot{Var: reflect.ValueOf(&bufio.ErrInvalidUnreadRune)}
+	Roots[`/bufio/ErrNegativeCount`] = VarRoot{Var: reflect.ValueOf(&bufio.ErrNegativeCount)}
 	Roots[`/bytes/ErrTooLarge`] = VarRoot{Var: reflect.ValueOf(&bytes.ErrTooLarge)}
+	Roots[`/encoding/base64/StdEncoding`] = VarRoot{Var: reflect.ValueOf(&encoding_base64.StdEncoding)}
+	Roots[`/encoding/base64/URLEncoding`] = VarRoot{Var: reflect.ValueOf(&encoding_base64.URLEncoding)}
+	Roots[`/io/ioutil/Discard`] = VarRoot{Var: reflect.ValueOf(&io_ioutil.Discard)}
 	Roots[`/net/http/DefaultClient`] = VarRoot{Var: reflect.ValueOf(&net_http.DefaultClient)}
 	Roots[`/net/http/DefaultServeMux`] = VarRoot{Var: reflect.ValueOf(&net_http.DefaultServeMux)}
 	Roots[`/net/http/DefaultTransport`] = VarRoot{Var: reflect.ValueOf(&net_http.DefaultTransport)}
@@ -200,12 +337,36 @@ func init() {
 	Roots[`/os/Stdin`] = VarRoot{Var: reflect.ValueOf(&os.Stdin)}
 	Roots[`/os/Stdout`] = VarRoot{Var: reflect.ValueOf(&os.Stdout)}
 	{
+		var tmp *bufio.ReadWriter
+		Roots[`/bufio/ReadWriter`] = TypeRoot{Type: reflect.ValueOf(tmp).Type().Elem()}
+	}
+	{
+		var tmp *bufio.ReadWriter
+		Roots[`/bufio/ReadWriter`] = TypeRoot{Type: reflect.ValueOf(tmp).Type().Elem()}
+	}
+	{
+		var tmp *bufio.ReadWriter
+		Roots[`/bufio/ReadWriter`] = TypeRoot{Type: reflect.ValueOf(tmp).Type().Elem()}
+	}
+	{
+		var tmp *bufio.Reader
+		Roots[`/bufio/Reader`] = TypeRoot{Type: reflect.ValueOf(tmp).Type().Elem()}
+	}
+	{
+		var tmp *bufio.Writer
+		Roots[`/bufio/Writer`] = TypeRoot{Type: reflect.ValueOf(tmp).Type().Elem()}
+	}
+	{
 		var tmp *bytes.Buffer
 		Roots[`/bytes/Buffer`] = TypeRoot{Type: reflect.ValueOf(tmp).Type().Elem()}
 	}
 	{
 		var tmp *bytes.Reader
 		Roots[`/bytes/Reader`] = TypeRoot{Type: reflect.ValueOf(tmp).Type().Elem()}
+	}
+	{
+		var tmp *encoding_base64.Encoding
+		Roots[`/encoding/base64/Encoding`] = TypeRoot{Type: reflect.ValueOf(tmp).Type().Elem()}
 	}
 	{
 		var tmp *math_big.Int
@@ -655,7 +816,46 @@ func init() {
 		var tmp *reflect.ValueError
 		Roots[`/reflect/ValueError`] = TypeRoot{Type: reflect.ValueOf(tmp).Type().Elem()}
 	}
+	{
+		var tmp *regexp.Regexp
+		Roots[`/regexp/Regexp`] = TypeRoot{Type: reflect.ValueOf(tmp).Type().Elem()}
+	}
+	{
+		var tmp *strings.Reader
+		Roots[`/strings/Reader`] = TypeRoot{Type: reflect.ValueOf(tmp).Type().Elem()}
+	}
+	{
+		var tmp *strings.Replacer
+		Roots[`/strings/Replacer`] = TypeRoot{Type: reflect.ValueOf(tmp).Type().Elem()}
+	}
 	Roots[`/bytes/MinRead`] = ConstRoot{Const: int64(bytes.MinRead)}
+	Roots[`/math/E`] = ConstRoot{Const: math.E}
+	Roots[`/math/Ln10`] = ConstRoot{Const: math.Ln10}
+	Roots[`/math/Ln2`] = ConstRoot{Const: math.Ln2}
+	Roots[`/math/Log10E`] = ConstRoot{Const: math.Log10E}
+	Roots[`/math/Log2E`] = ConstRoot{Const: math.Log2E}
+	Roots[`/math/MaxFloat32`] = ConstRoot{Const: math.MaxFloat32}
+	Roots[`/math/MaxFloat64`] = ConstRoot{Const: math.MaxFloat64}
+	Roots[`/math/MaxInt16`] = ConstRoot{Const: int64(math.MaxInt16)}
+	Roots[`/math/MaxInt32`] = ConstRoot{Const: int64(math.MaxInt32)}
+	Roots[`/math/MaxInt64`] = ConstRoot{Const: int64(math.MaxInt64)}
+	Roots[`/math/MaxInt8`] = ConstRoot{Const: int64(math.MaxInt8)}
+	Roots[`/math/MaxUint16`] = ConstRoot{Const: int64(math.MaxUint16)}
+	Roots[`/math/MaxUint32`] = ConstRoot{Const: int64(math.MaxUint32)}
+	Roots[`/math/MaxUint64`] = ConstRoot{Const: uint64(math.MaxUint64)}
+	Roots[`/math/MaxUint8`] = ConstRoot{Const: int64(math.MaxUint8)}
+	Roots[`/math/MinInt16`] = ConstRoot{Const: int64(math.MinInt16)}
+	Roots[`/math/MinInt32`] = ConstRoot{Const: int64(math.MinInt32)}
+	Roots[`/math/MinInt64`] = ConstRoot{Const: int64(math.MinInt64)}
+	Roots[`/math/MinInt8`] = ConstRoot{Const: int64(math.MinInt8)}
+	Roots[`/math/Phi`] = ConstRoot{Const: math.Phi}
+	Roots[`/math/Pi`] = ConstRoot{Const: math.Pi}
+	Roots[`/math/SmallestNonzeroFloat32`] = ConstRoot{Const: math.SmallestNonzeroFloat32}
+	Roots[`/math/SmallestNonzeroFloat64`] = ConstRoot{Const: math.SmallestNonzeroFloat64}
+	Roots[`/math/Sqrt2`] = ConstRoot{Const: math.Sqrt2}
+	Roots[`/math/SqrtE`] = ConstRoot{Const: math.SqrtE}
+	Roots[`/math/SqrtPhi`] = ConstRoot{Const: math.SqrtPhi}
+	Roots[`/math/SqrtPi`] = ConstRoot{Const: math.SqrtPi}
 	Roots[`/math/big/MaxBase`] = ConstRoot{Const: int64(math_big.MaxBase)}
 	Roots[`/net/http/DefaultMaxHeaderBytes`] = ConstRoot{Const: int64(net_http.DefaultMaxHeaderBytes)}
 	Roots[`/net/http/DefaultMaxIdleConnsPerHost`] = ConstRoot{Const: int64(net_http.DefaultMaxIdleConnsPerHost)}

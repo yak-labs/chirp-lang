@@ -1,17 +1,9 @@
-package main
+package cli
 
 /*
 	For debugging exec pipes, try this:
 	go run chirp.go -recover=0 -c='puts [exec ls -l | sed {s/[0-9]/#/g} | tr {a-z} {A-Z} ]' 2>/dev/null | od -c
 */
-
-// Importing "goapi" adds 40ms to startup time (on a slow machine) and 7M to binary size.
-import (
-	_ "github.com/yak-labs/chirp-lang/goapi"
-	_ "github.com/yak-labs/chirp-lang/http"
-	_ "github.com/yak-labs/chirp-lang/img"
-	_ "github.com/yak-labs/chirp-lang/posix"
-)
 
 import (
 	"bufio"
@@ -47,7 +39,7 @@ func setEnvironInChirp(fr *chirp.Frame, varName string) {
 	fr.SetVar(varName, chirp.MkHash(h))
 }
 
-func main() {
+func Main() {
 	flag.Parse()
 	fr := chirp.NewInterpreter()
 	setEnvironInChirp(fr, "Env")

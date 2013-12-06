@@ -1,2 +1,4 @@
-wrap.go : goapi_wrap.tcl Makefile
-	tclsh goapi_wrap.tcl < "`go env GOROOT`/api/go1.txt" > wrap.go
+all:
+	cd full ; make clean ; make
+	cd default ; make clean ; make
+	cd tiny ; make clean ; make

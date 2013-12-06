@@ -14,6 +14,7 @@ import (
 // T is an interface to any Tcl value.
 // Use them only through these methods, or fix these methods.
 type T interface {
+	ChirpKind() string
 	Raw() interface{}
 	String() string
 	Float() float64
@@ -289,9 +290,8 @@ func MkT(a interface{}) T {
 
 // terpHash implements T
 
-func (t terpHash) Raw() interface{} {
-	return t.h
-}
+func (t terpHash) ChirpKind() string { return "Hash" }
+func (t terpHash) Raw() interface{}  { return t.h }
 func (t terpHash) String() string {
 	t.Mu.Lock()
 	defer t.Mu.Unlock()
@@ -398,6 +398,7 @@ func (t terpHash) Apply(fr *Frame, args []T) T { panic("Cannot apply terpHash as
 
 // terpGenerator implements T
 
+func (t terpGenerator) ChirpKind() string { return "Generator" }
 func (t terpGenerator) Raw() interface{} {
 	panic("not implemented on generator (terpGenerator)")
 }
@@ -474,6 +475,7 @@ func (t terpGenerator) Apply(fr *Frame, args []T) T { panic("Cannot apply terpGe
 
 // terpFloat implements T
 
+func (t terpFloat) ChirpKind() string { return "Float" }
 func (t terpFloat) Raw() interface{} {
 	return t.f
 }
@@ -522,6 +524,7 @@ func (t terpFloat) Apply(fr *Frame, args []T) T { return fr.Apply(args) }
 
 // terpString implements T
 
+func (t terpString) ChirpKind() string { return "String" }
 func (t terpString) Raw() interface{} {
 	return t.s
 }
@@ -585,6 +588,7 @@ func (t terpString) Apply(fr *Frame, args []T) T { return fr.Apply(args) }
 
 // terpList implements T
 
+func (t terpList) ChirpKind() string { return "List" }
 func (t terpList) Raw() interface{} {
 	z := make([]interface{}, len(t.l))
 	for i, e := range t.l {
@@ -664,6 +668,7 @@ func (t terpList) Apply(fr *Frame, args []T) T { return fr.Apply(args) }
 
 // terpValue implements T
 
+func (t terpValue) ChirpKind() string { return "Value" }
 func (t terpValue) Raw() interface{} {
 	return t.v.Interface()
 }
@@ -740,6 +745,7 @@ func (t terpValue) HeadTail() (hd, tl T) {
 ///////////////////////////////////////////////////////////////////////
 // *terpMulti implements T
 
+func (t terpMulti) ChirpKind() string { return "Multi" }
 func (t *terpMulti) Raw() interface{} {
 	return t.s.Raw()
 }
@@ -932,68 +938,71 @@ func (t terpValue) Apply(fr *Frame, args []T) T { return ApplyToReflectedValue(f
 ////////////////////////////////////////
 // Experimental.
 
-// Experiment with unsafe hacking.
+// terpFloatHack is an experiment with unsafe hacking.
 // First we try to embed a float64 inside one of the two pointers inside interface T.
+// terpFloatHack runs a lot faster than terpFloat, but both are so fast it's insignificant.
+// The goal was to avoid a memory allocation, but it doesn't seem to do that.
 
-type hackFloat byte // This definition doesn't matter;  *hackFloat is never dereferenced.
+type terpFloatHack byte // This definition doesn't matter;  *terpFloatHack is never dereferenced.
 
-func MkHackFloat(f float64) *hackFloat {
+func MkHackFloat(f float64) *terpFloatHack {
 	MkHackFloatCounter.Incr()
 	var ptr unsafe.Pointer = unsafe.Pointer(&f)
 	var fptr *uintptr = (*uintptr)(ptr)
 	var z unsafe.Pointer = unsafe.Pointer(*fptr)
-	return (*hackFloat)(z)
+	return (*terpFloatHack)(z)
 }
 
-// *hackFloat implements T
+// *terpFloatHack implements T
 
-func (t *hackFloat) Raw() interface{} {
+func (t terpFloatHack) ChirpKind() string { return "FloatHack" }
+func (t *terpFloatHack) Raw() interface{} {
 	return t.Float()
 }
-func (t *hackFloat) String() string {
+func (t *terpFloatHack) String() string {
 	return Sprintf("%g", t.Float())
 }
-func (t *hackFloat) ListElementString() string {
+func (t *terpFloatHack) ListElementString() string {
 	return t.String()
 }
-func (t *hackFloat) Bool() bool {
+func (t *terpFloatHack) Bool() bool {
 	return t.Float() != 0
 }
-func (t *hackFloat) IsEmpty() bool {
+func (t *terpFloatHack) IsEmpty() bool {
 	return false
 }
-func (t *hackFloat) Float() float64 {
+func (t *terpFloatHack) Float() float64 {
 	var ptr unsafe.Pointer = unsafe.Pointer(&t)
 	var fp *float64 = (*float64)(ptr)
 	return *fp
 }
-func (t *hackFloat) Int() int64 {
+func (t *terpFloatHack) Int() int64 {
 	return int64(t.Float())
 }
-func (t *hackFloat) Uint() uint64 {
+func (t *terpFloatHack) Uint() uint64 {
 	return uint64(t.Float())
 }
-func (t *hackFloat) IsPreservedByList() bool { return true }
-func (t *hackFloat) IsQuickNumber() bool     { return true }
-func (t *hackFloat) List() []T {
+func (t *terpFloatHack) IsPreservedByList() bool { return true }
+func (t *terpFloatHack) IsQuickNumber() bool     { return true }
+func (t *terpFloatHack) List() []T {
 	return []T{t}
 }
-func (t *hackFloat) HeadTail() (hd, tl T) {
+func (t *terpFloatHack) HeadTail() (hd, tl T) {
 	return MkList(t.List()).HeadTail()
 }
-func (t *hackFloat) Hash() Hash {
+func (t *terpFloatHack) Hash() Hash {
 	panic(" is not a Hash")
 }
-func (t *hackFloat) GetAt(key T) T {
-	panic("*hackFloat is not a Hash")
+func (t *terpFloatHack) GetAt(key T) T {
+	panic("*terpFloatHack is not a Hash")
 }
-func (t *hackFloat) PutAt(value T, key T) {
-	panic("*hackFloat is not a Hash")
+func (t *terpFloatHack) PutAt(value T, key T) {
+	panic("*terpFloatHack is not a Hash")
 }
-func (t *hackFloat) QuickReflectValue() R.Value  { return InvalidValue }
-func (t *hackFloat) EvalSeq(fr *Frame) T         { return Parse2EvalSeqStr(fr, t.String()) }
-func (t *hackFloat) EvalExpr(fr *Frame) T        { return t } // Numbers are self-Expr-eval'ing.
-func (t *hackFloat) Apply(fr *Frame, args []T) T { return fr.Apply(args) }
+func (t *terpFloatHack) QuickReflectValue() R.Value  { return InvalidValue }
+func (t *terpFloatHack) EvalSeq(fr *Frame) T         { return Parse2EvalSeqStr(fr, t.String()) }
+func (t *terpFloatHack) EvalExpr(fr *Frame) T        { return t } // Numbers are self-Expr-eval'ing.
+func (t *terpFloatHack) Apply(fr *Frame, args []T) T { return fr.Apply(args) }
 
 // End Experimental.
 ////////////////////////////////////////

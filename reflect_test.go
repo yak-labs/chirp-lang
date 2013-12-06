@@ -1,7 +1,7 @@
 package chirp_test
 
 import . "github.com/yak-labs/chirp-lang"
-import _ "github.com/yak-labs/chirp-lang/gothin"
+import _ "github.com/yak-labs/chirp-lang/goapi/default"
 
 import (
 	"testing"

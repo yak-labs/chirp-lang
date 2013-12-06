@@ -464,8 +464,15 @@ func AdaptToValue(fr *Frame, a T, ty R.Type) R.Value {
 			log.Printf("AdaptToValue: Nil for Interface (%s), due to IsEmpty.", ty)
 			return R.Zero(ty)
 		}
+
 		// Very special case of T: Return arg as a Value.
-		if ty.String() == "terp.T" {
+		if ty == TypeT { // TODO: why doesn't this work?
+			return R.ValueOf(a)
+		}
+		if ty.AssignableTo(TypeT) { // TODO: why doesn't this work?
+			return R.ValueOf(a)
+		}
+		if ty.String() == "chirp.T" { // TODO: This is fragile & lame, but it works.
 			return R.ValueOf(a)
 		}
 	case R.Map:

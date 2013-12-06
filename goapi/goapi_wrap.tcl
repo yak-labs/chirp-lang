@@ -70,6 +70,7 @@ proc main argv {
 
 	puts "func init() {"
 
+	# NEW STYLE
 	foreach pkg [lsort [array names Funcs]] {
 		set tag $Imports($pkg)
 		foreach name [lsort $Funcs($pkg)] {

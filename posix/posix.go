@@ -25,6 +25,7 @@ func MkFile(f *os.File) *terpFile {
 
 // *terpFile implements T
 
+func (t terpFile) ChirpKind() string { return "File" }
 func (t *terpFile) Raw() interface{} {
 	return t.f
 }
