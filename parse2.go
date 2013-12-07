@@ -560,6 +560,9 @@ func Parse2Dollar(lex *Lex) *PPart {
 func Parse2Cmd(lex *Lex) *PCmd {
 	Parse2CmdCounter.Incr()
 	words := make([]*PWord, 0)
+	if Debug['p'] {
+		Say("Parse2Cmd <<<", lex)
+	}
 
 Restart:
 	// skip initial newlines and ';'s (as well as white space)
@@ -612,6 +615,10 @@ Loop:
 
 	if len(words) == 0 {
 		return nil
+	}
+	if Debug['p'] {
+		Say("Parse2Cmd >>>", words)
+		Say("Parse2Cmd >>>", lex)
 	}
 	return &PCmd{Words: words}
 }
@@ -775,17 +782,32 @@ func Parse2ExprStr(s string) *PExpr {
 }
 
 func Parse2SeqStr(s string) *PSeq {
+	if Debug['p'] {
+		Say("Parse2SeqStr <<<", s)
+	}
 	lex := NewLex(s)
 	seq := Parse2Seq(lex)
 	MustTok(TokEnd, lex.Tok)
+	if Debug['p'] {
+		Say("Parse2SeqStr >>>", seq)
+	}
 	return seq
 }
 
 func Parse2EvalSeqStr(fr *Frame, s string) T {
+	if Debug['p'] {
+		Say("Parse2EvalSeqStr <<<", s)
+	}
 	lex := NewLex(s)
 	seq := Parse2Seq(lex)
 	MustTok(TokEnd, lex.Tok)
+	if Debug['p'] {
+		Say("Parse2EvalSeqStr >>> seq=", seq)
+	}
 	z := seq.Eval(fr)
+	if Debug['p'] {
+		Say("Parse2EvalSeqStr >>> z=", z)
+	}
 	return z
 }
 

@@ -311,8 +311,8 @@ Loop:
 
 	// vim: '{'
 	// BUG: if EOS
-	if x.Str[x.Next] != '}' {
-		panic("AdvanceCurly: missing end curly: " + Repr(x.Str[x.Next]))
+	if x.Next >= x.Len || x.Str[x.Next] != '}' {
+		panic("AdvanceCurly: missing end curly: " + Repr(x.Str[x.Next:]))
 	}
 	return buf.String()
 }

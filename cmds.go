@@ -748,6 +748,8 @@ func cmdEval(fr *Frame, argv []T) T {
 	return EvalOrApplyLists(fr, argv[1:])
 }
 
+// uplevel requres first arg specifying what level.
+// Valid are "#0" (global) or a positive integer (relative).
 func cmdUpLevel(fr *Frame, argv []T) T {
 	specArg, rest := Arg1v(argv)
 	spec := specArg.String()
@@ -768,58 +770,76 @@ func cmdUpLevel(fr *Frame, argv []T) T {
 }
 
 func EvalOrApplyLists(fr *Frame, lists []T) T {
-	cat := ConcatLists(lists)
-	if len(cat) == 0 {
-		// Because in Tcl, "eval [list]" -> "".
-		return Empty
+	if Debug['a'] {
+		Say("hello EvalOrApplyLists", Showv(lists))
 	}
 
-	Say("Sending Apply to ", cat[0], cat)
-	z := cat[0].Apply(fr, cat)
-	Say("Sending Apply returns ->", z)
-	return z
+	if false {
+		cat := ConcatLists(lists)
+		if len(cat) == 0 {
+			// Because in Tcl, "eval [list]" -> "".
+			return Empty
+		}
+
+		Say("Sending Apply to ", cat[0], cat)
+		z := cat[0].Apply(fr, cat)
+		Say("Sending Apply returns ->", z)
+		return z
+	}
 
 	///////// I don't think we care about non-lists;  I've never used concat or eval or uplevel with non-lists.
 	//
-	//	// Are they already lists?
-	//	areLists := true
-	//Say("areLists := true")
-	//	for _, e := range lists {
-	//Say("areLists ?", e)
-	//zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
-	//Should try calling List() on each one.
-	//e.IsPreservedByList just means it will be a singleton list.
-	//When we are EvalOrApplyLists, don't we really want a list?
-	//Or does this break something, vs. joining on space?
-	//Shouldn't we break Tcl, if it does?
-	//zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
-	//
-	//		if !e.IsPreservedByList() {
-	//Say("areLists := false")
-	//			areLists = false
-	//			break
-	//		}
-	//	}
-	//Say("areLists ->", areLists)
-	//
-	//	if areLists {
-	//		cat := ConcatLists(lists)
-	//		if len(cat) == 0 {
-	//			// Because in Tcl, "eval [list]" -> "".
-	//			return Empty
-	//		}
-	//Say("Sending Apply to ", cat[0])
-	//		z := cat[0].Apply(fr, cat)
-	//Say("Sending Apply returns ->", z)
-	//		return z
-	//	}
-	//
-	//	buf := bytes.NewBuffer(nil)
-	//	for _, e := range lists {
-	//		buf.WriteString(e.String())
-	//		buf.WriteRune(' ')
-	//	}
-	//	return fr.Eval(MkString(buf.String()))
+	// Are they already lists?
+	areLists := true
+	if Debug['z'] {
+		Say("areLists := true")
+	}
+	for _, e := range lists {
+		if Debug['z'] {
+			Say("areLists ?", e)
+		}
+		//zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+		//Should try calling List() on each one.
+		//e.IsPreservedByList just means it will be a singleton list.
+		//When we are EvalOrApplyLists, don't we really want a list?
+		//Or does this break something, vs. joining on space?
+		//Shouldn't we break Tcl, if it does?
+		//zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+
+		if !e.IsPreservedByList() {
+			if Debug['z'] {
+				Say("areLists := false")
+			}
+			areLists = false
+			break
+		}
+	}
+	if Debug['z'] {
+		Say("areLists ->", areLists)
+	}
+
+	if areLists {
+		cat := ConcatLists(lists)
+		if len(cat) == 0 {
+			// Because in Tcl, "eval [list]" -> "".
+			return Empty
+		}
+		if Debug['z'] {
+			Say("Sending Apply to ", cat[0])
+		}
+		z := cat[0].Apply(fr, cat)
+		if Debug['z'] {
+			Say("Sending Apply returns ->", z)
+		}
+		return z
+	}
+
+	buf := bytes.NewBuffer(nil)
+	for _, e := range lists {
+		buf.WriteString(e.String())
+		buf.WriteRune(' ')
+	}
+	return fr.Eval(MkString(buf.String()))
 }
 
 func ConcatLists(lists []T) []T {
@@ -973,9 +993,9 @@ func (ssi *SafeSubInterp) Alias(fr *Frame, newcmdnameStr string, prefix T) {
 					case RETURN:
 						r = "return reached in an interp-alias"
 					case BREAK:
-						r = "break command was not inside a loop"
+						r = "break command was not inside a loop, in an interp-alias"
 					case CONTINUE:
-						r = "continue command was not inside a loop"
+						r = "continue command was not inside a loop, in an interp-alias"
 					}
 				}
 				if rs, ok := r.(string); ok {
@@ -985,13 +1005,16 @@ func (ssi *SafeSubInterp) Alias(fr *Frame, newcmdnameStr string, prefix T) {
 			}
 		}()
 
-		z := make([]T, 0, 4)
-		z = append(z, prefix.List()...)
-		z = append(z, argv2[1:]...)
-
 		fr3 := fr2.NewFrame()
 		fr3.G = fr.G
-		return fr3.Apply(z)
+
+		// z := make([]T, 0, 4)
+		// z = append(z, prefix.List()...)
+		// z = append(z, argv2[1:]...)
+		// return fr3.Apply(z)
+
+		return EvalOrApplyLists(fr3, []T{ prefix, MkList(argv2[1:]) })
+			
 	}
 
 	if _, ok := ssi.fr.G.Cmds[newcmdnameStr]; ok {

@@ -662,7 +662,11 @@ func (t terpList) PutAt(value T, key T) {
 	panic("terpList is not a Hash")
 }
 func (t terpList) QuickReflectValue() R.Value  { return InvalidValue }
-func (t terpList) EvalSeq(fr *Frame) T         { return Parse2EvalSeqStr(fr, t.String()) }
+
+// Bug.3
+//NO// func (t terpList) EvalSeq(fr *Frame) T         { return Parse2EvalSeqStr(fr, t.String()) }
+func (t terpList) EvalSeq(fr *Frame) T         { return fr.Apply( t.l ) }
+
 func (t terpList) EvalExpr(fr *Frame) T        { return Parse2EvalExprStr(fr, t.String()) }
 func (t terpList) Apply(fr *Frame, args []T) T { return fr.Apply(args) }
 
