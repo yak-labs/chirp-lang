@@ -1013,8 +1013,8 @@ func (ssi *SafeSubInterp) Alias(fr *Frame, newcmdnameStr string, prefix T) {
 		// z = append(z, argv2[1:]...)
 		// return fr3.Apply(z)
 
-		return EvalOrApplyLists(fr3, []T{ prefix, MkList(argv2[1:]) })
-			
+		return EvalOrApplyLists(fr3, []T{prefix, MkList(argv2[1:])})
+
 	}
 
 	if _, ok := ssi.fr.G.Cmds[newcmdnameStr]; ok {

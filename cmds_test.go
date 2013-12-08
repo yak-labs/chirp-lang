@@ -298,8 +298,8 @@ var cmdTests = `
 	must foo $arr(o$arr(z)e)
 	must 1 [catch {list $arr(aaa$arr(z)zzz) } what]
 
-	set link [ ht-tag a  href http://www.foo.com/bar  alt FooBar  click ]
-	set ht [ ht [ht-raw "&lt;"] <One> \040 Two&Three \  $link ]
+	set link [ ht tag a  href http://www.foo.com/bar  alt FooBar  click ]
+	set ht [ ht cat [ht raw "&lt;"] <One> \040 Two&Three \  $link ]
 	set expect {&lt;&lt;One&gt; Two&amp;Three <a href="http://www.foo.com/bar" alt="FooBar">click</a
 	must $expect $ht
 >}

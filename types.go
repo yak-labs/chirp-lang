@@ -334,9 +334,10 @@ func (p SortListByStringTSlice) Len() int           { return len(p) }
 func (p SortListByStringTSlice) Less(i, j int) bool { return p[i].String() < p[j].String() }
 func (p SortListByStringTSlice) Swap(i, j int)      { p[j], p[i] = p[i], p[j] }
 
-// notused // func SortListByString(list []T) {
-// notused // 	sort.Sort(SortListByStringTSlice(list))
-// notused // }
+// SortListByString is used by smilax-web/db.
+func SortListByString(list []T) {
+	sort.Sort(SortListByStringTSlice(list))
+}
 
 func SortedKeysOfHash(h Hash) []string {
 	keys := make([]string, 0, len(h))
@@ -661,11 +662,11 @@ func (t terpList) GetAt(key T) T {
 func (t terpList) PutAt(value T, key T) {
 	panic("terpList is not a Hash")
 }
-func (t terpList) QuickReflectValue() R.Value  { return InvalidValue }
+func (t terpList) QuickReflectValue() R.Value { return InvalidValue }
 
 // Bug.3
 //NO// func (t terpList) EvalSeq(fr *Frame) T         { return Parse2EvalSeqStr(fr, t.String()) }
-func (t terpList) EvalSeq(fr *Frame) T         { return fr.Apply( t.l ) }
+func (t terpList) EvalSeq(fr *Frame) T { return fr.Apply(t.l) }
 
 func (t terpList) EvalExpr(fr *Frame) T        { return Parse2EvalExprStr(fr, t.String()) }
 func (t terpList) Apply(fr *Frame, args []T) T { return fr.Apply(args) }

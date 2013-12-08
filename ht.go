@@ -47,8 +47,8 @@ func HtRaw(s string) HTML {
 	return HTML(s)
 }
 
-// Ht concats its arguments, converting each to HTML if it is not already HTML.
-func Ht(things []T) HTML {
+// HtCat catenates its arguments, converting each to HTML if it is not already HTML.
+func HtCat(things []T) HTML {
 	buf := bytes.NewBuffer(make([]byte, 0, 40))
 	for _, thing := range things {
 		switch a := thing.Raw().(type) {
@@ -96,9 +96,9 @@ func Tag(tag T, attrs []T, body T) HTML {
 	return HTML(buf.String())
 }
 
-func cmdHt(fr *Frame, argv []T) T {
+func cmdHtCat(fr *Frame, argv []T) T {
 	args := Arg0v(argv)
-	return MkValue(R.ValueOf(Ht(args)))
+	return MkValue(R.ValueOf(HtCat(args)))
 }
 
 func cmdHtRaw(fr *Frame, argv []T) T {
@@ -140,14 +140,23 @@ func cmdHtTag(fr *Frame, argv []T) T {
 	return MkValue(R.ValueOf(Tag(tag, args, body)))
 }
 
+var htEnsemble = []EnsembleItem{
+	EnsembleItem{Name: "cat", Cmd: cmdHtCat},
+	EnsembleItem{Name: "entity", Cmd: cmdHtEntity},
+	EnsembleItem{Name: "peek", Cmd: cmdHtPeek},
+	EnsembleItem{Name: "raw", Cmd: cmdHtRaw},
+	EnsembleItem{Name: "tag", Cmd: cmdHtTag},
+}
+
 func init() {
 	if Safes == nil {
 		Safes = make(map[string]Command, 333)
 	}
 
-	Safes["ht"] = cmdHt
-	Safes["ht-raw"] = cmdHtRaw
-	Safes["ht-entity"] = cmdHtEntity
-	Safes["ht-tag"] = cmdHtTag
-	Safes["ht-peek"] = cmdHtPeek
+	Safes["ht"] = MkEnsemble(htEnsemble)
+	// Safes["ht"] = cmdHt
+	// Safes["ht_raw"] = cmdHtRaw
+	// Safes["ht_entity"] = cmdHtEntity
+	// Safes["ht_tag"] = cmdHtTag
+	// Safes["ht_peek"] = cmdHtPeek
 }
