@@ -22,14 +22,23 @@ type TypeRoot struct{ Type R.Type }
 type ConstRoot struct{ Const interface{} }
 
 func (r FuncRoot) Apply(fr *Frame, args []T) T {
+	if fr.G.IsSafe {
+		panic("FuncRoot.Apply not allowed in Safe Interpreter.")
+	}
 	return commonCall(fr, args[0].String(), r.Func, args, 1)
 }
 
 func (r VarRoot) Apply(fr *Frame, args []T) T {
+	if fr.G.IsSafe {
+		panic("VarRoot.Apply not allowed in Safe Interpreter.")
+	}
 	return MkT(r.Var)
 }
 
 func (r TypeRoot) Apply(fr *Frame, args []T) T {
+	if fr.G.IsSafe {
+		panic("TypeRoot.Apply not allowed in Safe Interpreter.")
+	}
 	if Debug['r'] {
 		Say("ApplyToType <<<", r.Type)
 		Sayf("............... %s", Showv(args))
@@ -42,10 +51,16 @@ func (r TypeRoot) Apply(fr *Frame, args []T) T {
 }
 
 func (r ConstRoot) Apply(fr *Frame, args []T) T {
+	if fr.G.IsSafe {
+		panic("ConstRoot.Apply not allowed in Safe Interpreter.")
+	}
 	return MkT(r.Const)
 }
 
 func ApplyToType(fr *Frame, typ R.Type, args []T) T {
+	if fr.G.IsSafe {
+		panic("ApplyToType not allowed in Safe Interpreter.")
+	}
 	switch len(args) {
 	case 1:
 		// Backwards Compat
@@ -114,19 +129,22 @@ func ApplyToType(fr *Frame, typ R.Type, args []T) T {
 
 // ApplyToReflectedValue applies args, starting at i, to terpValue t.
 func ApplyToReflectedValue(fr *Frame, v R.Value, args []T, i int) T {
+	if fr.G.IsSafe {
+		panic("ApplyToReflectedValue not allowed in Safe Interpreter.")
+	}
 	if Debug['r'] {
 		Say("ApplyToReflectedValue <<<", v, i)
 		Sayf("......................... %s", Showv(args))
 	}
-	z := ApplyToReflectedValueRecur(fr, v, args, i)
+	z := applyToReflectedValueRecur(fr, v, args, i)
 	if Debug['r'] {
 		Say("ApplyToReflectedValue >>>", z)
 	}
 	return z
 }
-func ApplyToReflectedValueRecur(fr *Frame, v R.Value, args []T, i int) T {
+func applyToReflectedValueRecur(fr *Frame, v R.Value, args []T, i int) T {
 	if Debug['z'] {
-		Say("ApplyToReflectedValueRecur  CanSet?", v, v.CanSet())
+		Say("applyToReflectedValueRecur  CanSet?", v, v.CanSet())
 	}
 	n := len(args)
 	if n-1 < i { // No more operations left to do.
@@ -202,7 +220,7 @@ func ApplyToReflectedValueRecur(fr *Frame, v R.Value, args []T, i int) T {
 					Say("case . struct ! =")
 				}
 				// case Get Field.
-				return ApplyToReflectedValueRecur(fr, field, args, i+2)
+				return applyToReflectedValueRecur(fr, field, args, i+2)
 			}
 		}
 		if Debug['z'] {
@@ -303,7 +321,7 @@ func ApplyToReflectedValueRecur(fr *Frame, v R.Value, args []T, i int) T {
 				return MkValue(x)
 			}
 			//////
-			return ApplyToReflectedValueRecur(fr, target, args, i+2)
+			return applyToReflectedValueRecur(fr, target, args, i+2)
 		}
 		if Debug['z'] {
 			Say("drop out @")
@@ -318,7 +336,7 @@ func ApplyToReflectedValueRecur(fr *Frame, v R.Value, args []T, i int) T {
 			if !z.IsValid() {
 				panic(Sprintf("Failed Elem() on Reflected %q", v))
 			}
-			return ApplyToReflectedValueRecur(fr, z, args, i+1)
+			return applyToReflectedValueRecur(fr, z, args, i+1)
 		}
 		if Debug['z'] {
 			Say("drop out *")
@@ -526,6 +544,9 @@ func AdaptToValue(fr *Frame, a T, ty R.Type) R.Value {
 // commonCall is common to both "go-call" and "go-send".
 // args already has function name or receiver and message name stripped; it's just the args.
 func commonCall(fr *Frame, funcName string, fn R.Value, args []T, numFrontArgs int) T {
+	if fr.G.IsSafe {
+		panic("Calling reflected function or method is not allowed in Safe Interpreter.")
+	}
 	ty := fn.Type()
 
 	// log.Printf("... fn <%s> type: <%s> %s", funcName, ty.Kind(), ty)

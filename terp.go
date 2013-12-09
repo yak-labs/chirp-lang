@@ -70,7 +70,7 @@ type Global struct {
 	MixinSerial         int    // Increment before defining Mixin.
 	MixinNumberDefining int    // Set nonzero while defining Mixin.
 	MixinNameDefining   string // Set nonempty while defining Mixin.
-	isSafe              bool   // Set true for safe subinterpreter.
+	IsSafe              bool   // Set true for safe subinterpreter.
 	Logger              *log.Logger
 	Verbosity           int    // Log if message level <= verbosity.
 	LogName             string // for logging
@@ -163,7 +163,7 @@ func newEitherInterpreter(isSafe bool) *Frame {
 		Fr: Frame{
 			Vars: make(Scope),
 		},
-		isSafe: isSafe,
+		IsSafe: isSafe,
 	}
 
 	g.Fr.G = g
