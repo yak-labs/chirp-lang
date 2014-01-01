@@ -931,7 +931,14 @@ func cmdContinue(fr *Frame, argv []T) T {
 }
 
 func cmdHash(fr *Frame, argv []T) T {
-	return MkHash(nil)
+	args := Arg0v(argv)
+	h := make(Hash)
+	i := 0
+	for i + 1 < len(args) {
+		h[args[i].String()] = args[i+1] 
+		i += 2
+	}
+	return MkHash(h)
 }
 
 func cmdHGet(fr *Frame, argv []T) T {

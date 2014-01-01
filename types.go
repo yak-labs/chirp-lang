@@ -293,18 +293,7 @@ func MkT(a interface{}) T {
 func (t terpHash) ChirpKind() string { return "Hash" }
 func (t terpHash) Raw() interface{}  { return t.h }
 func (t terpHash) String() string {
-	t.Mu.Lock()
-	defer t.Mu.Unlock()
-
-	z := make([]T, 0, 2*len(t.h))
-	for k, v := range t.h {
-		if v == nil {
-			continue
-		}
-		z = append(z, MkString(k))
-		z = append(z, v)
-	}
-	return MkList(z).String()
+	return MkList(t.List()).String()
 }
 func (t terpHash) Float() float64 {
 	panic("not implemented on terpHash (Float)")
@@ -316,7 +305,7 @@ func (t terpHash) Uint() uint64 {
 	panic("not implemented on terpHash (Uint)")
 }
 func (t terpHash) ListElementString() string {
-	panic("not implemented on terpHash (ListElementString)")
+	return MkString(t.String()).ListElementString()
 }
 func (t terpHash) Bool() bool {
 	panic("terpHash cannot be used as Bool")
