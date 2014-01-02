@@ -4,7 +4,7 @@
 
 	Example Server:
 
-		rpc server /path list
+		rpc serve /path list
 		/net/http/ListenAndServe :8080 ""
 
 		"list" is a command that should take two arguments, a simple string verb,

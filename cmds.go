@@ -748,6 +748,11 @@ func cmdEval(fr *Frame, argv []T) T {
 	return EvalOrApplyLists(fr, argv[1:])
 }
 
+func cmdGo(fr *Frame, argv []T) T {
+	go EvalOrApplyLists(fr, argv[1:])
+	return Empty
+}
+
 // uplevel requres first arg specifying what level.
 // Valid are "#0" (global) or a positive integer (relative).
 func cmdUpLevel(fr *Frame, argv []T) T {
@@ -933,9 +938,19 @@ func cmdContinue(fr *Frame, argv []T) T {
 func cmdHash(fr *Frame, argv []T) T {
 	args := Arg0v(argv)
 	h := make(Hash)
+
+	// Special case of 1 arg: split it.
+	if len(args) == 1 {
+		args = args[0].List()
+	}
+
+	if len(args)%2 != 0 {
+		panic("hash command cannot take odd number of key & value items")
+	}
+
 	i := 0
-	for i + 1 < len(args) {
-		h[args[i].String()] = args[i+1] 
+	for i+1 < len(args) {
+		h[args[i].String()] = args[i+1]
 		i += 2
 	}
 	return MkHash(h)
@@ -1681,6 +1696,7 @@ func init() {
 	Safes["while"] = cmdWhile
 	Safes["catch"] = cmdCatch
 	Safes["eval"] = cmdEval
+	Safes["go"] = cmdGo
 	Safes["uplevel"] = cmdUpLevel
 	Safes["concat"] = cmdConcat
 	Safes["set"] = cmdSet
