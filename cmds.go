@@ -220,10 +220,13 @@ func cmdCase(fr *Frame, argv []T) T {
 	return fr.Eval(dflt)
 }
 
-func cmdPuts(fr *Frame, argv []T) T {
-	// TODO:  accept a Writer as first arg.
-	out := Arg1(argv)
-	Println(out)
+func cmdEcho(fr *Frame, argv []T) T {
+	args := Arg0v(argv)
+	buf := bytes.NewBuffer(nil)
+	for _, a := range args {
+		buf.WriteString(a.String())
+	}
+	Println(buf.String())
 	return Empty
 }
 
@@ -1677,7 +1680,7 @@ func init() {
 	Safes["must"] = cmdMust
 	Safes["if"] = cmdIf
 	Safes["case"] = cmdCase
-	Safes["puts"] = cmdPuts
+	Safes["echo"] = cmdEcho
 	Safes["proc"] = cmdProc
 	Safes["yproc"] = cmdYProc
 	Safes["mixin"] = cmdMixin

@@ -37,7 +37,7 @@ func niceEntity(s string) string {
 // HTML contains properly formatted & escaped HTML
 type HTML string
 
-// In script:  puts [go-send $ht Html]
+// In script:  echo [go-send $ht Html]
 func (p HTML) Html() string {
 	return string(p)
 }

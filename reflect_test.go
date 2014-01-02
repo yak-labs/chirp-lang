@@ -80,13 +80,13 @@ var reflectTests = `
 	}
 	list -- Print a few for fun.
 	foreach n [yrange 5] {
-		puts "fact $n == [[big_factorial $n] String]"
+		echo "fact $n == [[big_factorial $n] String]"
 	}
 
 	list -- fact70 is about 20% bigger than Googol.
 	set fact70 [[big_factorial 70] String]
-	puts Googol=$Googol
-	puts fact70=$fact70
+	echo Googol=$Googol
+	echo fact70=$fact70
 	must [string length $Googol] [string length $fact70]
 `
 
