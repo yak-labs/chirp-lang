@@ -8,8 +8,10 @@ import (
 )
 
 var rpcTests = `
+    proc mult {verb h} { expr {$h(x) * $h(y)} }
     # This RPC will return 3 words: "extra_word", the verb, and the input hash:
 	rpc serve /just_list "list extra_word"
+	rpc serve /multiply "mult"
 
     # Serve on port 31234, and wait 0.3 sec for it to start.
 	go {/net/http/ListenAndServe localhost:31234 ""}
@@ -29,6 +31,9 @@ var rpcTests = `
 	must "abc xyz" [hkeys $h2]
 	must "123" [hget $h2 abc]
 	must "789" [hget $h2 xyz]
+
+	set r2 [rpc connect http://localhost:31234/multiply]
+	must 42 [rpc call $r2 DontCareAboutVerb [hash x 6 y 7]]
 `
 
 func TestRpc(a *testing.T) {
