@@ -32,7 +32,7 @@ func (r VarRoot) Apply(fr *Frame, args []T) T {
 	if fr.G.IsSafe {
 		panic("VarRoot.Apply not allowed in Safe Interpreter.")
 	}
-	return MkT(r.Var)
+	return MkValue(r.Var.Elem())
 }
 
 func (r TypeRoot) Apply(fr *Frame, args []T) T {
