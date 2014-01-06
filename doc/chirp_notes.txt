@@ -1,0 +1,224 @@
+######################################
+## Things that need to be worked on ##
+######################################
+
+Bug if a word is [cmd1][cmd2].  This does not work.
+Missing variable substitution via ${x} we just have $x.
+
+Backslash escapes when making a list using backslash octal.
+    For example, we handle this differently than TCL does:
+        list "{" "}"
+
+##########################
+## Differences from TCL ##
+##########################
+
+## Numbers
+
+Our numbers are internally only double precision floats.
+
+## Variables
+
+Tcl has two kinds of variables scalars and arrays.  We only have scalars.
+
+We simulate array syntax by using hashes (a golang map).
+
+This allows us to return a hash from a function or pass a hash to a function.
+
+We automatically make variables starting with an uppercase letter global.  This removes the need for the Tcl "global" command.
+
+We reserve variables starting with underscore (_) for accessing fields in a Chirp object.
+
+Since we have the ability to pass hashes, we have less need for the "upvar" command.  However, the "upvar" command is still useful for defining new control structures.  (Making your own versions of if, while, catch, etc).
+
+Whenever we are setting variables (in the "set" command, "for" command, etc) we are able to set multiple variables at once using a comma(,) as a separator.  For example you can do set x,y,z 1 2 3.  If you use commas to set variables, you are forbidden to use parentheses for arrays.
+
+## API
+
+We always pass a pointer to a Frame in Chirp-lang.  In Tcl you always pass a pointer to the interpreter.  This lets Chirp-lang have multiple threads of execution in the same interpretor and even in the same stack frame (cactus stack).
+
+We provide an automated tool for wrapping Go packages and we use reflection to invoke Go from Chrip.
+
+## Swiziling
+
+In Tcl, everything is a string value.  We have strayed away from this idea in several cases in Chirp.  Sometimes a value is a reflected value to be able to make calls into Go.  We also store lists as Go slices and numbers as numbers.
+
+TODO We should make a "study" command that is able to pre-compile a string into it's various roles; such as: numbers, lists, regex, expr, proc.
+
+## Regular Expressions
+
+We use the re2 syntax.  There are some options that we do not support (yet).
+
+## Command Results
+
+We do a normal return for code 0.  We panic for code 1.  We usually panic a string.  For other codes we panic a jump object.
+
+## Procedures
+
+We have two kinds of procedures.  We have the normal procedure that you can build with the "proc" command.  Then we have yielding procedures that you can build with the "yproc" command.
+
+TODO We still have memory leaks and goroutine leaks when a generator is not completely consumed.
+
+#######################
+## Built-in Commands ##
+#######################
+
+We have two kinds of commands: Safe and Unsafe.
+
+## array
+
+Look into this.  We do not have it, but we have the hash command.  We like having the idea of both an array command and hash command.
+
+## case
+
+TODO Check and see if we have the optional ?in? word.
+
+## switch
+
+TODO We have the "case" command, but we should probably implement the "switch" command.
+
+## catch
+
+TODO Check if we require the second argument.
+
+## error
+
+Our implementation only takes one argument, which is the message.  We stray away from storing error information in global spaces because may be in a goroutine.
+
+TODO When we recover a paniced object, we add the error info onto the string.  If you wan the TCL_ERROR code facility, we should make that the first thing in the string that you panic.  Then the first line of the string should be the simple version of the error.  The other lines attached should be the error's info.
+
+## exec
+
+TODO Make sure we faithfully implement the Tcl 6.7 version of this command.  We may need to add "<<".
+
+## expr
+
+To compare strings with strings you MUST use the text annotation (eq, ne, lt) instead of the symbol notation (== or !=).  The symbol notation only works on numbers.
+
+Expr does not have functions yet like log, sine, etc.
+
+TODO Check "expr" command.  We would like to enforce it to only take one argument.
+
+TODO Check the order of operations to match Tcl 6.7.
+
+## foreach
+
+We support a feature of later versions of Tcl's "foreach" command.  You can repeat the variable list pair and it will step through those lists in parallel.
+
+## if
+
+TODO Make sure we support this fully.  We may only support one elseif and I don't think we supported then.
+
+## lindex
+
+TODO Support using "end"
+
+## lrange
+
+TODO Support using "end"
+
+## lsort
+
+TODO Document what options we support
+
+## proc
+
+We don't let you redefine built-ins.
+
+We have some upper case and lower case rules when we get to Mix-Ins.
+
+Lower-case proc names are for built-ins and for global procs.  When you are inside a mixin, the lower-case proc name means that the proc is local to that mixin and will not be visible from other mixins.
+
+Upper-case proc names means that the proc will be available anywhere and can be overridden by a mixin.
+
+## regexp
+
+TODO Need to implement the -indices flag.
+
+## rename
+
+TODO We need to discuss how we should implement this.
+
+## slit
+
+TODO Make sure we implemented this correctly and fully.
+
+## string length
+
+TODO Look into whether we return byte length or rune length.
+
+## string match
+
+TODO Maybe we want to implement the -nocase flag that appears in later Tcl versions.
+
+## unknown
+
+TODO We should implement lower-case "unknown" to call upper-case "Unknown" or maybe just define an upper-case "Unknown", so that it can always be overridden by a mixin.
+
+## uplevel & upvar
+
+We require the first argument and if it starts with #, it must be #0.
+
+##################################
+## Commands not yet implemented ##
+##################################
+
+* cd
+* eof
+* exit
+* file
+* flush
+* format
+* glob
+* info (many sub commands are not yet implemented)
+* linsert
+* lreplace
+* lsearch
+* pwd
+* read
+* rename
+* scan
+* seek
+* source
+* string (many sub commands are not yet implemented)
+* tell
+* time
+* trace
+* unknown
+* unset
+
+
+#################################
+## Commands we won't implement ##
+#################################
+
+* global
+* history
+
+########################
+## Built-in Variables ##
+########################
+
+## env
+
+TODO Chirp currently has upper-case Env.  Should this be lower case?
+
+## argv
+
+TODO Chirp currently sets a lower-case argv.  Does this make sense?
+
+################
+## Reflection ##
+################
+
+Chirp lets you make calls into Go.  The Go constants, variables, types, and fuctions are imported into Chirp as commands.  The commands all start with a forward-slash (/) and follow the pattern: /pkg/path/item.  So, you can make a call like:
+
+    /fmt/Sprintf {abc%sghi} def
+
+...and it will return abcdefghi.
+
+Chirp has a special syntax for using some of the Go data types.  If the command returns a Go struct, you can access the fields of that struct by calling the struct like a command, then using a dot (.) an argument followed by the field name.  For example:
+
+    set name [$user . Name]
+
+...will set a variable "name" to the value of the "Name" field on the $user struct.
