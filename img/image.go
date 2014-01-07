@@ -19,6 +19,8 @@ import (
 	R "reflect"
 )
 
+const usageImageLoad = "filename -> imgRef format width height"
+
 func cmdImageLoad(fr *Frame, argv []T) T {
 	inFilename := Arg1(argv)
 
@@ -44,6 +46,8 @@ func cmdImageLoad(fr *Frame, argv []T) T {
 	})
 }
 
+const usageImageResample = `imgRef newWidth newHeight -> newImgRef`
+
 func cmdImageResample(fr *Frame, argv []T) T {
 	imgT, widthT, heightT := Arg3(argv)
 
@@ -54,6 +58,9 @@ func cmdImageResample(fr *Frame, argv []T) T {
 	z := resize.Resize(width, height, img, resize.Lanczos3)
 	return MkValue(R.ValueOf(z))
 }
+
+const usageImageSave = `filename imgRef format
+	Formats are jpeg, jpg, png`
 
 func cmdImageSave(fr *Frame, argv []T) T {
 	filenameT, imgT, formatT := Arg3(argv)
@@ -85,4 +92,8 @@ func init() {
 	Unsafes["image-load"] = cmdImageLoad
 	Unsafes["image-save"] = cmdImageSave
 	Unsafes["image-resample"] = cmdImageResample
+
+	Usage("image-load", usageImageLoad)
+	Usage("image-save", usageImageSave)
+	Usage("image-resample", usageImageResample)
 }

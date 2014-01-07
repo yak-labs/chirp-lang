@@ -136,6 +136,17 @@ func Arg7(argv []T) (T, T, T, T, T, T, T) {
 	return argv[1], argv[2], argv[3], argv[4], argv[5], argv[6], argv[7]
 }
 
+const usageUsage = `cmdName -> usageString`
+
+func cmdUsage(fr *Frame, argv []T) T {
+	cmdName := Arg1(argv)
+	z, ok := UsageMap[cmdName.String()]
+	if !ok {
+		panic("Usage not found for command: " + cmdName.String())
+	}
+	return MkString(Sprintf("Usage:  %s %s", cmdName, z))
+}
+
 func cmdMust(fr *Frame, argv []T) T {
 	xx, yy := Arg2(argv)
 	x := xx.String()
@@ -1462,6 +1473,7 @@ func cmdInfoCommands(fr *Frame, argv []T) T {
 	for k, _ := range fr.G.Cmds {
 		z = append(z, MkString(k))
 	}
+	SortListByString(z)
 	return MkList(z)
 }
 func cmdInfoGlobals(fr *Frame, argv []T) T {
@@ -1471,6 +1483,7 @@ func cmdInfoGlobals(fr *Frame, argv []T) T {
 	for k, _ := range fr.G.Fr.Vars {
 		z = append(z, MkString(k))
 	}
+	SortListByString(z)
 	return MkList(z)
 }
 func cmdInfoLocals(fr *Frame, argv []T) T {
@@ -1480,6 +1493,7 @@ func cmdInfoLocals(fr *Frame, argv []T) T {
 	for k, _ := range fr.Vars {
 		z = append(z, MkString(k))
 	}
+	SortListByString(z)
 	return MkList(z)
 }
 
@@ -1726,4 +1740,7 @@ func init() {
 	Safes["subst"] = cmdSubst
 	Safes["cred"] = cmdCred
 	Safes["log"] = cmdLog
+	Safes["usage"] = cmdUsage
+
+	Usage("usage", usageUsage)
 }

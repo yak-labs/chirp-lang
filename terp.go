@@ -617,6 +617,22 @@ func ShowAllCounters() string {
 
 var NewFrameCounter Counter
 
+// UsageMap remembers the usage for commands.
+// This one is global.  Two things would be better:
+//   (1) having more per-interpreter usage.
+//   (2) Building it into the command function, so that if the argv is nil, it panics its usage with a special Jump code.  Then things that are not named commands (e.g. reflective objects) could also provide usage.
+var UsageMap map[string]string
+
+// Usage registers the usage string for the named command; call it from init() when you register the command.
+// Usage strings usually just desecribe the inputs and outputs.
+// If more explanation is required, add it after "\n\t".
+func Usage(cmdName, usageStr string) {
+	if UsageMap == nil {
+		UsageMap = make(map[string]string)
+	}
+	UsageMap[cmdName] = usageStr
+}
+
 func init() {
 	NewFrameCounter.Register("NewFrame")
 }
