@@ -44,39 +44,30 @@ func RegexpFindSubmatch(exp, str string, nocase bool) (bool, []string) {
 
 func cmdRegexp(fr *Frame, argv []T) T {
 	nocase := false
-	var exp string
-	var str string
 
-	if len(argv) < 2+1 {
-		panic(fmt.Sprintf(
-			"Expected 2 or more arguments, but got argv=%s",
-			Showv(argv)))
+	dashes, expT, strT, vars := Argd2v(argv)
+	exp := expT.String()
+	str := strT.String()
+
+	for _, dash := range dashes {
+		switch dash {
+		case "-nocase":
+			nocase = true
+		default:
+			panic("Unknown dash option: " + dash)
+		}
 	}
 
-	arg_idx := 1
-	if argv[arg_idx].String() == "-nocase" {
-		nocase = true
-		arg_idx++
-		exp = argv[arg_idx].String()
-		arg_idx++
-		str = argv[arg_idx].String()
-		arg_idx++
-	} else {
-		exp = argv[arg_idx].String()
-		arg_idx++
-		str = argv[arg_idx].String()
-		arg_idx++
-	}
-
-	if len(argv) == arg_idx {
+	var_idx := 0
+	if len(vars) == var_idx {
 		return MkBool(RegexpMatch(exp, str, nocase))
-	} else if len(argv) == arg_idx+1 {
+	} else if len(vars) == var_idx+1 {
 		isMatch, match := RegexpFindMatch(exp, str, nocase)
 
 		if len(match) == 0 {
-			fr.SetVar(argv[arg_idx].String(), Empty)
+			fr.SetVar(vars[var_idx].String(), Empty)
 		} else {
-			fr.SetVar(argv[arg_idx].String(), MkString(match))
+			fr.SetVar(vars[var_idx].String(), MkString(match))
 		}
 		return MkBool(isMatch)
 	}
@@ -85,14 +76,14 @@ func cmdRegexp(fr *Frame, argv []T) T {
 	isMatch, submatches := RegexpFindSubmatch(exp, str, nocase)
 
 	sub_idx := 0
-	for arg_idx < len(argv) {
+	for var_idx < len(vars) {
 		if sub_idx < len(submatches) {
-			fr.SetVar(argv[arg_idx].String(), MkString(submatches[sub_idx]))
+			fr.SetVar(vars[var_idx].String(), MkString(submatches[sub_idx]))
 		} else {
-			fr.SetVar(argv[arg_idx].String(), Empty)
+			fr.SetVar(vars[var_idx].String(), Empty)
 		}
 		sub_idx++
-		arg_idx++
+		var_idx++
 	}
 
 	return MkBool(isMatch)

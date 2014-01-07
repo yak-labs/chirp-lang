@@ -44,6 +44,9 @@ func (t *terpFile) Uint() uint64 {
 func (t *terpFile) ListElementString() string {
 	return t.String()
 }
+func (t *terpFile) QuickString() string {
+	return t.String()
+}
 func (t *terpFile) Bool() bool {
 	panic("terpFile cannot be used as Bool")
 }

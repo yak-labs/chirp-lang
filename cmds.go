@@ -94,6 +94,45 @@ func Arg2v(argv []T) (T, T, []T) {
 	return argv[1], argv[2], argv[3:]
 }
 
+// RemoveHeadDashArgs removes dash args from argv (only if they are QuickString), returning the dash args and modified argv.  Argv[0] is preserved.
+func RemoveHeadDashArgs(argv []T) (dashes []string, newArgv []T) {
+	var i int
+	for i = 1; len(argv) >= i; i++ {
+		str := argv[i].QuickString()
+		if len(str) > 0 && str[0] == '-' {
+			continue
+		} else {
+			break
+		}
+	}
+
+	if i == 1 {
+		// There were no dashes; don't create new slices.
+		newArgv = argv
+		return
+	}
+
+	dashes = make([]string, i-1)
+	for j := 1; j < i; j++ {
+		dashes[j-1] = argv[j].QuickString()
+	}
+	newArgv = make([]T, len(argv)-i+1)
+	newArgv[0] = argv[0]
+	for j := i; j < len(argv); j++ {
+		newArgv[j-i+1] = argv[j]
+	}
+	return
+}
+
+// Argd2v expects args to be (1) dash arguments (2) two required args (3) possibly some optional args.
+func Argd2v(argv []T) ([]string, T, T, []T) {
+	dashes, newArgv := RemoveHeadDashArgs(argv)
+	if len(newArgv) < 2+1 {
+		panic(Sprintf("Expected at least 2 arguments (after the %s dash arguments), but got argv=%s", len(dashes), Showv(argv)))
+	}
+	return dashes, newArgv[1], newArgv[2], newArgv[3:]
+}
+
 func Arg3(argv []T) (T, T, T) {
 	if len(argv) != 3+1 {
 		panic(Sprintf("Expected 3 arguments, but got argv=%s", Showv(argv)))

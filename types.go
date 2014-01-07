@@ -21,6 +21,7 @@ type T interface {
 	Int() int64
 	Uint() uint64
 	ListElementString() string
+	QuickString() string
 	Bool() bool    // Like Python, empty values and 0 values are false.
 	IsEmpty() bool // Would String() return ""?
 	List() []T
@@ -307,6 +308,9 @@ func (t terpHash) Uint() uint64 {
 func (t terpHash) ListElementString() string {
 	return MkString(t.String()).ListElementString()
 }
+func (t terpHash) QuickString() string {
+	return ""
+}
 func (t terpHash) Bool() bool {
 	panic("terpHash cannot be used as Bool")
 }
@@ -407,6 +411,9 @@ func (t terpGenerator) Uint() uint64 {
 func (t terpGenerator) ListElementString() string {
 	panic("not implemented on generator (terpGenerator)")
 }
+func (t terpGenerator) QuickString() string {
+	return ""
+}
 func (t terpGenerator) Bool() bool {
 	panic("terpGenerator cannot be used as Bool")
 }
@@ -475,6 +482,9 @@ func (t terpFloat) String() string {
 func (t terpFloat) ListElementString() string {
 	return t.String()
 }
+func (t terpFloat) QuickString() string {
+	return ""
+}
 func (t terpFloat) Bool() bool {
 	return t.f != 0
 }
@@ -523,6 +533,9 @@ func (t terpString) String() string {
 }
 func (t terpString) ListElementString() string {
 	return ToListElementString(t.s)
+}
+func (t terpString) QuickString() string {
+	return t.s
 }
 func (t terpString) Bool() bool {
 	if t.s == "0" {
@@ -599,6 +612,9 @@ func (t terpList) String() string {
 func (t terpList) ListElementString() string {
 	return ToListElementString(t.String())
 }
+func (t terpList) QuickString() string {
+	return ""
+}
 func (t terpList) Bool() bool {
 	if len(t.l) == 1 {
 		return t.l[0].Bool()
@@ -672,6 +688,9 @@ func (t terpValue) String() string {
 }
 func (t terpValue) ListElementString() string {
 	return ToListElementString(t.String())
+}
+func (t terpValue) QuickString() string {
+	return ""
 }
 func (t terpValue) Bool() bool {
 	panic("terpValue cannot be used as Bool")
@@ -748,6 +767,9 @@ func (t *terpMulti) String() string {
 }
 func (t *terpMulti) ListElementString() string {
 	return t.s.ListElementString()
+}
+func (t *terpMulti) QuickString() string {
+	return t.s.String()
 }
 func (t *terpMulti) Bool() bool {
 	if t.f != nil {
@@ -958,6 +980,9 @@ func (t *terpFloatHack) String() string {
 }
 func (t *terpFloatHack) ListElementString() string {
 	return t.String()
+}
+func (t *terpFloatHack) QuickString() string {
+	return ""
 }
 func (t *terpFloatHack) Bool() bool {
 	return t.Float() != 0
