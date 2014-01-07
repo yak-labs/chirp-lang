@@ -53,6 +53,12 @@ func MkChainingBinaryFlopCmd(starter float64, flop binaryFlop) Command {
 	}
 }
 
+func IfNilArgvThenUsage(argv []T, usage string) {
+	if argv == nil {
+		panic(Jump{Status: USAGE, Result: MkString(usage)})
+	}
+}
+
 func Arg0(argv []T) {
 	if len(argv) != 1 {
 		panic(Sprintf("Expected 0 arguments, but got argv=%s", Showv(argv)))
@@ -71,6 +77,11 @@ func Arg1(argv []T) T {
 		panic(Sprintf("Expected 1 arguments, but got argv=%s", Showv(argv)))
 	}
 	return argv[1]
+}
+
+func Arg1Usage(argv []T, usage string) T {
+	IfNilArgvThenUsage(argv, usage)
+	return Arg1(argv)
 }
 
 func Arg1v(argv []T) (T, []T) {
@@ -124,8 +135,8 @@ func RemoveHeadDashArgs(argv []T) (dashes []string, newArgv []T) {
 	return
 }
 
-// Argd2v expects args to be (1) dash arguments (2) two required args (3) possibly some optional args.
-func Argd2v(argv []T) ([]string, T, T, []T) {
+// ArgDash2v expects args to be (1) dash arguments (2) two required args (3) possibly some optional args.
+func ArgDash2v(argv []T) ([]string, T, T, []T) {
 	dashes, newArgv := RemoveHeadDashArgs(argv)
 	if len(newArgv) < 2+1 {
 		panic(Sprintf("Expected at least 2 arguments (after the %s dash arguments), but got argv=%s", len(dashes), Showv(argv)))
@@ -133,11 +144,20 @@ func Argd2v(argv []T) ([]string, T, T, []T) {
 	return dashes, newArgv[1], newArgv[2], newArgv[3:]
 }
 
+func ArgDash2vUsage(argv []T, usage string) ([]string, T, T, []T) {
+	IfNilArgvThenUsage(argv, usage)
+	return ArgDash2v(argv)
+}
+
 func Arg3(argv []T) (T, T, T) {
 	if len(argv) != 3+1 {
 		panic(Sprintf("Expected 3 arguments, but got argv=%s", Showv(argv)))
 	}
 	return argv[1], argv[2], argv[3]
+}
+func Arg3Usage(argv []T, usage string) (T, T, T) {
+	IfNilArgvThenUsage(argv, usage)
+	return Arg3(argv)
 }
 
 func Arg3v(argv []T) (T, T, T, []T) {
@@ -175,15 +195,35 @@ func Arg7(argv []T) (T, T, T, T, T, T, T) {
 	return argv[1], argv[2], argv[3], argv[4], argv[5], argv[6], argv[7]
 }
 
-const usageUsage = `cmdName -> usageString`
-
 func cmdUsage(fr *Frame, argv []T) T {
-	cmdName := Arg1(argv)
-	z, ok := UsageMap[cmdName.String()]
-	if !ok {
-		panic("Usage not found for command: " + cmdName.String())
+	usage := `cmdName -> usageString`
+	cmdName := Arg1Usage(argv, usage)
+
+	result := ""
+
+	c := fr.FindCommand(cmdName, false)
+	if c != nil {
+		func() {
+			defer func() {
+				r := recover()
+				if r != nil {
+					switch x := r.(type) {
+					case Jump:
+						if x.Status == USAGE {
+							result = x.Result.String()
+						}
+					}
+				}
+			}()
+			c(fr, nil) // Call the command with nil args; it may panic Jump USAGE.
+		}()
+
+		if result != "" {
+			return MkString(Sprintf("*** Usage:  %s %s", cmdName, result))
+		}
 	}
-	return MkString(Sprintf("Usage:  %s %s", cmdName, z))
+
+	panic(Sprintf("Usage not found for command: %q", cmdName))
 }
 
 func cmdMust(fr *Frame, argv []T) T {
@@ -1780,6 +1820,4 @@ func init() {
 	Safes["cred"] = cmdCred
 	Safes["log"] = cmdLog
 	Safes["usage"] = cmdUsage
-
-	Usage("usage", usageUsage)
 }

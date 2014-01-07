@@ -19,10 +19,9 @@ import (
 	R "reflect"
 )
 
-const usageImageLoad = "filename -> imgRef format width height"
-
 func cmdImageLoad(fr *Frame, argv []T) T {
-	inFilename := Arg1(argv)
+	usage := `filename -> imgRef format width height`
+	inFilename := Arg1Usage(argv, usage)
 
 	r, err := os.Open(inFilename.String())
 	if err != nil {
@@ -46,10 +45,9 @@ func cmdImageLoad(fr *Frame, argv []T) T {
 	})
 }
 
-const usageImageResample = `imgRef newWidth newHeight -> newImgRef`
-
 func cmdImageResample(fr *Frame, argv []T) T {
-	imgT, widthT, heightT := Arg3(argv)
+	usage := `imgRef newWidth newHeight -> newImgRef`
+	imgT, widthT, heightT := Arg3Usage(argv, usage)
 
 	img := imgT.Raw().(image.Image)
 	width := uint(widthT.Int())
@@ -59,11 +57,11 @@ func cmdImageResample(fr *Frame, argv []T) T {
 	return MkValue(R.ValueOf(z))
 }
 
-const usageImageSave = `filename imgRef format
-	Formats are jpeg, jpg, png`
-
 func cmdImageSave(fr *Frame, argv []T) T {
-	filenameT, imgT, formatT := Arg3(argv)
+	usage := `filename imgRef format
+		Formats are jpeg, jpg, png`
+
+	filenameT, imgT, formatT := Arg3Usage(argv, usage)
 
 	w, err := os.Create(filenameT.String())
 	if err != nil {
@@ -92,8 +90,4 @@ func init() {
 	Unsafes["image-load"] = cmdImageLoad
 	Unsafes["image-save"] = cmdImageSave
 	Unsafes["image-resample"] = cmdImageResample
-
-	Usage("image-load", usageImageLoad)
-	Usage("image-save", usageImageSave)
-	Usage("image-resample", usageImageResample)
 }

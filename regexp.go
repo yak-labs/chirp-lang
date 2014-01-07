@@ -43,11 +43,12 @@ func RegexpFindSubmatch(exp, str string, nocase bool) (bool, []string) {
 }
 
 func cmdRegexp(fr *Frame, argv []T) T {
-	nocase := false
+	usage := `?-nocase? expression string ?matchVar ?groupVars...?? -> bool`
+	dashes, expT, strT, vars := ArgDash2vUsage(argv, usage)
 
-	dashes, expT, strT, vars := Argd2v(argv)
 	exp := expT.String()
 	str := strT.String()
+	nocase := false
 
 	for _, dash := range dashes {
 		switch dash {
