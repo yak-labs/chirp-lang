@@ -25,7 +25,8 @@ func saveArgvStarting(fr *chirp.Frame, i int) {
 	for _, a := range flag.Args() {
 		argv = append(argv, chirp.MkString(a))
 	}
-	fr.SetVar("argv", chirp.MkList(argv))
+	fr.SetVar("argv", chirp.MkList(argv))  // Deprecated: argv
+	fr.SetVar("Argv", chirp.MkList(argv))  // New: Argv
 }
 
 func setEnvironInChirp(fr *chirp.Frame, varName string) {

@@ -9,8 +9,8 @@ proc fib {n} {
 	}
 }
 
-if {[llength $argv] > 1} {
-	foreach x [lrange $argv 1 end] {
+if {[llength $Argv] > 1} {
+	foreach x [lrange $Argv 1 end] {
 		puts "$x -> [fib $x]"
 	}
 } else {
