@@ -966,7 +966,7 @@ func init() {
 	Roots[`/math/SqrtE`] = ConstRoot{ Const: math.SqrtE }
 	Roots[`/math/SqrtPhi`] = ConstRoot{ Const: math.SqrtPhi }
 	Roots[`/math/SqrtPi`] = ConstRoot{ Const: math.SqrtPi }
-	Roots[`/math/big/MaxBase`] = ConstRoot{ Const: int64(math_big.MaxBase) }
+	Roots[`/math/big/MaxBase`] = ConstRoot{ Const: math_big.MaxBase }
 	Roots[`/net/http/DefaultMaxHeaderBytes`] = ConstRoot{ Const: int64(net_http.DefaultMaxHeaderBytes) }
 	Roots[`/net/http/DefaultMaxIdleConnsPerHost`] = ConstRoot{ Const: int64(net_http.DefaultMaxIdleConnsPerHost) }
 	Roots[`/net/http/StatusAccepted`] = ConstRoot{ Const: int64(net_http.StatusAccepted) }
