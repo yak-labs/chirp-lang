@@ -322,23 +322,6 @@ var cmdTests = `
 	must 1 [catch {foreach x [barfer] {error NOTREACHED}} what]
 	must 1 [string match BARF* $what]
 
-    # Make class Obj.
-	set Obj [subclass ""]
-    # Make class A.
-	set A [subclass $Obj]
-    # Instantiate an A.
-	set a [new $A]
-	# Underscore variables are members of object.
-	meth $A mulx y {expr $_x*$y}
-	meth $A setx x {set _x $x}
-	meth $A getx {} {return $_x}
-	# "on" sends message.
-	on $a setx 100
-	must 100 [on $a getx]
-	must 400 [on $a mulx 4]
-	# TODO: inheritance.
-	# TODO: super.
-
 	set a 111; set B 222
 
 	must {aaa$a foo[expr 3*8]bar$B.zzz\\0105} [

@@ -52,9 +52,6 @@ type Frame struct {
 	WriterChan chan<- Either // for yproc & yield
 	MixinLevel int
 	MixinName  string
-
-	Self  *Obj
-	Super *Obj
 }
 
 // Global holds the global state of an interpreter,
@@ -230,10 +227,6 @@ func (p *Slot) Set(t T)   { p.Elem = t }
 func (fr *Frame) GetVarScope(name string) Scope {
 	if len(name) == 0 {
 		panic("Empty variable name")
-	}
-
-	if name[0] == '_' && fr.Self != nil {
-		return fr.Self.Slots
 	}
 
 	if IsGlobal(name) {

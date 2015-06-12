@@ -320,15 +320,25 @@ func cmdEcho(fr *Frame, argv []T) T {
 	return Empty
 }
 
+func cmdSuper(fr *Frame, argv []T) T {
+  name, _ := Arg1v(argv)
+  if fr.MixinLevel < 1 {
+    panic("cannot super from non-mixin")
+  }
+  fn := fr.FindCommand(name, true) // true: Call Super.
+  z := fn(fr, argv[1:])
+  return z
+}
+
 func cmdProc(fr *Frame, argv []T) T {
-	return procOrYProc(fr, argv, false, nil)
+	return procOrYProc(fr, argv, false)
 }
 
 func cmdYProc(fr *Frame, argv []T) T {
-	return procOrYProc(fr, argv, true, nil)
+	return procOrYProc(fr, argv, true)
 }
 
-func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
+func procOrYProc(fr *Frame, argv []T, generating bool) T {
 	name, aa, body := Arg3(argv)
 	nameStr := name.String()
 	alist := aa.List()
@@ -362,14 +372,6 @@ func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 	}
 
 	cmd := func(fr2 *Frame, argv2 []T) (result T) {
-		var self *Obj
-		if super != nil {
-			// Argv2 is [ Receiver, Message, args... ].
-			// Remove Receiver, defining self.
-			// Leave message to be argv[0] for the command.
-			self = argv2[0].Raw().(*Obj)
-			argv2 = argv2[1:]
-		}
 		if captureMixinNumberDefining > 0 {
 			argv2[0] = MkString(longMixinName)
 		}
@@ -441,8 +443,6 @@ func procOrYProc(fr *Frame, argv []T, generating bool, super *Obj) T {
 		fr3 := fr2.NewFrame()
 		fr3.MixinLevel = captureMixinNumberDefining
 		fr3.MixinName = captureMixinNameDefining
-		fr3.Self = self
-		fr3.Super = super
 
 		if varargs {
 			for i, arg := range astrs[:len(astrs)-1] {
@@ -575,16 +575,6 @@ func cmdMixin(fr *Frame, argv []T) T {
 	}()
 
 	return fr.Eval(body)
-}
-
-func cmdSuper(fr *Frame, argv []T) T {
-	name, _ := Arg1v(argv)
-	if fr.MixinLevel < 1 {
-		panic("cannot super from non-mixin")
-	}
-	fn := fr.FindCommand(name, true) // true: Call Super.
-	z := fn(fr, argv[1:])
-	return z
 }
 
 func cmdYield(fr *Frame, argv []T) T {
@@ -1777,7 +1767,6 @@ func init() {
 	Safes["proc"] = cmdProc
 	Safes["yproc"] = cmdYProc
 	Safes["mixin"] = cmdMixin
-	Safes["super"] = cmdSuper
 	Safes["yield"] = cmdYield
 	Safes["ls"] = cmdLs
 	Safes["null"] = cmdNull
@@ -1797,6 +1786,7 @@ func init() {
 	Safes["concat"] = cmdConcat
 	Safes["set"] = cmdSet
 	Safes["upvar"] = cmdUpVar
+	Safes["super"] = cmdSuper
 	Safes["return"] = cmdReturn
 	Safes["break"] = cmdBreak
 	Safes["continue"] = cmdContinue
