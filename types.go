@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"unsafe"
 )
 
 // T is an interface to any Tcl value.
@@ -104,31 +103,15 @@ func MkBool(a bool) T {
 	}
 	return False
 }
-func MkOldFloat(a float64) terpFloat {
-	MkFloatCounter.Incr()
-	return terpFloat{f: a}
-}
-func MkFloat(a float64) T {
-	if Debug['u'] { // if Unsafe Hack
-		return MkHackFloat(a)
-	}
-
+func MkFloat(a float64) terpFloat {
 	MkFloatCounter.Incr()
 	return terpFloat{f: a}
 }
 func MkInt(a int64) T {
-	if Debug['u'] { // if Unsafe Hack
-		return MkHackFloat(float64(a))
-	}
-
 	MkIntCounter.Incr()
 	return terpFloat{f: float64(a)}
 }
 func MkUint(a uint64) T {
-	if Debug['u'] { // if Unsafe Hack
-		return MkHackFloat(float64(a))
-	}
-
 	MkUintCounter.Incr()
 	return terpFloat{f: float64(a)}
 }
@@ -161,7 +144,7 @@ func MkMulti(a string) *terpMulti {
 		defer func() {
 			_ = recover()
 		}()
-		x := MkOldFloat(s.Float())
+		x := MkFloat(s.Float())
 		m.f = &x
 	}()
 
@@ -951,79 +934,6 @@ func (t terpValue) EvalSeq(fr *Frame) T         { return Parse2EvalSeqStr(fr, t.
 func (t terpValue) EvalExpr(fr *Frame) T        { return Parse2EvalExprStr(fr, t.String()) }
 func (t terpValue) Apply(fr *Frame, args []T) T { return ApplyToReflectedValue(fr, t.v, args, 1) }
 
-////////////////////////////////////////
-// Experimental.
-
-// terpFloatHack is an experiment with unsafe hacking.
-// First we try to embed a float64 inside one of the two pointers inside interface T.
-// terpFloatHack runs a lot faster than terpFloat, but both are so fast it's insignificant.
-// The goal was to avoid a memory allocation, but it doesn't seem to do that.
-
-type terpFloatHack byte // This definition doesn't matter;  *terpFloatHack is never dereferenced.
-
-func MkHackFloat(f float64) *terpFloatHack {
-	MkHackFloatCounter.Incr()
-	var ptr unsafe.Pointer = unsafe.Pointer(&f)
-	var fptr *uintptr = (*uintptr)(ptr)
-	var z unsafe.Pointer = unsafe.Pointer(*fptr)
-	return (*terpFloatHack)(z)
-}
-
-// *terpFloatHack implements T
-
-func (t terpFloatHack) ChirpKind() string { return "FloatHack" }
-func (t *terpFloatHack) Raw() interface{} {
-	return t.Float()
-}
-func (t *terpFloatHack) String() string {
-	return Sprintf("%g", t.Float())
-}
-func (t *terpFloatHack) ListElementString() string {
-	return t.String()
-}
-func (t *terpFloatHack) QuickString() string {
-	return ""
-}
-func (t *terpFloatHack) Bool() bool {
-	return t.Float() != 0
-}
-func (t *terpFloatHack) IsEmpty() bool {
-	return false
-}
-func (t *terpFloatHack) Float() float64 {
-	var ptr unsafe.Pointer = unsafe.Pointer(&t)
-	var fp *float64 = (*float64)(ptr)
-	return *fp
-}
-func (t *terpFloatHack) Int() int64 {
-	return int64(t.Float())
-}
-func (t *terpFloatHack) Uint() uint64 {
-	return uint64(t.Float())
-}
-func (t *terpFloatHack) IsPreservedByList() bool { return true }
-func (t *terpFloatHack) IsQuickNumber() bool     { return true }
-func (t *terpFloatHack) List() []T {
-	return []T{t}
-}
-func (t *terpFloatHack) HeadTail() (hd, tl T) {
-	return MkList(t.List()).HeadTail()
-}
-func (t *terpFloatHack) Hash() Hash {
-	panic(" is not a Hash")
-}
-func (t *terpFloatHack) GetAt(key T) T {
-	panic("*terpFloatHack is not a Hash")
-}
-func (t *terpFloatHack) PutAt(value T, key T) {
-	panic("*terpFloatHack is not a Hash")
-}
-func (t *terpFloatHack) QuickReflectValue() R.Value  { return InvalidValue }
-func (t *terpFloatHack) EvalSeq(fr *Frame) T         { return Parse2EvalSeqStr(fr, t.String()) }
-func (t *terpFloatHack) EvalExpr(fr *Frame) T        { return t } // Numbers are self-Expr-eval'ing.
-func (t *terpFloatHack) Apply(fr *Frame, args []T) T { return fr.Apply(args) }
-
-// End Experimental.
 ////////////////////////////////////////
 
 func (g *Global) MintMixinSerial() int {
