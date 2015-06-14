@@ -10,8 +10,10 @@ import (
 
 var _ = runtime.Breakpoint
 
-var False = MkInt(0)
-var True = MkInt(1)
+var Zero = MkInt(0)
+var One = MkInt(1)
+var False = Zero
+var True = One
 
 // Concatenate the arguments, adding a space separator, before evaluating the
 // expression.

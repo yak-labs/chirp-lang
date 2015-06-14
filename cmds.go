@@ -321,13 +321,13 @@ func cmdEcho(fr *Frame, argv []T) T {
 }
 
 func cmdSuper(fr *Frame, argv []T) T {
-  name, _ := Arg1v(argv)
-  if fr.MixinLevel < 1 {
-    panic("cannot super from non-mixin")
-  }
-  fn := fr.FindCommand(name, true) // true: Call Super.
-  z := fn(fr, argv[1:])
-  return z
+	name, _ := Arg1v(argv)
+	if fr.MixinLevel < 1 {
+		panic("cannot super from non-mixin")
+	}
+	fn := fr.FindCommand(name, true) // true: Call Super.
+	z := fn(fr, argv[1:])
+	return z
 }
 
 func cmdProc(fr *Frame, argv []T) T {
@@ -590,6 +590,7 @@ func cmdYield(fr *Frame, argv []T) T {
 	return z
 }
 
+// TODO: "ls" is to inspect objects and get help on command.s
 func cmdLs(fr *Frame, argv []T) T {
 	panic("not usefully implemented yet")
 }
@@ -942,14 +943,28 @@ func cmdConcat(fr *Frame, argv []T) T {
 	return MkList(ConcatLists(argv[1:]))
 }
 
+func cmdGlobal(fr *Frame, argv []T) T {
+	gFr := &fr.G.Fr
+	for _, a := range argv[1:] {
+		aName := a.String()
+		fr.DefineUpVar(aName, gFr, aName)
+	}
+	return Empty
+}
+
 func cmdUpVar(fr *Frame, argv []T) T {
 	lev, rem, loc := Arg3(argv)
-	level := lev.Int()
 	remName := rem.String()
 	locName := loc.String()
 	remFr := fr
-	for i := 0; i < int(level); i++ {
-		remFr = remFr.Prev
+	if lev.String() == "#0" {
+		// Global scope.
+		remFr = &fr.G.Fr
+	} else {
+		level := lev.Int()
+		for i := 0; i < int(level); i++ {
+			remFr = remFr.Prev
+		}
 	}
 	fr.DefineUpVar(locName, remFr, remName)
 	return Empty
@@ -1156,17 +1171,22 @@ func (ssi *SafeSubInterp) CopyCredFrom(fr *Frame) {
 }
 
 // Tcl requires integers, but our base numeric value is float64.
-// TODO: Make the increment argument optional.
 func cmdIncr(fr *Frame, argv []T) T {
-	varName, incr := Arg2(argv)
+	var varName, delta T
+	if len(argv) == 2 {
+		varName = Arg1(argv)
+		delta = One
+	} else {
+		varName, delta = Arg2(argv)
+	}
 
 	name := varName.String()
 
 	if !fr.HasVar(name) {
-		fr.SetVar(name, MkInt(0))
+		fr.SetVar(name, Zero)
 	}
 	v := fr.GetVar(name).Float()
-	i := incr.Float()
+	i := delta.Float()
 	z := MkFloat(v + i)
 
 	fr.SetVar(name, z)
@@ -1785,6 +1805,7 @@ func init() {
 	Safes["uplevel"] = cmdUpLevel
 	Safes["concat"] = cmdConcat
 	Safes["set"] = cmdSet
+	Safes["global"] = cmdGlobal
 	Safes["upvar"] = cmdUpVar
 	Safes["super"] = cmdSuper
 	Safes["return"] = cmdReturn

@@ -181,6 +181,25 @@ var cmdTests = `
   UpSet bar 54
   must 54 $bar
 
+  # Global & upvar #0.
+  set aGlobal 101
+  set bGlobal 202
+  proc testGlobal {} {
+    global aGlobal cGlobal
+    upvar #0 bGlobal b
+    incr aGlobal ;# 102.
+    must $aGlobal 102
+    incr b 20 ;# 222.
+    must $b 222
+    incr cGlobal ;# did not exist, so 1.
+    must $cGlobal 1
+  }
+  testGlobal
+  must $aGlobal 102
+  must $bGlobal 222
+  must $cGlobal 1
+
+
   list -- test of "hash"
   set h [hash]
   hset $h color purple
