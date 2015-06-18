@@ -563,16 +563,15 @@ func cmdMixin(fr *Frame, argv []T) T {
 	if fr.G.MixinNumberDefining > 0 {
 		panic("already defining a mixin: " + fr.G.MixinNameDefining)
 	}
-	num := fr.G.MintMixinSerial()
 
-	fr.G.MixinNumberDefining = num
 	defer func() {
 		fr.G.MixinNumberDefining = 0
-	}()
-	fr.G.MixinNameDefining = name.String()
-	defer func() {
 		fr.G.MixinNameDefining = ""
 	}()
+
+	num := fr.G.MintMixinSerial()
+	fr.G.MixinNumberDefining = num
+	fr.G.MixinNameDefining = name.String()
 
 	return fr.Eval(body)
 }
