@@ -6,10 +6,10 @@ package chirp
 */
 
 import (
-	. "fmt"
+	// . "fmt"
 	// "log"
 	"regexp"
-	"strings"
+	// "strings"
 )
 
 // interfaces
@@ -107,6 +107,7 @@ var DumbDollarPattern = "[$](" + AlphanumChars + "+)"
 var MatchBareWord = regexp.MustCompile("^" + BareWordPattern + "$")
 var MatchDumbDollar = regexp.MustCompile("^" + DumbDollarPattern + "$")
 
+/*
 // Very dumb compiler.
 // Understands things made only of inert bare words and simple dollar words.
 // e.g.   proc doublePlus11 {x} { set a 10 ; + $x $x 1 $a }
@@ -148,6 +149,7 @@ func dumbCompileSequence(fr *Frame, s string) Evaler {
 	// log.Printf("dumbCompileSequence: SUCCESSFULLY PRECOMPILED: %v <- %q", *seq, s)
 	return seq
 }
+*/
 
 // CompileSequence uses dumbCompileSequence.
 // If dumbCompileSequence panics, we recover and return nil.
