@@ -1,6 +1,6 @@
 /*
 	parse2 will parse to an ADT and support Visitor Pattern on it.
-	This will be useful for bytecoes, compilers, tools.
+	This will be useful for bytecodes, compilers, tools.
 */
 
 package chirp

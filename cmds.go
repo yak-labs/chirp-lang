@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	R "reflect"
 	"sort"
 	"strings"
 )
@@ -310,6 +311,79 @@ func cmdCase(fr *Frame, argv []T) T {
 	return fr.Eval(dflt)
 }
 
+func nextFormatLetter(s string) (z string, c byte, t R.Kind) {
+	// Advance to %
+	var i int = 0
+	for i < len(s) {
+		if s[i] == '%' {
+			// Advance to main letter.
+			i++
+			for i < len(s) {
+				switch s[i] {
+				case 'v', 'T':
+					return s[i+1:], s[i], R.Struct
+				case '%':
+					return s[i+1:], '%', R.Uint8
+				case 't':
+					return s[i+1:], s[i], R.Bool
+				case 'b', 'c', 'd', 'o', 'x', 'X', 'U':
+					return s[i+1:], s[i], R.Int
+				case 'e', 'E', 'f', 'F', 'g', 'G': // not 'b'
+					return s[i+1:], s[i], R.Float64
+				case 's', 'q': // not 'x', 'X'
+					return s[i+1:], s[i], R.String
+				case 'p':
+					return s[i+1:], s[i], R.Ptr
+				}
+				i++
+			}
+			return "", 0, R.Invalid
+		} else {
+			i++
+		}
+	}
+	return "", 0, R.Invalid
+}
+
+func cmdFormat(fr *Frame, argv []T) T {
+	f, args := Arg1v(argv)
+	s := f.String()
+	var vals []interface{}
+	var i int = 0
+	for {
+		var c byte
+		var k R.Kind
+		s, c, k = nextFormatLetter(s)
+		if c != '%' {
+			if k == R.Invalid {
+				break
+			}
+			if i >= len(args) {
+				panic("format: Not enough args")
+			}
+			switch k {
+			case R.Struct:
+				vals = append(vals, args[i].Raw())
+			case R.Bool:
+				vals = append(vals, args[i].Bool())
+			case R.Int:
+				vals = append(vals, args[i].Int())
+			case R.Float64:
+				vals = append(vals, args[i].Float())
+			case R.String:
+				vals = append(vals, args[i].String())
+			case R.Ptr:
+				vals = append(vals, args[i].Raw())
+			}
+			i++
+		}
+	}
+	if i != len(args) {
+		panic("format: Too many args")
+	}
+	return MkString(Sprintf(f.String(), vals...))
+}
+
 func cmdEcho(fr *Frame, argv []T) T {
 	args := Arg0v(argv)
 	buf := bytes.NewBuffer(nil)
@@ -317,6 +391,17 @@ func cmdEcho(fr *Frame, argv []T) T {
 		buf.WriteString(a.String())
 	}
 	Println(buf.String())
+	return Empty
+}
+
+func cmdSay(fr *Frame, argv []T) T {
+	args := Arg0v(argv)
+	buf := bytes.NewBuffer(nil)
+	for _, a := range args {
+		buf.WriteString(" say: ")
+		buf.WriteString(a.String())
+	}
+	log.Println(buf.String())
 	return Empty
 }
 
@@ -589,9 +674,10 @@ func cmdYield(fr *Frame, argv []T) T {
 	return z
 }
 
-// TODO: "ls" is to inspect objects and get help on command.s
+// TODO: "ls" is to inspect objects and get help on commands.
 func cmdLs(fr *Frame, argv []T) T {
-	panic("not usefully implemented yet")
+	println("ls: len cred=", len(fr.Cred))
+	return MkString("ls Done.")
 }
 
 func cmdSLen(fr *Frame, argv []T) T {
@@ -1683,8 +1769,8 @@ func cmdSubst(fr *Frame, argv []T) T {
 // Returns Empty if none.
 func cmdCred(fr *Frame, argv []T) T {
 	name := Arg1(argv)
-
 	key := name.String()
+
 	if _, ok := fr.Cred[key]; !ok {
 		return Empty
 	}
@@ -1782,7 +1868,9 @@ func init() {
 	Safes["must"] = cmdMust
 	Safes["if"] = cmdIf
 	Safes["case"] = cmdCase
+	Safes["format"] = cmdFormat
 	Safes["echo"] = cmdEcho
+	Safes["say"] = cmdSay
 	Safes["proc"] = cmdProc
 	Safes["yproc"] = cmdYProc
 	Safes["mixin"] = cmdMixin
