@@ -19,14 +19,17 @@ import (
 var dFlag = flag.String("d", "", "Debugging flags, each a single letter.")
 var cFlag = flag.String("c", "", "Immediate command to execute.")
 var recoverFlag = flag.Bool("recover", true, "Set to false to disable recover in the REPL.")
+var testFlag = flag.Bool("test", false, "Print test summary at end.")
+
+var scriptName string
 
 func saveArgvStarting(fr *chirp.Frame, i int) {
 	argv := []chirp.T{}
 	for _, a := range flag.Args() {
 		argv = append(argv, chirp.MkString(a))
 	}
-	fr.SetVar("argv", chirp.MkList(argv))  // Deprecated: argv
-	fr.SetVar("Argv", chirp.MkList(argv))  // New: Argv
+	fr.SetVar("argv", chirp.MkList(argv)) // Deprecated: argv
+	fr.SetVar("Argv", chirp.MkList(argv)) // New: Argv
 }
 
 func setEnvironInChirp(fr *chirp.Frame, varName string) {
@@ -56,19 +59,22 @@ func Main() {
 	}
 
 	if len(flag.Args()) > 0 {
-		fname := flag.Arg(0)
-		contents, err := ioutil.ReadFile(fname)
+		// Script mode.
+		scriptName = flag.Arg(0)
+		contents, err := ioutil.ReadFile(scriptName)
 		if err != nil {
-			Fprintf(os.Stderr, "Cannot read file %s: %v", fname, err)
+			Fprintf(os.Stderr, "Cannot read file %s: %v", scriptName, err)
 			os.Exit(2)
 			return
 		}
 		saveArgvStarting(fr, 1)
+
 		fr.Eval(chirp.MkString(string(contents)))
 		goto End
 	}
 
 	{
+		// Interactive mode.
 		bio := bufio.NewReader(os.Stdin)
 		for {
 			Fprint(os.Stderr, "chirp% ") // Prompt to stderr.
@@ -106,6 +112,17 @@ End:
 func logAllCounters() {
 	if chirp.Debug['c'] {
 		chirp.LogAllCounters()
+	}
+
+	// Print summary for tests.
+	if *testFlag {
+		chirp.MustMutex.Lock()
+		if chirp.MustFails > 0 {
+			Fprintf(os.Stderr, "TEST FAILS: %q succeeds=%d fails=%d\n", scriptName, chirp.MustSucceeds, chirp.MustFails)
+			os.Exit(1)
+		}
+		Fprintf(os.Stderr, "Test Done: %q succeeds=%d\n", scriptName, chirp.MustSucceeds)
+		chirp.MustMutex.Unlock()
 	}
 }
 

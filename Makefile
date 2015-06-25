@@ -10,7 +10,9 @@ all: clean test build
 get:
 	go get $(GO_DIRS)
 
-test:
+test: __FORCE__
+	go build cli/chirp/main.go
+	for x in test/* ; do ./main -test $$x ; done
 	go test $(TEST_DIRS)
 
 build:
@@ -18,3 +20,6 @@ build:
 
 clean:
 	go clean $(GO_DIRS)
+
+__FORCE__:
+	:

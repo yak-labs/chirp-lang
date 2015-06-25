@@ -9,6 +9,7 @@ import (
 	R "reflect"
 	"sort"
 	"strings"
+	"sync"
 )
 
 // Safes are builtin commands that safe subinterps can call.
@@ -227,14 +228,51 @@ func cmdUsage(fr *Frame, argv []T) T {
 	panic(Sprintf("Usage not found for command: %q", cmdName))
 }
 
+var MustMutex sync.Mutex
+var MustSucceeds int64
+var MustFails int64
+
 func cmdMust(fr *Frame, argv []T) T {
 	xx, yy := Arg2(argv)
 	x := xx.String()
 	y := yy.String()
 
 	if x != y {
+		MustMutex.Lock()
+		MustFails++
+		MustMutex.Unlock()
 		panic("FAILED: must: " + Repr(argv) + " #### x=<" + x + "> #### y=<" + y + "> ####")
 	}
+	MustMutex.Lock()
+	MustSucceeds++
+	MustMutex.Unlock()
+	return Empty
+}
+
+func cmdMustFail(fr *Frame, argv []T) T {
+	xx := Arg1(argv)
+	var recovered interface{}
+
+	func() { // A scope for defer.
+
+		defer func() {
+			recovered = recover()
+		}()
+
+		fr.Eval(xx)
+
+	}()
+
+	if recovered == nil {
+		MustMutex.Lock()
+		MustFails++
+		MustMutex.Unlock()
+		panic("mustfil but did not fail: " + Repr(argv))
+	}
+
+	MustMutex.Lock()
+	MustSucceeds++
+	MustMutex.Unlock()
 	return Empty
 }
 
@@ -435,7 +473,10 @@ func cmdScan(fr *Frame, argv []T) T {
 func cmdEcho(fr *Frame, argv []T) T {
 	args := Arg0v(argv)
 	buf := bytes.NewBuffer(nil)
+	gap := ""
 	for _, a := range args {
+		buf.WriteString(gap)
+		gap = " "
 		buf.WriteString(a.String())
 	}
 	Println(buf.String())
@@ -945,7 +986,7 @@ func cmdCatch(fr *Frame, argv []T) (status T) {
 	var varName string
 	switch len(optionalName) {
 	case 0:
-    // Leave varName empty.
+		// Leave varName empty.
 	case 1:
 		varName = optionalName[0].String()
 	default:
@@ -1926,6 +1967,7 @@ func init() {
 	Safes["ge"] = MkBinaryStringBoolCmd(func(a, b string) bool { return (a >= b) })
 
 	Safes["must"] = cmdMust
+	Safes["mustfail"] = cmdMustFail
 	Safes["if"] = cmdIf
 	Safes["case"] = cmdCase
 	Safes["format"] = cmdFormat
