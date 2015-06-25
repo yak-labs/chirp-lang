@@ -383,6 +383,54 @@ func cmdFormat(fr *Frame, argv []T) T {
 	}
 	return MkString(Sprintf(f.String(), vals...))
 }
+func cmdScan(fr *Frame, argv []T) T {
+	sT, fT, args := Arg2v(argv)
+	f := fT.String()
+	var ptrs []interface{}
+	var i int = 0
+	for {
+		var c byte
+		var k R.Kind
+		f, c, k = nextFormatLetter(f)
+		if c != '%' {
+			if k == R.Invalid {
+				break
+			}
+			if i >= len(args) {
+				panic("format: Not enough args")
+			}
+			switch k {
+			case R.Bool:
+				ptrs = append(ptrs, new(bool))
+			case R.Int:
+				ptrs = append(ptrs, new(int64))
+			case R.Float64:
+				ptrs = append(ptrs, new(float64))
+			case R.String:
+				ptrs = append(ptrs, new(string))
+				//case R.Ptr:
+				//case R.Struct:
+			default:
+				panic("scan: Cannot handle a format")
+			}
+			i++
+		}
+	}
+	if i != len(args) {
+		panic("format: Too many args")
+	}
+	n, err := Sscanf(sT.String(), fT.String(), ptrs...)
+	if err != nil {
+		panic(Sprintf("error in Sscanf: %v", err))
+	}
+	for j, ej := range ptrs {
+		if j == n {
+			break
+		}
+		fr.SetVar(args[j].String(), MkT(R.ValueOf(ej).Elem().Interface()))
+	}
+	return MkInt(int64(n))
+}
 
 func cmdEcho(fr *Frame, argv []T) T {
 	args := Arg0v(argv)
@@ -1869,6 +1917,7 @@ func init() {
 	Safes["if"] = cmdIf
 	Safes["case"] = cmdCase
 	Safes["format"] = cmdFormat
+	Safes["scan"] = cmdScan
 	Safes["echo"] = cmdEcho
 	Safes["say"] = cmdSay
 	Safes["proc"] = cmdProc
