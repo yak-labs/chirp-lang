@@ -941,17 +941,29 @@ func cmdWhile(fr *Frame, argv []T) T {
 }
 
 func cmdCatch(fr *Frame, argv []T) (status T) {
-	body, varT := Arg2(argv)
-	varName := varT.String()
+	body, optionalName := Arg1v(argv)
+	var varName string
+	switch len(optionalName) {
+	case 0:
+    // Leave varName empty.
+	case 1:
+		varName = optionalName[0].String()
+	default:
+		panic("catch: too many args")
+	}
 
 	defer func() {
 		if r := recover(); r != nil {
 			if j, ok := r.(Jump); ok {
-				fr.SetVar(varName, j.Result)
+				if len(varName) > 0 {
+					fr.SetVar(varName, j.Result)
+				}
 				status = MkInt(int64(j.Status))
 				return
 			}
-			fr.SetVar(varName, MkT(r))
+			if len(varName) > 0 {
+				fr.SetVar(varName, MkT(r))
+			}
 			status = True
 		}
 	}()
