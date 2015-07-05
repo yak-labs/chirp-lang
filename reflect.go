@@ -5,7 +5,7 @@ import (
 	. "fmt"
 	"log"
 	R "reflect"
-	"unsafe"
+	"runtime/debug"
 )
 
 var Roots map[string]Applier = make(map[string]Applier)
@@ -129,6 +129,16 @@ func ApplyToType(fr *Frame, typ R.Type, args []T) T {
 
 // ApplyToReflectedValue applies args, starting at i, to terpValue t.
 func ApplyToReflectedValue(fr *Frame, v R.Value, args []T, i int) T {
+
+	defer func() {
+		if r := recover(); r != nil {
+			println(Sprintf("\n\nException Pass Thru: %v", r))
+			debug.PrintStack()
+			println("\n\n")
+			panic(r)
+		}
+	}()
+
 	if fr.G.IsSafe {
 		panic("ApplyToReflectedValue not allowed in Safe Interpreter.")
 	}
@@ -143,6 +153,16 @@ func ApplyToReflectedValue(fr *Frame, v R.Value, args []T, i int) T {
 	return z
 }
 func applyToReflectedValueRecur(fr *Frame, v R.Value, args []T, i int) T {
+
+	defer func() {
+		if r := recover(); r != nil {
+			println(Sprintf("\n\nException Pass Thru: %v", r))
+			debug.PrintStack()
+			println("\n\n")
+			panic(r)
+		}
+	}()
+
 	if Debug['z'] {
 		Say("applyToReflectedValueRecur  CanSet?", v, v.CanSet())
 	}
@@ -403,62 +423,83 @@ func LookupRootAndApply(fr *Frame, rootName string, args []T) T {
 }
 
 func AdaptToValue(fr *Frame, a T, ty R.Type) R.Value {
+	defer func() {
+		if r := recover(); r != nil {
+			println(Sprintf("\n\nAdaptToValue Exception %v", r))
+			debug.PrintStack()
+			println("\n\n")
+			panic(r)
+		}
+	}()
+
+	if Debug['r'] {
+		log.Printf("AdaptToValue <<< want %v <<< got %T %v", ty, a, a)
+	}
+	z := AdaptToValueInner(fr, a, ty)
+	if Debug['r'] {
+		log.Printf("AdaptToValue >>> want %v >>> returning %T %v", ty, z.Interface(), z.Interface())
+	}
+	return z
+}
+
+func AdaptToValueInner(fr *Frame, a T, ty R.Type) R.Value {
+
 	switch ty.Kind() {
 	case R.Bool:
 		var tmp bool = a.Bool()
-		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+		return R.ValueOf(tmp).Convert(ty)
 
 	case R.Int:
 		var tmp int = int(a.Int())
-		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+		return R.ValueOf(tmp).Convert(ty)
 
 	case R.Int8:
 		var tmp int8 = int8(a.Int())
-		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+		return R.ValueOf(tmp).Convert(ty)
 
 	case R.Int16:
 		var tmp int16 = int16(a.Int())
-		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+		return R.ValueOf(tmp).Convert(ty)
 
 	case R.Int32:
 		var tmp int32 = int32(a.Int())
-		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+		return R.ValueOf(tmp).Convert(ty)
 
 	case R.Int64:
 		var tmp int64 = a.Int()
-		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+		return R.ValueOf(tmp).Convert(ty)
 
 	case R.Uint:
 		var tmp uint = uint(a.Uint())
-		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+		return R.ValueOf(tmp).Convert(ty)
 
 	case R.Uint8:
 		var tmp uint8 = uint8(a.Uint())
-		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+		return R.ValueOf(tmp).Convert(ty)
 
 	case R.Uint16:
 		var tmp uint16 = uint16(a.Uint())
-		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+		return R.ValueOf(tmp).Convert(ty)
 
 	case R.Uint32:
 		var tmp uint32 = uint32(a.Uint())
-		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+		return R.ValueOf(tmp).Convert(ty)
 
 	case R.Uint64:
 		var tmp uint64 = a.Uint()
-		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+		return R.ValueOf(tmp).Convert(ty)
 
 	case R.Uintptr:
 		var tmp uintptr = uintptr(a.Uint())
-		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+		return R.ValueOf(tmp).Convert(ty)
 
 	case R.Float32:
 		var tmp float32 = float32(a.Float())
-		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+		return R.ValueOf(tmp).Convert(ty)
 
 	case R.Float64:
 		var tmp float64 = a.Float()
-		return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+		return R.ValueOf(tmp).Convert(ty)
 
 	case R.Complex64:
 	case R.Complex128:
@@ -511,34 +552,41 @@ func AdaptToValue(fr *Frame, a T, ty R.Type) R.Value {
 
 		switch ty.Elem().Kind() {
 		case R.Uint8:
-			var tmp []byte = make([]byte, val.Len())
-			copy(tmp, val.String())
-			return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+			// var tmp []byte = make([]byte, val.Len())
+			// copy(tmp, val.String())
+			// return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+			tmp := []byte(val.String())
+			return R.ValueOf(tmp)
 		}
 
 	case R.String:
-		raw := a.Raw()
-		val := R.ValueOf(raw)
+		tmp := a.String()
+		return R.ValueOf(tmp).Convert(ty)
 
-		switch val.Kind() {
-		case R.Slice:
-			switch val.Elem().Kind() {
-			case R.Uint8:
-				var tmp string = string(val.Bytes())
-				return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
-			}
-		}
+		/*
+		    // TODO: NOTREACHED............
+
+				raw := a.Raw()
+				val := R.ValueOf(raw)
+				switch val.Kind() {
+				case R.Slice:
+					switch val.Type().Elem().Kind() {
+					case R.Uint8:
+						tmp := string(val.Bytes())
+						// return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+					  return R.ValueOf(tmp)
+					}
+				}
+		*/
 
 	case R.Struct:
 	case R.UnsafePointer:
 	}
-	// We haven't checked this is correct;
-	//  cmdCall will reject it, if it won't work.
-	// But maybe we can do better, so log it.
+
 	if Debug['r'] {
 		log.Printf("AdaptToValue: Default: for type <%s>: %s", ty, Show(a))
 	}
-	return R.ValueOf(a.Raw())
+	return R.ValueOf(a.Raw()).Convert(ty)
 }
 
 // commonCall is common to both "go-call" and "go-send".

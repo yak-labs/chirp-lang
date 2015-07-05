@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	R "reflect"
+	"runtime/debug"
 	"sort"
 	"strings"
 	"sync"
@@ -995,6 +996,12 @@ func cmdCatch(fr *Frame, argv []T) (status T) {
 
 	defer func() {
 		if r := recover(); r != nil {
+
+			println(Sprintf("\n\n%%%%%%%%%%%%%%% catch: CAUGHT EXCEPTION: %T: %v", r, r))
+			println("%%%%%%%%%%%%%%% catch: CAUGHT EXCEPTION PrintStack {")
+			debug.PrintStack()
+			println("%%%%%%%%%%%%%%% catch: CAUGHT EXCEPTION PrintStack }\n\n")
+
 			if j, ok := r.(Jump); ok {
 				if len(varName) > 0 {
 					fr.SetVar(varName, j.Result)

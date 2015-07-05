@@ -19,22 +19,29 @@ var reflectTests = `
 	must ptr [$cp kind]
 	must struct [$cp * kind]
 	must *http.Cookie [[$cp type] String]
+  say cookie0
 
 	set cv [[/net/http/Cookie ptrtype] mkslice 3]
 	must 3 [llength $cv]
 	must "" [$cv @ 0]
 	must "" [$cv @ 1]
 	must "" [$cv @ 2]
+  say cookie1
 	# TODO: why didn't doto work?
 	# $cv @ 1 = [doto [/net/http/Cookie new] {. Name = COLOR} {. Value = RED}]
 	$cv @ 1 = [/net/http/Cookie new]
+  say cookie1a
 	$cv @ 1 . Name = COLOR_COLOR
+  say cookie1b
 	$cv @ 1 . Value = RED_RED
+  say cookie1c
 	must "COLOR_COLOR=RED_RED" [[$cv @ 1] String]
+  say cookie2
 
 	$cv @ 1 . Name = bug
 	$cv @ 1 . Value = f00f
 	must bug=f00f [$cv @ 1 String]
+  say cookie3
 
 	must	abcdefghi	[/fmt/Sprintf {abc%sghi} def]
 
