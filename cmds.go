@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 )
 
 // Safes are builtin commands that safe subinterps can call.
@@ -1021,6 +1022,27 @@ func cmdCatch(fr *Frame, argv []T) (status T) {
 	return False
 }
 
+func cmdTime(fr *Frame, argv []T) T {
+	cmd, rest := Arg1v(argv)
+	var n int64
+	switch len(rest) {
+	case 0:
+		n = 1
+	case 1:
+		n = rest[0].Int()
+	default:
+		panic("time: too many args")
+	}
+	start := time.Now().UnixNano()
+	var i int64
+	for i < n {
+		fr.Eval(cmd)
+		i++
+	}
+	finish := time.Now().UnixNano()
+	return MkString(Sprintf("%.6f microseconds per iteration", float64(finish-start)/1000.0/float64(n)))
+}
+
 func cmdEval(fr *Frame, argv []T) T {
 	return EvalOrApplyLists(fr, argv[1:])
 }
@@ -2028,4 +2050,5 @@ func init() {
 	Safes["cred"] = cmdCred
 	Safes["log"] = cmdLog
 	Safes["usage"] = cmdUsage
+	Safes["time"] = cmdTime
 }
