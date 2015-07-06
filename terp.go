@@ -52,6 +52,8 @@ type Frame struct {
 	WriterChan chan<- Either // for yproc & yield
 	MixinLevel int
 	MixinName  string
+
+	DebugName string
 }
 
 // Global holds the global state of an interpreter,

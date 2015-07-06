@@ -564,19 +564,19 @@ func AdaptToValueInner(fr *Frame, a T, ty R.Type) R.Value {
 		return R.ValueOf(tmp).Convert(ty)
 
 		/*
-		    // TODO: NOTREACHED............
+			    // TODO: NOTREACHED............
 
-				raw := a.Raw()
-				val := R.ValueOf(raw)
-				switch val.Kind() {
-				case R.Slice:
-					switch val.Type().Elem().Kind() {
-					case R.Uint8:
-						tmp := string(val.Bytes())
-						// return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
-					  return R.ValueOf(tmp)
+					raw := a.Raw()
+					val := R.ValueOf(raw)
+					switch val.Kind() {
+					case R.Slice:
+						switch val.Type().Elem().Kind() {
+						case R.Uint8:
+							tmp := string(val.Bytes())
+							// return R.NewAt(ty, unsafe.Pointer(&tmp)).Elem()
+						  return R.ValueOf(tmp)
+						}
 					}
-				}
 		*/
 
 	case R.Struct:

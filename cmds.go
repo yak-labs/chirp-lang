@@ -617,6 +617,7 @@ func procOrYProc(fr *Frame, argv []T, generating bool) T {
 		}
 
 		fr3 := fr2.NewFrame()
+		fr3.DebugName = nameStr
 		fr3.MixinLevel = captureMixinNumberDefining
 		fr3.MixinName = captureMixinNameDefining
 
@@ -1177,11 +1178,14 @@ func cmdUpVar(fr *Frame, argv []T) T {
 		remFr = &fr.G.Fr
 	} else {
 		level := lev.Int()
+		println(Sprintf("upvar-level=%d [%s]scope=%v globals=%v", 0, remFr.DebugName, remFr.Vars, remFr.G.Fr.Vars))
 		for i := 0; i < int(level); i++ {
 			remFr = remFr.Prev
+			println(Sprintf("upvar-level=%d [%s]scope=%v globals=%v", i+1, remFr.DebugName, remFr.Vars, remFr.G.Fr.Vars))
 		}
 	}
 	fr.DefineUpVar(locName, remFr, remName)
+	println(Sprintf("upvar-level  defined  [%s]scope=%v globals=%v", remFr.DebugName, remFr.Vars, remFr.G.Fr.Vars))
 	return Empty
 }
 
@@ -1319,8 +1323,8 @@ func cmdInterp(fr *Frame, argv []T) T {
 	return MkT(z)
 }
 
-func (ssi *SafeSubInterp) Alias(fr *Frame, newcmdnameStr string, prefix T) {
-	cmd := func(fr2 *Frame, argv2 []T) (result T) {
+func (ssi *SafeSubInterp) Alias(masterFr *Frame, newcmdnameStr string, prefix T) {
+	cmd := func(slaveFr *Frame, argv2 []T) (result T) {
 		defer func() {
 			if r := recover(); r != nil {
 				if j, ok := r.(Jump); ok {
@@ -1340,22 +1344,16 @@ func (ssi *SafeSubInterp) Alias(fr *Frame, newcmdnameStr string, prefix T) {
 			}
 		}()
 
-		fr3 := fr2.NewFrame()
-		fr3.G = fr.G
-
-		// z := make([]T, 0, 4)
-		// z = append(z, prefix.List()...)
-		// z = append(z, argv2[1:]...)
-		// return fr3.Apply(z)
-
-		return EvalOrApplyLists(fr3, []T{prefix, MkList(argv2[1:])})
-
+		newFr := slaveFr.NewFrame()
+		//WHYNOT// newFr.Prev = slaveFr.Prev  // Change so the Alias CmdNode does not show up.
+		newFr.DebugName = "Alias:" + newcmdnameStr + ":" + slaveFr.DebugName
+		newFr.G = masterFr.G
+		return EvalOrApplyLists(newFr, []T{prefix, MkList(argv2[1:])})
 	}
 
 	if _, ok := ssi.fr.G.Cmds[newcmdnameStr]; ok {
 		panic("The command already exists within that subinterp.")
 	}
-
 	node := &CmdNode{
 		Fn: cmd,
 	}
