@@ -12,7 +12,7 @@ get:
 
 test: __FORCE__
 	go build cli/chirp/main.go
-	for x in test/* ; do ./main -test $$x ; done
+	set -ex; for x in test/*.tcl ; do ./main -test $$x ; done
 	go test $(TEST_DIRS)
 
 build:

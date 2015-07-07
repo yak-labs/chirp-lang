@@ -8,6 +8,7 @@ package chirp
 import (
 	"bytes"
 	. "fmt"
+	"regexp"
 	_ "strings"
 )
 
@@ -818,6 +819,62 @@ func Parse2EvalExprStr(fr *Frame, s string) T {
 	z := expr.Eval(fr)
 	return z
 }
+
+//////////////////
+
+var InertChars = "[!%-/0-9:<-@A-Z^_`a-z|~]"
+var BareWordPattern = "(" + InertChars + "+)"
+
+var AlphanumChars = "[A-Za-z0-9_]"
+var DumbDollarPattern = "[$](" + AlphanumChars + "+)"
+
+var MatchBareWord = regexp.MustCompile("^" + BareWordPattern + "$")
+var MatchDumbDollar = regexp.MustCompile("^" + DumbDollarPattern + "$")
+
+func CompileSequence(fr *Frame, s string) *PSeq {
+	lex := NewLex(s)
+	z := Parse2Seq(lex)
+	if lex.Tok != TokEnd {
+		Sayf("CompileSequence Non-Empty rest: %q", s)
+		return nil
+	}
+	return z.Expand(fr)
+}
+
+func (me *PSeq) Expand(fr *Frame) *PSeq {
+	var cmds []*PCmd
+	for _, c := range me.Cmds {
+		cmds = append(cmds, c.Expand(fr)...)
+	}
+
+	return &PSeq{
+		Cmds: cmds,
+		Src:  me.Src,
+	}
+}
+
+func (me *PCmd) Expand(fr *Frame) []*PCmd {
+	if me.Words != nil {
+		hd := me.Words[0]
+		if hd.Multi != nil {
+			name := hd.Multi.String()
+			if macro, ok := fr.G.Macros[name]; ok {
+				params := make(map[string]*PWord)
+				if len(macro.Args) != len(me.Words)-1 {
+					panic("wrong number of args to macro: " + name)
+				}
+				for i, p := range macro.Args {
+					params[p] = me.Words[i+1]
+				}
+				// TODO: args and substition and recursion.
+				return macro.Body.Cmds
+			}
+		}
+	}
+	return []*PCmd{me}
+}
+
+//////////////////
 
 var Parse2CmdCounter Counter
 var Parse2DollarCounter Counter

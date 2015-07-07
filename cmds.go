@@ -506,6 +506,36 @@ func cmdSuper(fr *Frame, argv []T) T {
 	return z
 }
 
+func cmdMacro(fr *Frame, argv []T) T {
+	name, aa, body := Arg3(argv)
+	nameStr := name.String()
+	alist := aa.List()
+
+	astrs := make([]string, len(alist))
+	for i, arg := range alist {
+		astrs[i] = arg.String()
+	}
+
+	_, okCmd := fr.G.Cmds[nameStr]
+	if okCmd {
+		panic("Command already exists: " + nameStr)
+	}
+
+	_, okMacro := fr.G.Macros[nameStr]
+	if okMacro {
+		panic("Macro already exists: " + nameStr)
+	}
+
+	var seq *PSeq = CompileSequence(fr, body.String())
+
+	fr.G.Macros[nameStr] = &MacroNode{
+		Args: astrs,
+		Body: seq,
+	}
+
+	return Empty
+}
+
 func cmdProc(fr *Frame, argv []T) T {
 	return procOrYProc(fr, argv, false)
 }
@@ -542,10 +572,7 @@ func procOrYProc(fr *Frame, argv []T, generating bool) T {
 		longMixinName = captureMixinNameDefining + "~" + nameStr
 	}
 
-	var compiled Evaler
-	if !body.IsPreservedByList() { // TODO: reconsider this test.
-		compiled = CompileSequence(fr, body.String())
-	}
+	compiled := CompileSequence(fr, body.String())
 
 	cmd := func(fr2 *Frame, argv2 []T) (result T) {
 		if captureMixinNumberDefining > 0 {
@@ -635,10 +662,7 @@ func procOrYProc(fr *Frame, argv []T, generating bool) T {
 
 		// Case "proc":
 		if !generating {
-			if compiled != nil {
-				return compiled.Eval(fr3)
-			}
-			return fr3.Eval(body)
+			return compiled.Eval(fr3)
 		}
 
 		// Case "yproc":
@@ -674,7 +698,8 @@ func procOrYProc(fr *Frame, argv []T, generating bool) T {
 					fr3.WriterChan <- ei
 				}
 			}()
-			fr3.Eval(body)
+			// fr3.Eval(body)
+			compiled.Eval(fr3)
 		}()
 
 		return z
@@ -2001,6 +2026,7 @@ func init() {
 	Safes["scan"] = cmdScan
 	Safes["echo"] = cmdEcho
 	Safes["say"] = cmdSay
+	Safes["macro"] = cmdMacro
 	Safes["proc"] = cmdProc
 	Safes["yproc"] = cmdYProc
 	Safes["mixin"] = cmdMixin

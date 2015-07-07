@@ -27,6 +27,8 @@ type Scope map[string]Loc
 
 type CmdScope map[string]*CmdNode
 
+type MacroScope map[string]*MacroNode
+
 // CmdNode makes a singly-linked-list of commands
 // at different mixin levels, highest level first.
 // A non-mixin command has level 0 and only one CmdNode.
@@ -35,6 +37,12 @@ type CmdNode struct {
 	MixinLevel int
 	MixinName  string
 	Next       *CmdNode
+}
+
+// Macros (for now) are not defined by mixins; they must be global.
+type MacroNode struct {
+	Args []string
+	Body *PSeq
 }
 
 // Frame is a local variable frame.
@@ -63,8 +71,9 @@ type Frame struct {
 // after all overridable procs are defined,
 // but before other goroutines start.
 type Global struct {
-	Cmds CmdScope
-	Fr   Frame // global scope
+	Cmds   CmdScope
+	Macros MacroScope
+	Fr     Frame // global scope
 
 	MixinSerial         int    // Increment before defining Mixin.
 	MixinNumberDefining int    // Set nonzero while defining Mixin.
@@ -80,7 +89,8 @@ type Global struct {
 // Clone produces a copy of the receiving interpreter.
 func (g *Global) Clone() *Global {
 	z := &Global{
-		Cmds: make(CmdScope),
+		Cmds:   make(CmdScope),
+		Macros: make(MacroScope),
 		Fr: Frame{
 			Vars: make(Scope),
 		},
@@ -99,6 +109,10 @@ func (g *Global) Clone() *Global {
 
 	for k, v := range g.Cmds {
 		z.Cmds[k] = v
+	}
+
+	for k, v := range g.Macros {
+		z.Macros[k] = v
 	}
 
 	for k, loc := range g.Fr.Vars {
@@ -159,7 +173,8 @@ var InvalidValue = *new(R.Value)
 // Create a new interpreter, and return the global frame pointer.
 func newEitherInterpreter(isSafe bool) *Frame {
 	g := &Global{
-		Cmds: make(CmdScope),
+		Cmds:   make(CmdScope),
+		Macros: make(MacroScope),
 		Fr: Frame{
 			Vars: make(Scope),
 		},
