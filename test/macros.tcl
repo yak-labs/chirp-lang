@@ -8,11 +8,11 @@ proc iota n {
   set z
 }
   
-macro iota_ten {X Y} { iota 10 }
+macro iota_ten {X Y} { $X $Y }
 
-proc Ten {} { iota_ten foo bar }
-proc ATen {} { return "A[iota_ten foo bar]" }
-proc BTen {} { return $B(x[iota_ten foo bar]y) }
+proc Ten {} { iota_ten iota 10 }
+proc ATen {} { return "A[iota_ten iota 10]" }
+proc BTen {} { return $B(x[iota_ten iota 10]y) }
 
 must [iota 10] [Ten]
 must A[iota 10] [ATen]

@@ -841,18 +841,36 @@ func CompileSequence(fr *Frame, s string) *PSeq {
 	return z.Expand(fr)
 }
 
-func (me *PSeq) Expand(fr *Frame) *PSeq {
-	var cmds []*PCmd
+func (me *PSeq) Clone(params map[string]*PWord) *PSeq {
+	var zz []*PCmd
 	for _, c := range me.Cmds {
-		cmds = append(cmds, c.Expand(fr)...)
+		zz = append(zz, c.Clone(params))
 	}
 
 	return &PSeq{
-		Cmds: cmds,
+		Cmds: zz,
+		Src:  me.Src,
+	}
+}
+func (me *PSeq) Expand(fr *Frame) *PSeq {
+	var zz []*PCmd
+	for _, c := range me.Cmds {
+		zz = append(zz, c.Expand(fr)...)
+	}
+
+	return &PSeq{
+		Cmds: zz,
 		Src:  me.Src,
 	}
 }
 
+func (me *PCmd) Clone(params map[string]*PWord) *PCmd {
+	var zz []*PWord
+	for _, word := range me.Words {
+		zz = append(zz, word.Clone(params))
+	}
+	return &PCmd{Words: zz}
+}
 func (me *PCmd) Expand(fr *Frame) []*PCmd {
 	if me.Words != nil {
 		hd := me.Words[0]
@@ -867,7 +885,7 @@ func (me *PCmd) Expand(fr *Frame) []*PCmd {
 					params[p] = me.Words[i+1]
 				}
 				// TODO: args and substition and recursion.
-				return macro.Body.Cmds
+				return macro.Body.Clone(params).Cmds
 			}
 		}
 	}
@@ -878,6 +896,17 @@ func (me *PCmd) Expand(fr *Frame) []*PCmd {
 	return []*PCmd{&PCmd{Words: zz}}
 }
 
+func (me *PWord) Clone(params map[string]*PWord) *PWord {
+	if me.Multi != nil {
+		return me
+	}
+
+	var zz []*PPart
+	for _, part := range me.Parts {
+		zz = append(zz, part.Clone(params)...)
+	}
+	return &PWord{Parts: zz}
+}
 func (me *PWord) Expand(fr *Frame) *PWord {
 	// If it is a constant Multi, just return ourself.
 	if me.Multi != nil {
@@ -889,6 +918,24 @@ func (me *PWord) Expand(fr *Frame) *PWord {
 		zz = append(zz, part.Expand(fr))
 	}
 	return &PWord{Parts: zz}
+}
+
+func (me *PPart) Clone(params map[string]*PWord) []*PPart {
+	switch me.Type {
+	case BARE:
+		return []*PPart{me}
+	case DOLLAR1:
+		if word, ok := params[me.Str]; ok {
+			return word.Parts
+		} else {
+			return []*PPart{me}
+		}
+	case DOLLAR2:
+		return []*PPart{&PPart{Type: DOLLAR2, Str: me.Str, Word: me.Word.Clone(params)}}
+	case SQUARE:
+		return []*PPart{&PPart{Type: SQUARE, Seq: me.Seq.Clone(params)}}
+	}
+	panic("unknown PartType")
 }
 
 func (me *PPart) Expand(fr *Frame) *PPart {
