@@ -871,10 +871,60 @@ func (me *PCmd) Expand(fr *Frame) []*PCmd {
 			}
 		}
 	}
-	return []*PCmd{me}
+	var zz []*PWord
+	for _, word := range me.Words {
+		zz = append(zz, word.Expand(fr))
+	}
+	return []*PCmd{&PCmd{Words: zz}}
 }
 
-//////////////////
+func (me *PWord) Expand(fr *Frame) *PWord {
+	// If it is a constant Multi, just return ourself.
+	if me.Multi != nil {
+		return me
+	}
+
+	var zz []*PPart
+	for _, part := range me.Parts {
+		zz = append(zz, part.Expand(fr))
+	}
+	return &PWord{Parts: zz}
+}
+
+func (me *PPart) Expand(fr *Frame) *PPart {
+	switch me.Type {
+	case BARE:
+		return me
+	case DOLLAR1:
+		return me
+	case DOLLAR2:
+		return &PPart{Type: DOLLAR2, Str: me.Str, Word: me.Word.Expand(fr)}
+	case SQUARE:
+		return &PPart{Type: SQUARE, Seq: me.Seq.Expand(fr)}
+	}
+	panic("unknown PartType")
+}
+
+/*
+const (
+	BARE    PartType = iota + 1 // Does not need substitions (backslash subs aready done).
+	DOLLAR1                     // $x, variable subs without index
+	DOLLAR2                     // $x(...), variable subs with index
+	SQUARE                      // [...], subcommand eval and replace.
+)
+
+type PPart struct {
+	Str  string // TODO: make this a T, and use MkMulti.
+	Word *PWord // for DOLLAR2
+	Seq  *PSeq  // for SQUARE
+	Type PartType
+}
+type PWord struct {
+	Parts []*PPart
+	Multi *terpMulti // If not null, value is fixed and precompiled.
+}
+*/
+/////////////////
 
 var Parse2CmdCounter Counter
 var Parse2DollarCounter Counter
