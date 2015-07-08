@@ -877,15 +877,20 @@ func (me *PCmd) Expand(fr *Frame) []*PCmd {
 		if hd.Multi != nil {
 			name := hd.Multi.String()
 			if macro, ok := fr.G.Macros[name]; ok {
-				params := make(map[string]*PWord)
 				if len(macro.Args) != len(me.Words)-1 {
 					panic("wrong number of args to macro: " + name)
 				}
+
+				params := make(map[string]*PWord)
 				for i, p := range macro.Args {
 					params[p] = me.Words[i+1]
 				}
-				// TODO: args and substition and recursion.
-				return macro.Body.Clone(params).Cmds
+
+				var zz []*PCmd
+				for _, clone := range macro.Body.Clone(params).Cmds {
+					zz = append(zz, clone.Expand(fr)...)
+				}
+				return zz
 			}
 		}
 	}
