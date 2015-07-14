@@ -583,11 +583,21 @@ Loop:
 			// DONT lex.Advance() -- leave this at the end-bracket.
 			break Loop
 		case Token('{'): // vim: '}'
+			// TODO: Look for {*} prefix.
 			r := Parse2Curly(lex)
 			words = append(words, r)
 			// vim: '{'
 			MustTok(Token('}'), lex.Tok)
-			// TODO: Must Be Followed By White Or End
+
+			// Braces must Be Followed By White Or End
+			nc := byte(';')
+			if len(lex.Str) > lex.Next {
+				nc = byte(lex.Str[lex.Next])
+			}
+			if nc != '\n' && nc != ';' && nc != ']' && nc != ' ' && nc != '\t' && nc != '\r' && nc != '\v' {
+				panic(Sprintf("braces not followed by end of word: %d", nc))
+			}
+
 			lex.Advance()
 		case Token('['):
 			part := Parse2Square(lex)
