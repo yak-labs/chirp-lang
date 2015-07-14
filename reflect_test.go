@@ -51,15 +51,15 @@ var reflectTests = `
 	$buf WriteString " World!"
 	must 12 [$buf Len]
 	must "Hello World!" [$buf String]
-	must [list [+ 64 8] 1] [$buf ReadRune]
+	must [list [expr [list 64 + 8]] 1] [$buf ReadRune]
 	$buf Truncate 3
 	must "ell" [$buf String]
 
     yproc yrange n {
         set i 0
-        while {[< $i $n]} {
+        while {$i<$n} {
                 yield $i
-                set i [+ $i 1]
+                incr i 1
         }
     }
 
@@ -78,11 +78,11 @@ var reflectTests = `
 
     list -- Factorial function using /math/big numbers.
 	proc big_factorial n {
-	  if {[< $n 1]} {
+	  if { $n <1 } {
 	  	return [/math/big/NewInt 1]
 	  }
 	  set z [/math/big/NewInt 0]
-	  $z Mul [/math/big/NewInt $n] [big_factorial [- $n 1]]
+	  $z Mul [/math/big/NewInt $n] [big_factorial [expr $n - 1]]
 	  set z
 	}
 	list -- Print a few for fun.

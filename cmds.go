@@ -22,41 +22,6 @@ var Safes map[string]Command
 // Conventionally these contain a hyphen.
 var Unsafes map[string]Command
 
-type binaryFlop func(a, b float64) float64
-type binaryFlopBool func(a, b float64) bool
-type binaryStringBool func(a, b string) bool
-
-func MkBinaryFlopCmd(flop binaryFlop) Command {
-	return func(fr *Frame, argv []T) T {
-		a, b := Arg2(argv)
-		return MkFloat(flop(a.Float(), b.Float()))
-	}
-}
-
-func MkBinaryFlopBoolCmd(op binaryFlopBool) Command {
-	return func(fr *Frame, argv []T) T {
-		a, b := Arg2(argv)
-		return MkBool(op(a.Float(), b.Float()))
-	}
-}
-
-func MkBinaryStringBoolCmd(op binaryStringBool) Command {
-	return func(fr *Frame, argv []T) T {
-		a, b := Arg2(argv)
-		return MkBool(op(a.String(), b.String()))
-	}
-}
-
-func MkChainingBinaryFlopCmd(starter float64, flop binaryFlop) Command {
-	return func(fr *Frame, argv []T) T {
-		z := starter // Be sure not to modify starter!  It is captured.
-		for _, a := range argv[1:] {
-			z = flop(z, a.Float())
-		}
-		return MkFloat(z)
-	}
-}
-
 func IfNilArgvThenUsage(argv []T, usage string) {
 	if argv == nil {
 		panic(Jump{Status: USAGE, Result: MkString(usage)})
@@ -1999,24 +1964,6 @@ func init() {
 	if Safes == nil {
 		Safes = make(map[string]Command, 333)
 	}
-	Safes["+"] = MkChainingBinaryFlopCmd(0.0, func(a, b float64) float64 { return a + b })
-	Safes["*"] = MkChainingBinaryFlopCmd(1.0, func(a, b float64) float64 { return a * b })
-	Safes["-"] = MkBinaryFlopCmd(func(a, b float64) float64 { return a - b })
-	Safes["/"] = MkBinaryFlopCmd(func(a, b float64) float64 { return a / b })
-
-	Safes["=="] = MkBinaryFlopBoolCmd(func(a, b float64) bool { return (a == b) })
-	Safes["!="] = MkBinaryFlopBoolCmd(func(a, b float64) bool { return (a != b) })
-	Safes["<"] = MkBinaryFlopBoolCmd(func(a, b float64) bool { return (a < b) })
-	Safes["<="] = MkBinaryFlopBoolCmd(func(a, b float64) bool { return (a <= b) })
-	Safes[">"] = MkBinaryFlopBoolCmd(func(a, b float64) bool { return (a > b) })
-	Safes[">="] = MkBinaryFlopBoolCmd(func(a, b float64) bool { return (a >= b) })
-
-	Safes["eq"] = MkBinaryStringBoolCmd(func(a, b string) bool { return (a == b) })
-	Safes["ne"] = MkBinaryStringBoolCmd(func(a, b string) bool { return (a != b) })
-	Safes["lt"] = MkBinaryStringBoolCmd(func(a, b string) bool { return (a < b) })
-	Safes["le"] = MkBinaryStringBoolCmd(func(a, b string) bool { return (a <= b) })
-	Safes["gt"] = MkBinaryStringBoolCmd(func(a, b string) bool { return (a > b) })
-	Safes["ge"] = MkBinaryStringBoolCmd(func(a, b string) bool { return (a >= b) })
 
 	Safes["must"] = cmdMust
 	Safes["mustfail"] = cmdMustFail

@@ -7,36 +7,33 @@ import (
 var cmdTests = `
   #must ignore comments
 
-  # dumbCompileSequence can compile this:
-  # Note that "args" means varargs,
-  # and that eval concatenates lists.
-  proc sum {args} { eval + $args }
+  proc sum {args} { eval expr [join $args { + }] }
+  proc prod {args} { eval expr [join $args { * }] }
 
-  must 0 [+ ]
-  must 5 [+ 5]
-  must 9 [+ 4 5]
-  must 9.5 [+ 4 5.5]
-  must 15 [+ 5 4 3 2 1 0]
-  must 15 [sum 5 [+ 2 2] [+ 1 2] 2 1 [- 99 99]]
+  must 9 [expr {4 + 5}]
+  must 9.5 [expr {4 + 5.5}]
+  must 15 [sum 5 4 3 2 1 0]
+  must 213 [sum 5 [sum 2 2] [sum 1 2] 2 1 [sum 99 99]]
 
-  must 9 [- 12 3]
-  must 8.5 [- 12 3.5]
-  must 8.5 [+ 12 -3.5]
-  must -8.5 [+ -12 3.5]
+  must 9 [expr {12 - 3}]
+  must 8.5 [expr {12 - 3.5}]
+  must 8.5 [expr {12 + -3.5}]
+  must -8.5 [expr {-12 + 3.5}]
 
-  must 1 [*]
-  must 100 [* 100]
-  must 200 [* 100 2]
-  must 500 [* 100 2 2.5]
+  must 100 [prod 100]
+  must 200 [prod 100 2]
+  must 500 [prod 100 2 2.5]
 
-  must 1 [== [+ 1 3] [+ 2 2]]
-  must 1 [> 0.334 [/ 1 3]]
-  must 1 [< 0.333 [/ 1 3]]
-  must 23 [if {[== 0.5 [/ 1 2]]} {+ 20 3} else {+ 40 2}]
+  must 1 [expr {1 + 3 == 2 + 2} ]
+  must 0 [expr { 0.334 < [expr { 1 / 3}]}]
+  must 0 [expr { 0.333 > [expr { 1 / 3}]}]
 
-  set a 100; set b 20; must 120 [+ [set a] [set b]]
-  must 81028 [+ "8[set a]8" [set b]]
-  must 81028 [+ 8[set a]8 [set b]]
+  must 23 [if {0.5 == [expr 1 / 2]} {sum 20 3} else {sum 40 2}]
+  must 23 [if {[expr 0.5 == [expr 1 / 2]]} {expr 20 + 3} else {expr 40 + 2}]
+
+  set a 100; set b 20; must 120 [sum [set a] [set b]]
+  must 81028 [sum "8[set a]8" [set b]]
+  must 81028 [sum 8[set a]8 [set b]]
 
   must cc [lindex [list aa bb cc dd ee] 2]
   must cc [lindex " aa bb cc dd ee" 2]
@@ -51,27 +48,27 @@ var cmdTests = `
   must {B2 a1 a10 a2 b1} [lsort {a10 B2 b1 a1 a2}]
 
   # dumbCompileSequence can compile this:
-  proc double {x} {+ $x $x}
+  proc double {x} {sum $x $x}
   # dumbCompileSequence can compile this:
-  proc square {x} {* $x $x}
+  proc square {x} {prod $x $x}
 
   must 16 [double 8]
   must 16 [square 4]
 
   proc triang n {
-    if {[< [set n] 1]} {
+    if {[set n] < 1} {
       sum 0
     } else {
-      sum [set n] [triang [- [set n] 1]]
+      sum [set n] [triang [expr [set n] - 1]]
     }
   }
   must 15 [triang 5]
 
   proc range n {
-    if {[< $n 1]} {
+    if {$n <1} {
       list
     } else {
-      set m [- $n 1]
+      set m [expr $n - 1]
       concat [range $m] [list $m]
     }
   }
@@ -81,9 +78,9 @@ var cmdTests = `
 
   yproc yrange n {
       set i 0
-      while {[< $i $n]} {
+      while {$i<$n} {
           yield $i
-          set i [+ $i 1]
+          set i [sum $i 1]
       }
   }
   must "" [concat [yrange 0]]
@@ -99,7 +96,7 @@ var cmdTests = `
 
   yproc naturals {} {
       set i 0
-      while {[+ 1]} {
+      while {[sum 1]} {
           yield $i
           set i [sum $i 1]
       }
@@ -108,7 +105,7 @@ var cmdTests = `
     catch {
   	  foreach i [naturals] {
 		set x [triang $i]
-		if {[>= $x $n]} {error RETURN}
+		if {$x >= $n} {error RETURN}
 		yield $x
 	  }
 	} what
@@ -117,9 +114,9 @@ var cmdTests = `
 
   proc factorial_with_while n {
   	set z 1
-	while {[> $n 0]} {
-		set z [* $z $n]
-		set n [- $n 1]
+	while {$n > 0} {
+		set z [prod $z $n]
+		set n [sum $n -1]
 	}
 	set z
   }
@@ -136,19 +133,19 @@ var cmdTests = `
   proc and list {
 	foreach cmd $list {
 		set b [eval $cmd]
-		if [== 0 $b] {
+		if {0 == $b} {
 			return 0
 		}
 	}
 	return 1
   }
-  must 1 [and [list {< 2 4} {< 4 8} {< 8 16}]]
-  must 0 [and [list {< 2 4} {> 4 8} {< 8 16}]]
+  must 1 [and [list {expr { 2 < 4}} {expr { 4 < 8}} {expr { 8 < 16}}]]
+  must 0 [and [list {expr { 2 < 4}} {expr { 4 > 8}} {expr { 8 < 16}}]]
 
   list -- Test of "break"
   proc five {   } {
   	foreach i [naturals] {
-		if {[== $i 5]} break
+		if {$i == 5} break
 	}
 	return $i
   }
@@ -158,7 +155,7 @@ var cmdTests = `
   proc six {
   } {
   	foreach i [naturals] {
-		if {[< $i 6]} continue
+		if {$i < 6} continue
 		break
 	}
 	return $i
