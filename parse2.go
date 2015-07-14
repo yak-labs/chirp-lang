@@ -143,10 +143,19 @@ func (me *PCmd) Eval(fr *Frame) T {
 		Say("PCmd.Eval: ", me.Show())
 	}
 	Parse2CmdEvalCounter.Incr()
-	words := make([]T, len(me.Words))
-	for i, w := range me.Words {
-		words[i] = w.Eval(fr)
+
+	var words []T
+	for _, w := range me.Words {
+		if w.Expand {
+			t := w.Eval(fr)
+			for _, e := range t.List() {
+				words = append(words, e)
+			}
+		} else {
+			words = append(words, w.Eval(fr))
+		}
 	}
+
 	// Send Apply to the first word.
 	z := words[0].Apply(fr, words)
 	if Debug['w'] {
@@ -166,8 +175,9 @@ func (me *PCmd) Show() string {
 
 // One words, composed of parts that may require substitions.
 type PWord struct {
-	Parts []*PPart
-	Multi *terpMulti // If not null, value is fixed and precompiled.
+	Parts  []*PPart
+	Multi  *terpMulti // If not null, value is fixed and precompiled.
+	Expand bool
 }
 
 func (me *PWord) Eval(fr *Frame) (z T) {
@@ -323,7 +333,7 @@ func finishBarePart(parts []*PPart, buf *bytes.Buffer) ([]*PPart, *bytes.Buffer)
 // Parse Square Bracketed subcommand, returning result and new position
 func Parse2Square(lex *Lex) *PPart {
 	Parse2SquareCounter.Incr()
-	if lex.Tok != Token('[') {
+	if lex.Tok != Token('[') && lex.Tok != TokExpandSquare {
 		panic("Parse2Square should begin at open square")
 	}
 	lex.Advance()
@@ -527,7 +537,7 @@ Loop:
 // Parse a variable name after a '$', returning *PPart.  Leaves Next immediately after the consumed part.
 func Parse2Dollar(lex *Lex) *PPart {
 	Parse2DollarCounter.Incr()
-	if lex.Tok != Token('$') {
+	if lex.Tok != Token('$') && lex.Tok != TokExpandDollar {
 		panic("Expected $ at beginning of Parse2Dollar")
 	}
 
@@ -557,10 +567,18 @@ func Parse2Dollar(lex *Lex) *PPart {
 	}
 }
 
+func FollowedByGap(lex *Lex) bool {
+	nc := byte(';')
+	if len(lex.Str) > lex.Next {
+		nc = byte(lex.Str[lex.Next])
+	}
+	return nc == '\n' || nc == ';' || nc == ']' || nc == ' ' || nc == '\t' || nc == '\r' || nc == '\v'
+}
+
 // Returns next command, or else nil.
 func Parse2Cmd(lex *Lex) *PCmd {
 	Parse2CmdCounter.Incr()
-	words := make([]*PWord, 0)
+	var words []*PWord
 	if Debug['p'] {
 		Say("Parse2Cmd <<<", lex)
 	}
@@ -589,15 +607,25 @@ Loop:
 			// vim: '{'
 			MustTok(Token('}'), lex.Tok)
 
-			// Braces must Be Followed By White Or End
-			nc := byte(';')
-			if len(lex.Str) > lex.Next {
-				nc = byte(lex.Str[lex.Next])
-			}
-			if nc != '\n' && nc != ';' && nc != ']' && nc != ' ' && nc != '\t' && nc != '\r' && nc != '\v' {
-				panic(Sprintf("braces not followed by end of word: %d", nc))
+			if !FollowedByGap(lex) {
+				panic(Sprintf("braces not followed by end of word"))
 			}
 
+			lex.Advance()
+		case TokExpandSquare:
+			part := Parse2Square(lex)
+			words = append(words, &PWord{Parts: []*PPart{part}, Expand: true})
+			MustTok(Token(']'), lex.Tok)
+			if !FollowedByGap(lex) {
+				panic(Sprintf("expanding brackets not followed by end of word"))
+			}
+			lex.Advance()
+		case TokExpandDollar:
+			part := Parse2Dollar(lex)
+			words = append(words, &PWord{Parts: []*PPart{part}, Expand: true})
+			if !FollowedByGap(lex) {
+				panic(Sprintf("expanding brackets not followed by end of word"))
+			}
 			lex.Advance()
 		case Token('['):
 			part := Parse2Square(lex)
@@ -920,8 +948,9 @@ func (me *PWord) CloneAndSubst(params map[string]*PWord) *PWord {
 	for _, part := range me.Parts {
 		zz = append(zz, part.CloneAndSubst(params)...)
 	}
-	return &PWord{Parts: zz}
+	return &PWord{Parts: zz, Expand: me.Expand}
 }
+
 func (me *PWord) ExpandMacros(fr *Frame) *PWord {
 	// If it is a constant Multi, just return ourself.
 	if me.Multi != nil {
@@ -932,7 +961,7 @@ func (me *PWord) ExpandMacros(fr *Frame) *PWord {
 	for _, part := range me.Parts {
 		zz = append(zz, part.ExpandMacros(fr))
 	}
-	return &PWord{Parts: zz}
+	return &PWord{Parts: zz, Expand: me.Expand}
 }
 
 func (me *PPart) CloneAndSubst(params map[string]*PWord) []*PPart {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	. "fmt"
 	"regexp"
+	"strings"
 )
 
 type Token uint8
@@ -32,6 +33,9 @@ const (
 
 	TokShiftLeft  // <<
 	TokShiftRight // >>
+
+	TokExpandSquare // {*}[
+	TokExpandDollar // {*}$
 
 	// There must be fewer than 32 of these, because we also use single-printable ASCII codes as Token.
 )
@@ -177,6 +181,18 @@ func (x *Lex) Advance() {
 		x.Tok = TokAlfaNum
 		return
 
+	case '{':
+		if d == '*' {
+			if strings.HasPrefix(x.Str[x.Next:], "{*}[") {
+				x.Tok = TokExpandSquare
+				goto quad
+			}
+			if strings.HasPrefix(x.Str[x.Next:], "{*}$") {
+				x.Tok = TokExpandDollar
+				goto quad
+			}
+		}
+		goto single
 	case '&':
 		if d == '&' {
 			x.Tok = TokBoolAnd
@@ -252,6 +268,13 @@ single:
 
 pair: // Consume a pair of chars.
 	x.Next += 2
+	if Debug['l'] {
+		Say("====> pair", x.Tok, x.Current())
+	}
+	return
+
+quad: // Consume a pair of chars.
+	x.Next += 4
 	if Debug['l'] {
 		Say("====> pair", x.Tok, x.Current())
 	}
