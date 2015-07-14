@@ -957,25 +957,6 @@ func (me *PPart) Expand(fr *Frame) *PPart {
 	panic("unknown PartType")
 }
 
-/*
-const (
-	BARE    PartType = iota + 1 // Does not need substitions (backslash subs aready done).
-	DOLLAR1                     // $x, variable subs without index
-	DOLLAR2                     // $x(...), variable subs with index
-	SQUARE                      // [...], subcommand eval and replace.
-)
-
-type PPart struct {
-	Str  string // TODO: make this a T, and use MkMulti.
-	Word *PWord // for DOLLAR2
-	Seq  *PSeq  // for SQUARE
-	Type PartType
-}
-type PWord struct {
-	Parts []*PPart
-	Multi *terpMulti // If not null, value is fixed and precompiled.
-}
-*/
 /////////////////
 
 var Parse2CmdCounter Counter
