@@ -838,13 +838,13 @@ func CompileSequence(fr *Frame, s string) *PSeq {
 		Sayf("CompileSequence Non-Empty rest: %q", s)
 		return nil
 	}
-	return z.Expand(fr)
+	return z.ExpandMacros(fr)
 }
 
-func (me *PSeq) Clone(params map[string]*PWord) *PSeq {
+func (me *PSeq) CloneAndSubst(params map[string]*PWord) *PSeq {
 	var zz []*PCmd
 	for _, c := range me.Cmds {
-		zz = append(zz, c.Clone(params))
+		zz = append(zz, c.CloneAndSubst(params))
 	}
 
 	return &PSeq{
@@ -852,10 +852,10 @@ func (me *PSeq) Clone(params map[string]*PWord) *PSeq {
 		Src:  me.Src,
 	}
 }
-func (me *PSeq) Expand(fr *Frame) *PSeq {
+func (me *PSeq) ExpandMacros(fr *Frame) *PSeq {
 	var zz []*PCmd
 	for _, c := range me.Cmds {
-		zz = append(zz, c.Expand(fr)...)
+		zz = append(zz, c.ExpandMacros(fr)...)
 	}
 
 	return &PSeq{
@@ -864,14 +864,14 @@ func (me *PSeq) Expand(fr *Frame) *PSeq {
 	}
 }
 
-func (me *PCmd) Clone(params map[string]*PWord) *PCmd {
+func (me *PCmd) CloneAndSubst(params map[string]*PWord) *PCmd {
 	var zz []*PWord
 	for _, word := range me.Words {
-		zz = append(zz, word.Clone(params))
+		zz = append(zz, word.CloneAndSubst(params))
 	}
 	return &PCmd{Words: zz}
 }
-func (me *PCmd) Expand(fr *Frame) []*PCmd {
+func (me *PCmd) ExpandMacros(fr *Frame) []*PCmd {
 	if me.Words != nil {
 		hd := me.Words[0]
 		if hd.Multi != nil {
@@ -887,8 +887,8 @@ func (me *PCmd) Expand(fr *Frame) []*PCmd {
 				}
 
 				var zz []*PCmd
-				for _, clone := range macro.Body.Clone(params).Cmds {
-					zz = append(zz, clone.Expand(fr)...)
+				for _, clone := range macro.Body.CloneAndSubst(params).Cmds {
+					zz = append(zz, clone.ExpandMacros(fr)...)
 				}
 				return zz
 			}
@@ -896,23 +896,23 @@ func (me *PCmd) Expand(fr *Frame) []*PCmd {
 	}
 	var zz []*PWord
 	for _, word := range me.Words {
-		zz = append(zz, word.Expand(fr))
+		zz = append(zz, word.ExpandMacros(fr))
 	}
 	return []*PCmd{&PCmd{Words: zz}}
 }
 
-func (me *PWord) Clone(params map[string]*PWord) *PWord {
+func (me *PWord) CloneAndSubst(params map[string]*PWord) *PWord {
 	if me.Multi != nil {
 		return me
 	}
 
 	var zz []*PPart
 	for _, part := range me.Parts {
-		zz = append(zz, part.Clone(params)...)
+		zz = append(zz, part.CloneAndSubst(params)...)
 	}
 	return &PWord{Parts: zz}
 }
-func (me *PWord) Expand(fr *Frame) *PWord {
+func (me *PWord) ExpandMacros(fr *Frame) *PWord {
 	// If it is a constant Multi, just return ourself.
 	if me.Multi != nil {
 		return me
@@ -920,12 +920,12 @@ func (me *PWord) Expand(fr *Frame) *PWord {
 
 	var zz []*PPart
 	for _, part := range me.Parts {
-		zz = append(zz, part.Expand(fr))
+		zz = append(zz, part.ExpandMacros(fr))
 	}
 	return &PWord{Parts: zz}
 }
 
-func (me *PPart) Clone(params map[string]*PWord) []*PPart {
+func (me *PPart) CloneAndSubst(params map[string]*PWord) []*PPart {
 	switch me.Type {
 	case BARE:
 		return []*PPart{me}
@@ -936,23 +936,23 @@ func (me *PPart) Clone(params map[string]*PWord) []*PPart {
 			return []*PPart{me}
 		}
 	case DOLLAR2:
-		return []*PPart{&PPart{Type: DOLLAR2, Str: me.Str, Word: me.Word.Clone(params)}}
+		return []*PPart{&PPart{Type: DOLLAR2, Str: me.Str, Word: me.Word.CloneAndSubst(params)}}
 	case SQUARE:
-		return []*PPart{&PPart{Type: SQUARE, Seq: me.Seq.Clone(params)}}
+		return []*PPart{&PPart{Type: SQUARE, Seq: me.Seq.CloneAndSubst(params)}}
 	}
 	panic("unknown PartType")
 }
 
-func (me *PPart) Expand(fr *Frame) *PPart {
+func (me *PPart) ExpandMacros(fr *Frame) *PPart {
 	switch me.Type {
 	case BARE:
 		return me
 	case DOLLAR1:
 		return me
 	case DOLLAR2:
-		return &PPart{Type: DOLLAR2, Str: me.Str, Word: me.Word.Expand(fr)}
+		return &PPart{Type: DOLLAR2, Str: me.Str, Word: me.Word.ExpandMacros(fr)}
 	case SQUARE:
-		return &PPart{Type: SQUARE, Seq: me.Seq.Expand(fr)}
+		return &PPart{Type: SQUARE, Seq: me.Seq.ExpandMacros(fr)}
 	}
 	panic("unknown PartType")
 }
