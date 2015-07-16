@@ -879,7 +879,7 @@ func CompileSequence(fr *Frame, s string) *PSeq {
 	return z.ExpandMacros(fr)
 }
 
-func (me *PSeq) CloneAndSubst(params map[string]*PWord) *PSeq {
+func (me *PSeq) CloneAndSubst(params map[string][]*PWord) *PSeq {
 	var zz []*PCmd
 	for _, c := range me.Cmds {
 		zz = append(zz, c.CloneAndSubst(params))
@@ -902,26 +902,56 @@ func (me *PSeq) ExpandMacros(fr *Frame) *PSeq {
 	}
 }
 
-func (me *PCmd) CloneAndSubst(params map[string]*PWord) *PCmd {
+func (me *PCmd) CloneAndSubst(params map[string][]*PWord) *PCmd {
 	var zz []*PWord
 	for _, word := range me.Words {
-		zz = append(zz, word.CloneAndSubst(params))
+		zz = append(zz, word.CloneAndSubst(params)...)
 	}
 	return &PCmd{Words: zz}
 }
 func (me *PCmd) ExpandMacros(fr *Frame) []*PCmd {
 	if me.Words != nil {
+
 		hd := me.Words[0]
 		if hd.Multi != nil {
 			name := hd.Multi.String()
 			if macro, ok := fr.G.Macros[name]; ok {
-				if len(macro.Args) != len(me.Words)-1 {
-					panic("wrong number of args to macro: " + name)
-				}
 
-				params := make(map[string]*PWord)
-				for i, p := range macro.Args {
-					params[p] = me.Words[i+1]
+				params := make(map[string][]*PWord)
+				lenArgs := len(macro.Args)
+				if lenArgs > 0 && macro.Args[lenArgs-1] == "ARGS" {
+
+					// Final param ARGS is special, getting a list of the rest of actual params.
+					if lenArgs-1 > len(me.Words)-1 {
+						panic(Sprintf("Too few args to macro %q, got %d, wanted at least %d.", name, lenArgs-1, len(me.Words)-1))
+					}
+
+					// All but the last one.
+					for i, p := range macro.Args[:lenArgs-1] {
+						if p == "ARGS" {
+							panic("Macro cannot have ARGS except as last parameter.")
+						}
+						params[p] = []*PWord{me.Words[i+1]}
+					}
+
+					// The last one.
+					var vec []*PWord
+					for _, w := range me.Words[lenArgs-0:] {
+						vec = append(vec, w)
+					}
+					params["ARGS"] = vec
+				} else {
+					// Exact match needed between formal and actual params.
+					if lenArgs != len(me.Words)-1 {
+						panic(Sprintf("Wrong number of args to macro %q, got %d, wanted %d.", name, len(me.Words)-1, lenArgs))
+					}
+
+					for i, p := range macro.Args {
+						if p == "ARGS" {
+							panic("Macro cannot have ARGS except as last parameter.")
+						}
+						params[p] = []*PWord{me.Words[i+1]}
+					}
 				}
 
 				var zz []*PCmd
@@ -939,16 +969,22 @@ func (me *PCmd) ExpandMacros(fr *Frame) []*PCmd {
 	return []*PCmd{&PCmd{Words: zz}}
 }
 
-func (me *PWord) CloneAndSubst(params map[string]*PWord) *PWord {
+func (me *PWord) CloneAndSubst(params map[string][]*PWord) []*PWord {
 	if me.Multi != nil {
-		return me
+		return []*PWord{me}
+	}
+
+	if me.Expand && len(me.Parts) == 1 && me.Parts[0].Type == DOLLAR1 && me.Parts[0].Str == "ARGS" {
+		if vec, ok := params["ARGS"]; ok {
+			return vec
+		}
 	}
 
 	var zz []*PPart
 	for _, part := range me.Parts {
 		zz = append(zz, part.CloneAndSubst(params)...)
 	}
-	return &PWord{Parts: zz, Expand: me.Expand}
+	return []*PWord{&PWord{Parts: zz, Expand: me.Expand}}
 }
 
 func (me *PWord) ExpandMacros(fr *Frame) *PWord {
@@ -964,18 +1000,24 @@ func (me *PWord) ExpandMacros(fr *Frame) *PWord {
 	return &PWord{Parts: zz, Expand: me.Expand}
 }
 
-func (me *PPart) CloneAndSubst(params map[string]*PWord) []*PPart {
+func (me *PPart) CloneAndSubst(params map[string][]*PWord) []*PPart {
 	switch me.Type {
 	case BARE:
 		return []*PPart{me}
 	case DOLLAR1:
-		if word, ok := params[me.Str]; ok {
-			return word.Parts
+		if me.Str == "ARGS" {
+			panic("'$ARGS' cannot be used in this context, in part of a word, in a macro.")
+		}
+		if vec, ok := params[me.Str]; ok {
+			CHECK(len(vec) == 1, len(vec), vec)
+			return vec[0].Parts
 		} else {
 			return []*PPart{me}
 		}
 	case DOLLAR2:
-		return []*PPart{&PPart{Type: DOLLAR2, Str: me.Str, Word: me.Word.CloneAndSubst(params)}}
+		vec := me.Word.CloneAndSubst(params)
+		CHECK(len(vec) == 1, len(vec), vec, me)
+		return []*PPart{&PPart{Type: DOLLAR2, Str: me.Str, Word: vec[0]}}
 	case SQUARE:
 		return []*PPart{&PPart{Type: SQUARE, Seq: me.Seq.CloneAndSubst(params)}}
 	}
@@ -994,6 +1036,16 @@ func (me *PPart) ExpandMacros(fr *Frame) *PPart {
 		return &PPart{Type: SQUARE, Seq: me.Seq.ExpandMacros(fr)}
 	}
 	panic("unknown PartType")
+}
+
+func CHECK(b bool, rest ...interface{}) {
+	if !b {
+		s := "CHECK FAILS"
+		for _, e := range rest {
+			s += Sprintf("; %v", e)
+		}
+		panic(s)
+	}
 }
 
 /////////////////

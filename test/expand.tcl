@@ -14,3 +14,14 @@ proc testSet2 {} {
   must $abc xyz
 }
 testSet2
+
+macro LIST {First Second ARGS} {
+  list $First $Second {*}$ARGS
+}
+proc testLIST {} {
+  must [list abc "def ghi" ] [LIST abc "def ghi" ] 
+  must [list abc "def ghi" xyz ] [LIST abc "def ghi" xyz ] 
+  must [list abc "def ghi" xyz zzz] [LIST abc "def ghi" xyz zzz] 
+  must [list abc "def ghi" xyz zzz aaa] [LIST abc "def ghi" xyz zzz aaa] 
+}
+testLIST
