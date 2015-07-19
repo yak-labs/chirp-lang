@@ -146,6 +146,11 @@ func ApplyToReflectedValue(fr *Frame, v R.Value, args []T, i int) T {
 		Say("ApplyToReflectedValue <<<", v, i)
 		Sayf("......................... %s", Showv(args))
 	}
+	if v.Kind() == R.Func {
+		z4 := commonCall(fr, "Func_KIND", v, args, 0)
+		return z4
+		// func commonCall(fr *Frame, funcName string, fn R.Value, args []T, numFrontArgs int) T
+	}
 	z := applyToReflectedValueRecur(fr, v, args, i)
 	if Debug['r'] {
 		Say("ApplyToReflectedValue >>>", z)
