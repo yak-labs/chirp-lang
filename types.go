@@ -36,6 +36,11 @@ type T interface {
 	Apply(fr *Frame, args []T) T
 }
 
+// terpInt is a Tcl value holding a int64.
+type terpInt struct { // Implements T.
+	f int64
+}
+
 // terpFloat is a Tcl value holding a float64.
 type terpFloat struct { // Implements T.
 	f float64
@@ -109,11 +114,11 @@ func MkFloat(a float64) terpFloat {
 }
 func MkInt(a int64) T {
 	MkIntCounter.Incr()
-	return terpFloat{f: float64(a)}
+	return terpInt{f: int64(a)}
 }
 func MkUint(a uint64) T {
 	MkUintCounter.Incr()
-	return terpFloat{f: float64(a)}
+	return terpInt{f: int64(a)}
 }
 func MkString(a string) terpString {
 	MkStringCounter.Incr()
@@ -252,9 +257,8 @@ func MkT(a interface{}) T {
 		//	// Is this a good idea?
 		//	return terpValue{v: v}.terpList()
 
-		var pointerToT *T
 		switch v.Type().Elem() {
-		case R.TypeOf(pointerToT).Elem(): // i.e. case T
+		case TypeT:
 			return MkList(v.Interface().([]T))
 		}
 		switch v.Type().Elem().Kind() {
@@ -452,6 +456,58 @@ func (t terpGenerator) QuickReflectValue() R.Value  { return InvalidValue }
 func (t terpGenerator) EvalSeq(fr *Frame) T         { return Parse2EvalSeqStr(fr, t.String()) }
 func (t terpGenerator) EvalExpr(fr *Frame) T        { return Parse2EvalExprStr(fr, t.String()) }
 func (t terpGenerator) Apply(fr *Frame, args []T) T { panic("Cannot apply terpGenerator as command") }
+
+// terpInt implements T
+
+func (t terpInt) ChirpKind() string { return "Float" }
+func (t terpInt) Raw() interface{} {
+	return t.f
+}
+func (t terpInt) String() string {
+	return Sprintf("%d", t.f)
+}
+func (t terpInt) ListElementString() string {
+	return t.String()
+}
+func (t terpInt) QuickString() string {
+	return ""
+}
+func (t terpInt) Bool() bool {
+	return t.f != 0
+}
+func (t terpInt) IsEmpty() bool {
+	return false
+}
+func (t terpInt) Float() float64 {
+	return float64(t.f)
+}
+func (t terpInt) Int() int64 {
+	return int64(t.f)
+}
+func (t terpInt) Uint() uint64 {
+	return uint64(t.f)
+}
+func (t terpInt) IsPreservedByList() bool { return true }
+func (t terpInt) IsQuickNumber() bool     { return true }
+func (t terpInt) List() []T {
+	return []T{t}
+}
+func (t terpInt) HeadTail() (hd, tl T) {
+	return MkList(t.List()).HeadTail()
+}
+func (t terpInt) Hash() Hash {
+	panic(" is not a Hash")
+}
+func (t terpInt) GetAt(key T) T {
+	panic("terpInt is not a Hash")
+}
+func (t terpInt) PutAt(value T, key T) {
+	panic("terpInt is not a Hash")
+}
+func (t terpInt) QuickReflectValue() R.Value  { return InvalidValue }
+func (t terpInt) EvalSeq(fr *Frame) T         { return Parse2EvalSeqStr(fr, t.String()) }
+func (t terpInt) EvalExpr(fr *Frame) T        { return t } // Numbers are self-Expr-eval'ing.
+func (t terpInt) Apply(fr *Frame, args []T) T { return fr.Apply(args) }
 
 // terpFloat implements T
 
