@@ -1013,6 +1013,55 @@ func cmdCatch(fr *Frame, argv []T) (status T) {
 	return False
 }
 
+var clockEnsemble = []EnsembleItem{
+	EnsembleItem{Name: "seconds", Cmd: cmdClockSeconds},
+	EnsembleItem{Name: "milliseconds", Cmd: cmdClockMilliseconds},
+	EnsembleItem{Name: "microseconds", Cmd: cmdClockMicroseconds},
+	EnsembleItem{Name: "format", Cmd: cmdClockFormat},
+}
+
+func cmdClockSeconds(fr *Frame, argv []T) T {
+	Arg0(argv)
+	u := time.Now().Unix()
+	return MkInt(int64(u))
+}
+
+func cmdClockMilliseconds(fr *Frame, argv []T) T {
+	Arg0(argv)
+	u := time.Now().UnixNano()
+	return MkInt(int64(u / 1000000))
+}
+
+func cmdClockMicroseconds(fr *Frame, argv []T) T {
+	Arg0(argv)
+	u := time.Now().UnixNano()
+	return MkInt(int64(u / 1000))
+}
+
+func cmdClockFormat(fr *Frame, argv []T) T {
+	secsT, restT := Arg1v(argv)
+	f := time.UnixDate
+	location := time.Local
+	for len(restT) >= 2 {
+		flagT, valT, moreT := Arg2v(restT)
+		switch flagT.String() {
+		case "-format":
+			f = valT.String()
+		case "-gmt":
+			if valT.Bool() {
+				location = time.UTC
+			}
+		default:
+			panic("Unknown flag to {clock format}")
+		}
+		restT = moreT
+	}
+	if len(restT) > 0 {
+		panic("Odd number of args after {clock format}")
+	}
+	return MkString(time.Unix(0, int64(1000000000*secsT.Float())).In(location).Format(f))
+}
+
 func cmdTime(fr *Frame, argv []T) T {
 	cmd, rest := Arg1v(argv)
 	var n int64
@@ -2022,4 +2071,5 @@ func init() {
 	Safes["log"] = cmdLog
 	Safes["usage"] = cmdUsage
 	Safes["time"] = cmdTime
+	Safes["clock"] = MkEnsemble(clockEnsemble)
 }
