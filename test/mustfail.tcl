@@ -1,0 +1,1 @@
+mustfail {error ladidah}
