@@ -1874,40 +1874,47 @@ Loop:
 }
 
 var infoEnsemble = []EnsembleItem{
+	EnsembleItem{Name: "macros", Cmd: cmdInfoMacros},
 	EnsembleItem{Name: "commands", Cmd: cmdInfoCommands},
 	EnsembleItem{Name: "globals", Cmd: cmdInfoGlobals},
 	EnsembleItem{Name: "locals", Cmd: cmdInfoLocals},
 }
 
+func cmdInfoMacros(fr *Frame, argv []T) T {
+	Arg0(argv) // TODO: optional pattern
+	var zz []T
+	for k, _ := range fr.G.Macros {
+		zz = append(zz, MkString(k))
+	}
+	SortListByString(zz)
+	return MkList(zz)
+}
 func cmdInfoCommands(fr *Frame, argv []T) T {
 	Arg0(argv) // TODO: optional pattern
-	z := make([]T, 0, 100)
-
+	var zz []T
 	for k, _ := range fr.G.Cmds {
-		z = append(z, MkString(k))
+		zz = append(zz, MkString(k))
 	}
-	SortListByString(z)
-	return MkList(z)
+	SortListByString(zz)
+	return MkList(zz)
 }
 func cmdInfoGlobals(fr *Frame, argv []T) T {
 	Arg0(argv) // TODO: optional pattern
-	z := make([]T, 0, 100)
-
+	var zz []T
 	for k, _ := range fr.G.Fr.Vars {
-		z = append(z, MkString(k))
+		zz = append(zz, MkString(k))
 	}
-	SortListByString(z)
-	return MkList(z)
+	SortListByString(zz)
+	return MkList(zz)
 }
 func cmdInfoLocals(fr *Frame, argv []T) T {
 	Arg0(argv) // TODO: optional pattern
-	z := make([]T, 0, 100)
-
+	var zz []T
 	for k, _ := range fr.Vars {
-		z = append(z, MkString(k))
+		zz = append(zz, MkString(k))
 	}
-	SortListByString(z)
-	return MkList(z)
+	SortListByString(zz)
+	return MkList(zz)
 }
 
 func cmdSplit(fr *Frame, argv []T) T {
