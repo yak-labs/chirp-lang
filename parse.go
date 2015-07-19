@@ -41,6 +41,9 @@ func (fr *Frame) EvalSeqWithErrorLocation(seq *PSeq) (result T) {
 func (fr *Frame) Eval(a T) (result T) {
 	return a.EvalSeq(fr)
 }
+func (fr *Frame) EvalString(a string) (result T) {
+	return MkString(a).EvalSeq(fr)
+}
 
 func consumeBackslashEscaped(s string, i int) (byte, int) {
 	switch s[i+1] {
