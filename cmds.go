@@ -663,7 +663,6 @@ func procOrYProc(fr *Frame, argv []T, generating bool) T {
 					fr3.WriterChan <- ei
 				}
 			}()
-			// fr3.Eval(body)
 			compiled.Eval(fr3)
 		}()
 
