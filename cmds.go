@@ -1043,7 +1043,7 @@ func cmdClockFormat(fr *Frame, argv []T) T {
 	f := time.UnixDate
 	location := time.Local
 	for len(restT) >= 2 {
-		flagT, valT, moreT := Arg2v(restT)
+		flagT, valT, moreT := restT[0], restT[1], restT[2:]
 		switch flagT.String() {
 		case "-format":
 			f = valT.String()
