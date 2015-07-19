@@ -164,7 +164,7 @@ type UpSlot struct {
 
 type BitsWord uint32 // We cannot fit uint64 into the float -- until we support actual uint64, we must use shorter BitsWords.
 
-var TypeT = R.TypeOf(MkT(""))
+var TypeT = R.TypeOf(new(T)).Elem()
 var TypeType = R.TypeOf(TypeT)
 
 var Empty = MkString("")
