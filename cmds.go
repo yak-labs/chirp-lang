@@ -834,33 +834,106 @@ func cmdLRange(fr *Frame, argv []T) T {
 	return MkList(z)
 }
 
-func cmdLSort(fr *Frame, argv []T) T {
-	tlist := Arg1(argv)
-	list := tlist.List()
-	n := len(list)
+type lsorter struct {
+	asInt      bool
+	asReal     bool
+	descending bool
+	index      int64
+	vec        []T
+}
 
-	// Consider a list with 1 or less elements already sorted.
-	if n <= 1 {
-		return tlist
+func (o *lsorter) Len() int {
+	return len(o.vec)
+}
+func xor(a, b bool) bool {
+	if a {
+		return !b
+	}
+	return b
+}
+func ith(t T, index int64) T {
+	if index < 0 {
+		return t
+	}
+	return t.List()[index]
+}
+func (o *lsorter) Less(i, j int) bool {
+	// Would be more efficient to extract the ith at creation.
+	if o.asInt {
+		a := ith(o.vec[i], o.index).Int()
+		b := ith(o.vec[j], o.index).Int()
+		return xor(a < b, o.descending)
+	} else if o.asReal {
+		a := ith(o.vec[i], o.index).Float()
+		b := ith(o.vec[j], o.index).Float()
+		return xor(a < b, o.descending)
+	} else {
+		a := ith(o.vec[i], o.index).String()
+		b := ith(o.vec[j], o.index).String()
+		return xor(a < b, o.descending)
+	}
+}
+func (o *lsorter) Swap(i, j int) {
+	o.vec[i], o.vec[j] = o.vec[j], o.vec[i]
+}
+
+func cmdLSort(fr *Frame, argv []T) T {
+	// lsort ?options? list
+	if len(argv) < 2 {
+		panic("lsort needs a list arg")
 	}
 
-	strs := make([]string, n)
+	vecT := argv[len(argv)-1]
+	vec := vecT.List()
+	n := len(vec)
+	if n <= 1 {
+		// Consider a list with 1 or less elements already sorted.
+		return vecT
+	}
 
-	// Convert our list to a slice of strings.
-	for i, t := range list {
-		strs[i] = t.String()
+	c := &lsorter{
+		asInt:      false,
+		asReal:     false,
+		descending: false,
+		index:      -1,
+		vec:        vec,
+	}
+
+	opts := argv[1 : len(argv)-1] // Remove cmd name (first) and the list (final).
+	for len(opts) > 0 {
+		opt := opts[0].String()
+		if strings.HasPrefix(opt, "-int") {
+			c.asInt = true
+			opts = opts[1:]
+		} else if strings.HasPrefix(opt, "-r") {
+			c.asReal = true
+			opts = opts[1:]
+		} else if strings.HasPrefix(opt, "-de") {
+			c.descending = true
+			opts = opts[1:]
+		} else if strings.HasPrefix(opt, "-ind") && len(opts) > 1 {
+			c.index = opts[1].Int()
+			opts = opts[2:]
+		} else {
+			panic("lsort: bad option")
+		}
 	}
 
 	// Sort our strings.
-	sort.Strings(strs)
-
-	// Put our sorted strings back into the list.
-	for i, s := range strs {
-		list[i] = MkString(s)
-	}
+	sort.Sort(c)
 
 	// Return the sorted list.
-	return MkList(list)
+	return MkList(c.vec)
+}
+
+func cmdLReverse(fr *Frame, argv []T) T {
+	tt := Arg1(argv)
+	v := tt.List()
+	n := len(v)
+	for i := 0; i < n/2; i++ {
+		v[i], v[n-i-1] = v[n-i-1], v[i]
+	}
+	return MkList(v)
 }
 
 func cmdSAt(fr *Frame, argv []T) T {
@@ -2034,6 +2107,7 @@ func init() {
 	Safes["lindex"] = cmdLIndex
 	Safes["lrange"] = cmdLRange
 	Safes["lsort"] = cmdLSort
+	Safes["lreverse"] = cmdLReverse
 	Safes["llength"] = cmdLLen
 	Safes["http_handler"] = cmdHttpHandler
 	Safes["foreach"] = cmdForEach
