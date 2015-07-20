@@ -788,7 +788,17 @@ func cmdList(fr *Frame, argv []T) T {
 func cmdLIndex(fr *Frame, argv []T) T {
 	tlist, ti := Arg2(argv)
 	list := tlist.List()
-	i := ti.Int()
+	istr := ti.String()
+
+	var i int64
+	if istr == "end" {
+		i = (int64)(len(list) - 1)
+	} else if len(istr) > 4 && istr[:3] == "end-" {
+		panic("unimplemented: lrange ends with 'end-N'")
+	} else {
+		i = ti.Int()
+	}
+
 	if i < 0 || i > int64(len(list)) {
 		panic(Sprintf("lindex: bad index: len(list)=%d but i=%d", len(list), i))
 	}
