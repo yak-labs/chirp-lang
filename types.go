@@ -74,6 +74,22 @@ type terpMulti struct { // Implements T.
 	command         Command
 }
 
+func (o *terpMulti) Show() string {
+	return Sprintf("MULTI{ s: {%q} p:%v seq:%s expr:%s } ", o.s, o.preservedByList, ShowSeqUnlessNull(o.seq), ShowExprUnlessNull(o.expr))
+}
+func ShowSeqUnlessNull(seq *PSeq) string {
+	if seq == nil {
+		return "*nil*"
+	}
+	return seq.Show()
+}
+func ShowExprUnlessNull(expr *PExpr) string {
+	if expr == nil {
+		return "*nil*"
+	}
+	return expr.Show()
+}
+
 // terpGenerator holds a channel for reading from a generator (yproc command).
 type terpGeneratorGuts struct { // Mutable.
 	readerChan <-chan Either
@@ -140,16 +156,33 @@ func MkValue(a R.Value) terpValue {
 	MkValueCounter.Incr()
 	return terpValue{v: a}
 }
-func MkMulti(a string) *terpMulti {
+func MaybeCompileSequence(fr *Frame, s string) (seq *PSeq) {
+	defer func() {
+		recover()
+	}()
+	seq = CompileSequence(fr, s)
+	return
+}
+func MkMultiFr(fr *Frame, a *terpMulti) *terpMulti {
+	//println("MkMultiFr <<<<<<", a.Show())
+	m := MkMulti(a.s.s)
+	m.seq = MaybeCompileSequence(fr, a.s.s)
+	//println("MkMultiFr <<<<<<", a.Show(), ">>>>>>", m.Show())
+	return m
+}
+func MkMulti(s string) *terpMulti {
 	MkMultiCounter.Incr()
-	var s terpString = MkString(a)
-	m := &terpMulti{s: s, preservedByList: s.IsPreservedByList()}
+	var ts terpString = MkString(s)
+	m := &terpMulti{
+		s:               ts,
+		preservedByList: ts.IsPreservedByList(),
+	}
 
 	func() {
 		defer func() {
 			_ = recover()
 		}()
-		x := MkFloat(s.Float())
+		x := MkFloat(ts.Float())
 		m.f = &x
 	}()
 
@@ -157,12 +190,12 @@ func MkMulti(a string) *terpMulti {
 		defer func() {
 			_ = recover()
 		}()
-		x := MkList(s.List())
+		x := MkList(ts.List())
 		m.l = &x
 	}()
 
 	// This is why you cannot rename builtins.
-	m.command = Safes[s.s]
+	m.command = Safes[ts.s]
 
 	return m
 }

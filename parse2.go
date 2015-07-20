@@ -146,7 +146,7 @@ func (me *PCmd) Eval(fr *Frame) T {
 
 	var words []T
 	for _, w := range me.Words {
-		if w.Expand {
+		if w.ExpandAsMultiWord {
 			t := w.Eval(fr)
 			for _, e := range t.List() {
 				words = append(words, e)
@@ -175,9 +175,9 @@ func (me *PCmd) Show() string {
 
 // One words, composed of parts that may require substitions.
 type PWord struct {
-	Parts  []*PPart
-	Multi  *terpMulti // If not null, value is fixed and precompiled.
-	Expand bool
+	Parts             []*PPart
+	Multi             *terpMulti // If not null, value is fixed and precompiled.
+	ExpandAsMultiWord bool
 }
 
 func (me *PWord) Eval(fr *Frame) (z T) {
@@ -201,7 +201,7 @@ func (me *PWord) Eval(fr *Frame) (z T) {
 		buf := bytes.NewBuffer(nil)
 		for _, part := range me.Parts {
 			if part.Type == BARE { // Optimization: avoid creating a T.
-				buf.WriteString(part.Str)
+				buf.WriteString(part.Multi.s.s)
 			} else {
 				buf.WriteString(part.Eval(fr).String())
 			}
@@ -216,6 +216,9 @@ func (me *PWord) Eval(fr *Frame) (z T) {
 
 func (me *PWord) Show() string {
 	z := "PWord{ "
+	if me.ExpandAsMultiWord {
+		z += "(EXPAND) "
+	}
 	for _, e := range me.Parts {
 		z += e.Show()
 	}
@@ -233,38 +236,39 @@ const (
 )
 
 type PPart struct {
-	Str  string // TODO: make this a T, and use MkMulti.
-	Word *PWord // for DOLLAR2
-	Seq  *PSeq  // for SQUARE
-	Type PartType
+	VarName string
+	Multi   *terpMulti
+	Word    *PWord // for DOLLAR2
+	Seq     *PSeq  // for SQUARE
+	Type    PartType
 }
 
 func (me *PPart) Eval(fr *Frame) T {
 	switch me.Type {
 	case BARE:
-		return MkString(me.Str)
+		return me.Multi
 	case SQUARE:
 		return me.Seq.Eval(fr)
 	case DOLLAR1:
-		v := fr.GetVar(me.Str)
+		v := fr.GetVar(me.VarName)
 		if v == nil {
-			panic(Sprintf("(* PWord.Eval.DOLLAR1 *) Variable does not exist.", me.Str))
+			panic(Sprintf("(* PWord.Eval.DOLLAR1 *) Variable does not exist.", me.VarName))
 		}
 		return v
 	case DOLLAR2:
-		v := fr.GetVar(me.Str)
+		v := fr.GetVar(me.VarName)
 		if v == nil {
-			panic(Sprintf("(* PWord.Eval.DOLLAR2 *) Variable does not exist.", me.Str))
+			panic(Sprintf("(* PWord.Eval.DOLLAR2 *) Variable does not exist.", me.VarName))
 		}
 		h := v.Hash()
 		if h == nil {
-			panic(Sprintf("(* PWord.Eval.DOLLAR2 *) Variable %q is not a hash.", me.Str))
+			panic(Sprintf("(* PWord.Eval.DOLLAR2 *) Variable %q is not a hash.", me.VarName))
 		}
 
 		k := me.Word.Eval(fr).String()
 		z := h[k]
 		if z == nil {
-			panic(Sprintf("(*PWord.Eval.DOLLAR2*) Variable %q: Key not found", me.Str))
+			panic(Sprintf("(*PWord.Eval.DOLLAR2*) Variable %q: Key not found", me.VarName))
 		}
 		return z
 	}
@@ -274,11 +278,11 @@ func (me *PPart) Eval(fr *Frame) T {
 func (me *PPart) Show() string {
 	switch me.Type {
 	case BARE:
-		return Sprintf("BARE{%#v} ", me.Str)
+		return Sprintf("BARE{%#v} ", me.Multi.Show())
 	case DOLLAR1:
-		return Sprintf("DOLLAR1{%#v} ", me.Str)
+		return Sprintf("DOLLAR1{%#v} ", me.VarName)
 	case DOLLAR2:
-		return Sprintf("DOLLAR2{%#v,%s} ", me.Str, me.Word.Show())
+		return Sprintf("DOLLAR2{%#v,%s} ", me.VarName, me.Word.Show())
 	case SQUARE:
 		return Sprintf("SQUARE{ %s } ", me.Seq.Show())
 	}
@@ -300,8 +304,8 @@ func Parse2Curly(lex *Lex) *PWord {
 	result := &PWord{
 		Parts: []*PPart{
 			&PPart{
-				Str:  x,
-				Type: BARE,
+				Multi: multi,
+				Type:  BARE,
 			},
 		},
 		Multi: multi,
@@ -315,8 +319,8 @@ func Parse2Curly(lex *Lex) *PWord {
 func finishBarePart(parts []*PPart, buf *bytes.Buffer) ([]*PPart, *bytes.Buffer) {
 	if buf.Len() > 0 {
 		bare := &PPart{
-			Type: BARE,
-			Str:  buf.String(),
+			Type:  BARE,
+			Multi: MkMulti(buf.String()),
 		}
 		parts = append(parts, bare)
 		if Debug['p'] {
@@ -479,8 +483,7 @@ Loop:
 	parts, buf = finishBarePart(parts, buf)
 	z := &PWord{Parts: parts}
 	if len(parts) == 1 && parts[0].Type == BARE {
-		multi := MkMulti(parts[0].Str) // Optimize for fixed bare value.
-		z.Multi = multi
+		z.Multi = parts[0].Multi // Optimize for fixed bare value.
 	}
 	if Debug['p'] {
 		Say("Word: z ->", z)
@@ -555,15 +558,15 @@ func Parse2Dollar(lex *Lex) *PPart {
 		MustTok(Token(')'), lex.Tok)
 		// DONT lex.Stretch1()
 		return &PPart{
-			Type: DOLLAR2,
-			Str:  name,
-			Word: key,
+			Type:    DOLLAR2,
+			VarName: name,
+			Word:    key,
 		}
 	}
 	// else:
 	return &PPart{
-		Type: DOLLAR1,
-		Str:  name,
+		Type:    DOLLAR1,
+		VarName: name,
 	}
 }
 
@@ -614,7 +617,7 @@ Loop:
 			lex.Advance()
 		case TokExpandSquare:
 			part := Parse2Square(lex)
-			words = append(words, &PWord{Parts: []*PPart{part}, Expand: true})
+			words = append(words, &PWord{Parts: []*PPart{part}, ExpandAsMultiWord: true})
 			MustTok(Token(']'), lex.Tok)
 			if !FollowedByGap(lex) {
 				panic(Sprintf("expanding brackets not followed by end of word"))
@@ -622,7 +625,7 @@ Loop:
 			lex.Advance()
 		case TokExpandDollar:
 			part := Parse2Dollar(lex)
-			words = append(words, &PWord{Parts: []*PPart{part}, Expand: true})
+			words = append(words, &PWord{Parts: []*PPart{part}, ExpandAsMultiWord: true})
 			if !FollowedByGap(lex) {
 				panic(Sprintf("expanding brackets not followed by end of word"))
 			}
@@ -698,7 +701,7 @@ func Parse2ExprPrimative(lex *Lex) *PExpr {
 		return &PExpr{Op: '"', Word: word}
 	case TokNumber:
 		// TODO: use MkMulti, and change Str to a T.
-		part := &PPart{Str: lex.Current(), Type: BARE}
+		part := &PPart{Multi: MkMulti(lex.Current()), Type: BARE}
 		lex.Advance()
 		word := &PWord{Parts: []*PPart{part}}
 		return &PExpr{Op: '"', Word: word}
@@ -876,7 +879,11 @@ func CompileSequence(fr *Frame, s string) *PSeq {
 		Sayf("CompileSequence Non-Empty rest: %q", s)
 		return nil
 	}
-	return z.ExpandMacros(fr)
+	//println("CompileSequence <<<<<<", z.Show())
+	maxSubCompile := len(s) // Stop infinite recursion sub-compiles.
+	z2 := z.ExpandMacros(fr, maxSubCompile)
+	//println("CompileSequence <<<<<<", z.Show(), ">>>>>>", z2.Show())
+	return z2
 }
 
 func (me *PSeq) CloneAndSubst(params map[string][]*PWord) *PSeq {
@@ -890,10 +897,10 @@ func (me *PSeq) CloneAndSubst(params map[string][]*PWord) *PSeq {
 		Src:  me.Src,
 	}
 }
-func (me *PSeq) ExpandMacros(fr *Frame) *PSeq {
+func (me *PSeq) ExpandMacros(fr *Frame, maxSubCompile int) *PSeq {
 	var zz []*PCmd
 	for _, c := range me.Cmds {
-		zz = append(zz, c.ExpandMacros(fr)...)
+		zz = append(zz, c.ExpandMacros(fr, maxSubCompile)...)
 	}
 
 	return &PSeq{
@@ -909,18 +916,16 @@ func (me *PCmd) CloneAndSubst(params map[string][]*PWord) *PCmd {
 	}
 	return &PCmd{Words: zz}
 }
-func (me *PCmd) ExpandMacros(fr *Frame) []*PCmd {
+func (me *PCmd) ExpandMacros(fr *Frame, maxSubCompile int) []*PCmd {
 	if me.Words != nil {
 
 		hd := me.Words[0]
 		if hd.Multi != nil {
 			name := hd.Multi.String()
 			if macro, ok := fr.G.Macros[name]; ok {
-
 				params := make(map[string][]*PWord)
 				lenArgs := len(macro.Args)
 				if lenArgs > 0 && macro.Args[lenArgs-1] == "ARGS" {
-
 					// Final param ARGS is special, getting a list of the rest of actual params.
 					if lenArgs-1 > len(me.Words)-1 {
 						panic(Sprintf("Too few args to macro %q, got %d, wanted at least %d.", name, lenArgs-1, len(me.Words)-1))
@@ -956,7 +961,7 @@ func (me *PCmd) ExpandMacros(fr *Frame) []*PCmd {
 
 				var zz []*PCmd
 				for _, clone := range macro.Body.CloneAndSubst(params).Cmds {
-					zz = append(zz, clone.ExpandMacros(fr)...)
+					zz = append(zz, clone.ExpandMacros(fr, maxSubCompile)...)
 				}
 				return zz
 			}
@@ -964,7 +969,7 @@ func (me *PCmd) ExpandMacros(fr *Frame) []*PCmd {
 	}
 	var zz []*PWord
 	for _, word := range me.Words {
-		zz = append(zz, word.ExpandMacros(fr))
+		zz = append(zz, word.ExpandMacros(fr, maxSubCompile))
 	}
 	return []*PCmd{&PCmd{Words: zz}}
 }
@@ -974,7 +979,7 @@ func (me *PWord) CloneAndSubst(params map[string][]*PWord) []*PWord {
 		return []*PWord{me}
 	}
 
-	if me.Expand && len(me.Parts) == 1 && me.Parts[0].Type == DOLLAR1 && me.Parts[0].Str == "ARGS" {
+	if me.ExpandAsMultiWord && len(me.Parts) == 1 && me.Parts[0].Type == DOLLAR1 && me.Parts[0].VarName == "ARGS" {
 		if vec, ok := params["ARGS"]; ok {
 			return vec
 		}
@@ -984,20 +989,22 @@ func (me *PWord) CloneAndSubst(params map[string][]*PWord) []*PWord {
 	for _, part := range me.Parts {
 		zz = append(zz, part.CloneAndSubst(params)...)
 	}
-	return []*PWord{&PWord{Parts: zz, Expand: me.Expand}}
+	return []*PWord{&PWord{Parts: zz, ExpandAsMultiWord: me.ExpandAsMultiWord}}
 }
 
-func (me *PWord) ExpandMacros(fr *Frame) *PWord {
-	// If it is a constant Multi, just return ourself.
-	if me.Multi != nil {
-		return me
-	}
-
+func (me *PWord) ExpandMacros(fr *Frame, maxSubCompile int) *PWord {
 	var zz []*PPart
 	for _, part := range me.Parts {
-		zz = append(zz, part.ExpandMacros(fr))
+		zz = append(zz, part.ExpandMacros(fr, maxSubCompile))
 	}
-	return &PWord{Parts: zz, Expand: me.Expand}
+
+	// Special case of 1 BARE part: Set the Multi field in the word.
+	var multi *terpMulti
+	if len(zz) == 1 && zz[0].Type == BARE {
+		multi = zz[0].Multi
+	}
+
+	return &PWord{Parts: zz, ExpandAsMultiWord: me.ExpandAsMultiWord, Multi: multi}
 }
 
 func (me *PPart) CloneAndSubst(params map[string][]*PWord) []*PPart {
@@ -1005,10 +1012,10 @@ func (me *PPart) CloneAndSubst(params map[string][]*PWord) []*PPart {
 	case BARE:
 		return []*PPart{me}
 	case DOLLAR1:
-		if me.Str == "ARGS" {
+		if me.VarName == "ARGS" {
 			panic("'$ARGS' cannot be used in this context, in part of a word, in a macro.")
 		}
-		if vec, ok := params[me.Str]; ok {
+		if vec, ok := params[me.VarName]; ok {
 			CHECK(len(vec) == 1, len(vec), vec)
 			return vec[0].Parts
 		} else {
@@ -1017,23 +1024,27 @@ func (me *PPart) CloneAndSubst(params map[string][]*PWord) []*PPart {
 	case DOLLAR2:
 		vec := me.Word.CloneAndSubst(params)
 		CHECK(len(vec) == 1, len(vec), vec, me)
-		return []*PPart{&PPart{Type: DOLLAR2, Str: me.Str, Word: vec[0]}}
+		return []*PPart{&PPart{Type: DOLLAR2, VarName: me.VarName, Word: vec[0]}}
 	case SQUARE:
 		return []*PPart{&PPart{Type: SQUARE, Seq: me.Seq.CloneAndSubst(params)}}
 	}
 	panic("unknown PartType")
 }
 
-func (me *PPart) ExpandMacros(fr *Frame) *PPart {
+func (me *PPart) ExpandMacros(fr *Frame, maxSubCompile int) *PPart {
 	switch me.Type {
 	case BARE:
-		return me
+		if len(me.Multi.s.s) >= maxSubCompile {
+			return me
+		} else {
+			return &PPart{Type: BARE, Multi: MkMultiFr(fr, me.Multi)}
+		}
 	case DOLLAR1:
 		return me
 	case DOLLAR2:
-		return &PPart{Type: DOLLAR2, Str: me.Str, Word: me.Word.ExpandMacros(fr)}
+		return &PPart{Type: DOLLAR2, VarName: me.VarName, Word: me.Word.ExpandMacros(fr, maxSubCompile)}
 	case SQUARE:
-		return &PPart{Type: SQUARE, Seq: me.Seq.ExpandMacros(fr)}
+		return &PPart{Type: SQUARE, Seq: me.Seq.ExpandMacros(fr, maxSubCompile)}
 	}
 	panic("unknown PartType")
 }
