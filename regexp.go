@@ -3,8 +3,10 @@ package chirp
 import (
 	"fmt"
 	"regexp"
+	"sync"
 )
 
+var mutex sync.Mutex
 var regexpCache = make(map[string]*regexp.Regexp)
 
 func regexpNoCase(exp string) string {
@@ -12,10 +14,18 @@ func regexpNoCase(exp string) string {
 }
 
 func regexpFromCache(exp string) *regexp.Regexp {
+	mutex.Lock()
 	r, exists := regexpCache[exp]
+	var err error
 	if !exists {
-		r = regexp.MustCompile(exp)
-		regexpCache[exp] = r
+		r, err = regexp.Compile(exp)
+		if err != nil {
+			regexpCache[exp] = r
+		}
+	}
+	mutex.Unlock()
+	if err != nil {
+		panic(err)
 	}
 	return r
 }
