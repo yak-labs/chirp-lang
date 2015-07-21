@@ -9,6 +9,7 @@ import (
 	io_ioutil `io/ioutil`
 	math `math`
 	math_big `math/big`
+	net `net`
 	net_http `net/http`
 	os `os`
 	reflect `reflect`
@@ -159,6 +160,48 @@ func init() {
 	Roots[`/math/Yn`] = FuncRoot{ Func: reflect.ValueOf(math.Yn) }
 	Roots[`/math/big/NewInt`] = FuncRoot{ Func: reflect.ValueOf(math_big.NewInt) }
 	Roots[`/math/big/NewRat`] = FuncRoot{ Func: reflect.ValueOf(math_big.NewRat) }
+	Roots[`/net/CIDRMask`] = FuncRoot{ Func: reflect.ValueOf(net.CIDRMask) }
+	Roots[`/net/Dial`] = FuncRoot{ Func: reflect.ValueOf(net.Dial) }
+	Roots[`/net/DialIP`] = FuncRoot{ Func: reflect.ValueOf(net.DialIP) }
+	Roots[`/net/DialTCP`] = FuncRoot{ Func: reflect.ValueOf(net.DialTCP) }
+	Roots[`/net/DialTimeout`] = FuncRoot{ Func: reflect.ValueOf(net.DialTimeout) }
+	Roots[`/net/DialUDP`] = FuncRoot{ Func: reflect.ValueOf(net.DialUDP) }
+	Roots[`/net/DialUnix`] = FuncRoot{ Func: reflect.ValueOf(net.DialUnix) }
+	Roots[`/net/FileConn`] = FuncRoot{ Func: reflect.ValueOf(net.FileConn) }
+	Roots[`/net/FileListener`] = FuncRoot{ Func: reflect.ValueOf(net.FileListener) }
+	Roots[`/net/FilePacketConn`] = FuncRoot{ Func: reflect.ValueOf(net.FilePacketConn) }
+	Roots[`/net/IPv4`] = FuncRoot{ Func: reflect.ValueOf(net.IPv4) }
+	Roots[`/net/IPv4Mask`] = FuncRoot{ Func: reflect.ValueOf(net.IPv4Mask) }
+	Roots[`/net/InterfaceAddrs`] = FuncRoot{ Func: reflect.ValueOf(net.InterfaceAddrs) }
+	Roots[`/net/InterfaceByIndex`] = FuncRoot{ Func: reflect.ValueOf(net.InterfaceByIndex) }
+	Roots[`/net/InterfaceByName`] = FuncRoot{ Func: reflect.ValueOf(net.InterfaceByName) }
+	Roots[`/net/Interfaces`] = FuncRoot{ Func: reflect.ValueOf(net.Interfaces) }
+	Roots[`/net/JoinHostPort`] = FuncRoot{ Func: reflect.ValueOf(net.JoinHostPort) }
+	Roots[`/net/Listen`] = FuncRoot{ Func: reflect.ValueOf(net.Listen) }
+	Roots[`/net/ListenIP`] = FuncRoot{ Func: reflect.ValueOf(net.ListenIP) }
+	Roots[`/net/ListenMulticastUDP`] = FuncRoot{ Func: reflect.ValueOf(net.ListenMulticastUDP) }
+	Roots[`/net/ListenPacket`] = FuncRoot{ Func: reflect.ValueOf(net.ListenPacket) }
+	Roots[`/net/ListenTCP`] = FuncRoot{ Func: reflect.ValueOf(net.ListenTCP) }
+	Roots[`/net/ListenUDP`] = FuncRoot{ Func: reflect.ValueOf(net.ListenUDP) }
+	Roots[`/net/ListenUnix`] = FuncRoot{ Func: reflect.ValueOf(net.ListenUnix) }
+	Roots[`/net/ListenUnixgram`] = FuncRoot{ Func: reflect.ValueOf(net.ListenUnixgram) }
+	Roots[`/net/LookupAddr`] = FuncRoot{ Func: reflect.ValueOf(net.LookupAddr) }
+	Roots[`/net/LookupCNAME`] = FuncRoot{ Func: reflect.ValueOf(net.LookupCNAME) }
+	Roots[`/net/LookupHost`] = FuncRoot{ Func: reflect.ValueOf(net.LookupHost) }
+	Roots[`/net/LookupIP`] = FuncRoot{ Func: reflect.ValueOf(net.LookupIP) }
+	Roots[`/net/LookupMX`] = FuncRoot{ Func: reflect.ValueOf(net.LookupMX) }
+	Roots[`/net/LookupPort`] = FuncRoot{ Func: reflect.ValueOf(net.LookupPort) }
+	Roots[`/net/LookupSRV`] = FuncRoot{ Func: reflect.ValueOf(net.LookupSRV) }
+	Roots[`/net/LookupTXT`] = FuncRoot{ Func: reflect.ValueOf(net.LookupTXT) }
+	Roots[`/net/ParseCIDR`] = FuncRoot{ Func: reflect.ValueOf(net.ParseCIDR) }
+	Roots[`/net/ParseIP`] = FuncRoot{ Func: reflect.ValueOf(net.ParseIP) }
+	Roots[`/net/ParseMAC`] = FuncRoot{ Func: reflect.ValueOf(net.ParseMAC) }
+	Roots[`/net/Pipe`] = FuncRoot{ Func: reflect.ValueOf(net.Pipe) }
+	Roots[`/net/ResolveIPAddr`] = FuncRoot{ Func: reflect.ValueOf(net.ResolveIPAddr) }
+	Roots[`/net/ResolveTCPAddr`] = FuncRoot{ Func: reflect.ValueOf(net.ResolveTCPAddr) }
+	Roots[`/net/ResolveUDPAddr`] = FuncRoot{ Func: reflect.ValueOf(net.ResolveUDPAddr) }
+	Roots[`/net/ResolveUnixAddr`] = FuncRoot{ Func: reflect.ValueOf(net.ResolveUnixAddr) }
+	Roots[`/net/SplitHostPort`] = FuncRoot{ Func: reflect.ValueOf(net.SplitHostPort) }
 	Roots[`/net/http/CanonicalHeaderKey`] = FuncRoot{ Func: reflect.ValueOf(net_http.CanonicalHeaderKey) }
 	Roots[`/net/http/DetectContentType`] = FuncRoot{ Func: reflect.ValueOf(net_http.DetectContentType) }
 	Roots[`/net/http/Error`] = FuncRoot{ Func: reflect.ValueOf(net_http.Error) }
@@ -348,6 +391,17 @@ func init() {
 	Roots[`/encoding/base64/StdEncoding`] = VarRoot{ Var: reflect.ValueOf(&encoding_base64.StdEncoding) }
 	Roots[`/encoding/base64/URLEncoding`] = VarRoot{ Var: reflect.ValueOf(&encoding_base64.URLEncoding) }
 	Roots[`/io/ioutil/Discard`] = VarRoot{ Var: reflect.ValueOf(&io_ioutil.Discard) }
+	Roots[`/net/ErrWriteToConnected`] = VarRoot{ Var: reflect.ValueOf(&net.ErrWriteToConnected) }
+	Roots[`/net/IPv4allrouter`] = VarRoot{ Var: reflect.ValueOf(&net.IPv4allrouter) }
+	Roots[`/net/IPv4allsys`] = VarRoot{ Var: reflect.ValueOf(&net.IPv4allsys) }
+	Roots[`/net/IPv4bcast`] = VarRoot{ Var: reflect.ValueOf(&net.IPv4bcast) }
+	Roots[`/net/IPv4zero`] = VarRoot{ Var: reflect.ValueOf(&net.IPv4zero) }
+	Roots[`/net/IPv6interfacelocalallnodes`] = VarRoot{ Var: reflect.ValueOf(&net.IPv6interfacelocalallnodes) }
+	Roots[`/net/IPv6linklocalallnodes`] = VarRoot{ Var: reflect.ValueOf(&net.IPv6linklocalallnodes) }
+	Roots[`/net/IPv6linklocalallrouters`] = VarRoot{ Var: reflect.ValueOf(&net.IPv6linklocalallrouters) }
+	Roots[`/net/IPv6loopback`] = VarRoot{ Var: reflect.ValueOf(&net.IPv6loopback) }
+	Roots[`/net/IPv6unspecified`] = VarRoot{ Var: reflect.ValueOf(&net.IPv6unspecified) }
+	Roots[`/net/IPv6zero`] = VarRoot{ Var: reflect.ValueOf(&net.IPv6zero) }
 	Roots[`/net/http/DefaultClient`] = VarRoot{ Var: reflect.ValueOf(&net_http.DefaultClient) }
 	Roots[`/net/http/DefaultServeMux`] = VarRoot{ Var: reflect.ValueOf(&net_http.DefaultServeMux) }
 	Roots[`/net/http/DefaultTransport`] = VarRoot{ Var: reflect.ValueOf(&net_http.DefaultTransport) }
@@ -421,6 +475,214 @@ func init() {
 	{
 	var tmp *math_big.Rat
 	Roots[`/math/big/Rat`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.AddrError
+	Roots[`/net/AddrError`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.AddrError
+	Roots[`/net/AddrError`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.AddrError
+	Roots[`/net/AddrError`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.DNSConfigError
+	Roots[`/net/DNSConfigError`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.DNSConfigError
+	Roots[`/net/DNSConfigError`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.DNSError
+	Roots[`/net/DNSError`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.DNSError
+	Roots[`/net/DNSError`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.DNSError
+	Roots[`/net/DNSError`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.DNSError
+	Roots[`/net/DNSError`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.DNSError
+	Roots[`/net/DNSError`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.IPAddr
+	Roots[`/net/IPAddr`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.IPAddr
+	Roots[`/net/IPAddr`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.IPConn
+	Roots[`/net/IPConn`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.IPNet
+	Roots[`/net/IPNet`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.IPNet
+	Roots[`/net/IPNet`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.IPNet
+	Roots[`/net/IPNet`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.Interface
+	Roots[`/net/Interface`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.Interface
+	Roots[`/net/Interface`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.Interface
+	Roots[`/net/Interface`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.Interface
+	Roots[`/net/Interface`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.Interface
+	Roots[`/net/Interface`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.Interface
+	Roots[`/net/Interface`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.MX
+	Roots[`/net/MX`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.MX
+	Roots[`/net/MX`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.MX
+	Roots[`/net/MX`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.OpError
+	Roots[`/net/OpError`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.OpError
+	Roots[`/net/OpError`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.OpError
+	Roots[`/net/OpError`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.OpError
+	Roots[`/net/OpError`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.OpError
+	Roots[`/net/OpError`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.ParseError
+	Roots[`/net/ParseError`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.ParseError
+	Roots[`/net/ParseError`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.ParseError
+	Roots[`/net/ParseError`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.SRV
+	Roots[`/net/SRV`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.SRV
+	Roots[`/net/SRV`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.SRV
+	Roots[`/net/SRV`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.SRV
+	Roots[`/net/SRV`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.SRV
+	Roots[`/net/SRV`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.TCPAddr
+	Roots[`/net/TCPAddr`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.TCPAddr
+	Roots[`/net/TCPAddr`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.TCPAddr
+	Roots[`/net/TCPAddr`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.TCPConn
+	Roots[`/net/TCPConn`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.TCPListener
+	Roots[`/net/TCPListener`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.UDPAddr
+	Roots[`/net/UDPAddr`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.UDPAddr
+	Roots[`/net/UDPAddr`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.UDPAddr
+	Roots[`/net/UDPAddr`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.UDPConn
+	Roots[`/net/UDPConn`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.UnixAddr
+	Roots[`/net/UnixAddr`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.UnixAddr
+	Roots[`/net/UnixAddr`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.UnixAddr
+	Roots[`/net/UnixAddr`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.UnixConn
+	Roots[`/net/UnixConn`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
+	}
+	{
+	var tmp *net.UnixListener
+	Roots[`/net/UnixListener`] = TypeRoot{ Type: reflect.ValueOf(tmp).Type().Elem() }
 	}
 	{
 	var tmp *net_http.Client
@@ -967,6 +1229,13 @@ func init() {
 	Roots[`/math/SqrtPhi`] = ConstRoot{ Const: math.SqrtPhi }
 	Roots[`/math/SqrtPi`] = ConstRoot{ Const: math.SqrtPi }
 	Roots[`/math/big/MaxBase`] = ConstRoot{ Const: math_big.MaxBase }
+	Roots[`/net/FlagBroadcast`] = ConstRoot{ Const: net.FlagBroadcast }
+	Roots[`/net/FlagLoopback`] = ConstRoot{ Const: net.FlagLoopback }
+	Roots[`/net/FlagMulticast`] = ConstRoot{ Const: net.FlagMulticast }
+	Roots[`/net/FlagPointToPoint`] = ConstRoot{ Const: net.FlagPointToPoint }
+	Roots[`/net/FlagUp`] = ConstRoot{ Const: net.FlagUp }
+	Roots[`/net/IPv4len`] = ConstRoot{ Const: int64(net.IPv4len) }
+	Roots[`/net/IPv6len`] = ConstRoot{ Const: int64(net.IPv6len) }
 	Roots[`/net/http/DefaultMaxHeaderBytes`] = ConstRoot{ Const: int64(net_http.DefaultMaxHeaderBytes) }
 	Roots[`/net/http/DefaultMaxIdleConnsPerHost`] = ConstRoot{ Const: int64(net_http.DefaultMaxIdleConnsPerHost) }
 	Roots[`/net/http/StatusAccepted`] = ConstRoot{ Const: int64(net_http.StatusAccepted) }
