@@ -266,8 +266,8 @@ func (me *PPart) Eval(fr *Frame) T {
 		}
 
 		k := me.Word.Eval(fr).String()
-		z := h[k]
-		if z == nil {
+		z, ok := h[k]
+		if !ok {
 			panic(Sprintf("(*PWord.Eval.DOLLAR2*) Variable %q: Key not found", me.VarName))
 		}
 		return z
