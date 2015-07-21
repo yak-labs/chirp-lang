@@ -1601,6 +1601,7 @@ var stringEnsemble = []EnsembleItem{
 	EnsembleItem{Name: "first", Cmd: cmdStringFirst},
 	EnsembleItem{Name: "index", Cmd: cmdStringIndex},
 	EnsembleItem{Name: "match", Cmd: cmdStringMatch},
+	EnsembleItem{Name: "trim", Cmd: cmdStringTrim},
 }
 
 // Follows Tcl's string range spec.
@@ -1716,6 +1717,26 @@ func cmdStringIndex(fr *Frame, argv []T) T {
 
 	z := string(s[i])
 	return MkString(z)
+}
+
+func cmdStringTrim(fr *Frame, argv []T) T {
+  t := Arg1(argv)
+  s := t.String()
+  for len(s) > 0 {
+    if White(s[0]) {
+      s = s[1:]
+    } else {
+      break
+    }
+  }
+  for len(s) > 0 {
+    if White(s[len(s)-1]) {
+      s = s[:len(s)-1]
+    } else {
+      break
+    }
+  }
+  return MkString(s)
 }
 
 func cmdStringMatch(fr *Frame, argv []T) T {
