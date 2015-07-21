@@ -10,6 +10,12 @@ import (
 
 var Roots map[string]Applier = make(map[string]Applier)
 
+func init() {
+	Roots["/byte"] = TypeRoot{Type: R.TypeOf(byte(0))}
+	Roots["/int"] = TypeRoot{Type: R.TypeOf(int(0))}
+	Roots["/string"] = TypeRoot{Type: R.TypeOf(string("0"))}
+}
+
 var errorInterfaceType R.Type = R.TypeOf(errors.New).Out(0)
 
 // TODO: This interface could replace Command, or could Command replace this interface?
@@ -121,7 +127,9 @@ func ApplyToType(fr *Frame, typ R.Type, args []T) T {
 			return MkValue(R.Value(R.MakeMap(R.MapOf(typ, typ2))))
 		case "mkslice":
 			k := int(args[2].Int())
-			return MkValue(R.Value(R.MakeSlice(R.SliceOf(typ), k, 4)))
+			return MkValue(R.Value(R.MakeSlice(R.SliceOf(typ), k, k)))
+		case "convert":
+			return MkValue(args[2].QuickReflectValue().Convert(typ))
 		}
 	}
 	panic(Sprintf("ApplyToType: Bad usage of Reflected Type %v", typ))
@@ -371,6 +379,8 @@ func applyToReflectedValueRecur(fr *Frame, v R.Value, args []T, i int) T {
 		return MkString(kind.String())
 	case "type":
 		return MkValue(R.ValueOf(typ))
+	case "reify":
+		return MkT(v.Interface())
 	}
 
 	// default:
@@ -448,6 +458,11 @@ func AdaptToValue(fr *Frame, a T, ty R.Type) R.Value {
 }
 
 func AdaptToValueInner(fr *Frame, a T, ty R.Type) R.Value {
+
+	aval := R.ValueOf(a.Raw())
+	if aval.Type().ConvertibleTo(ty) {
+		return aval.Convert(ty)
+	}
 
 	switch ty.Kind() {
 	case R.Bool:
