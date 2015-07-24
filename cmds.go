@@ -200,7 +200,7 @@ var MustSucceeds int64
 var MustFails int64
 
 func cmdMust(fr *Frame, argv []T) T {
-	xx, yy := Arg2(argv)
+	xx, yy, rest := Arg2v(argv)
 	x := xx.String()
 	y := yy.String()
 
@@ -208,7 +208,12 @@ func cmdMust(fr *Frame, argv []T) T {
 		MustMutex.Lock()
 		MustFails++
 		MustMutex.Unlock()
-		panic("FAILED: must: " + Repr(argv) + " #### x=<" + x + "> #### y=<" + y + "> ####")
+
+		msg := ""
+		for _, e := range rest {
+			msg += Sprintf(" ;; %v", SubstStringOrOrig(fr, e.String()))
+		}
+		panic("FAILED: must: " + Repr(argv) + " ;;;; x=<" + x + "> ;;;; y=<" + y + "> ;;;;" + msg)
 	}
 	MustMutex.Lock()
 	MustSucceeds++
