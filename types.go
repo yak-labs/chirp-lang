@@ -100,18 +100,18 @@ type terpGenerator struct { // Implements T.
 	guts *terpGeneratorGuts // Pointer to mutable.
 }
 
-// terpHash holds a Hash.
+// *terpHash holds a Hash.
 type terpHash struct { // Implements T.
 	h  Hash
 	Mu sync.Mutex
 }
 
-func MkHash(h Hash) terpHash {
+func MkHash(h Hash) *terpHash {
 	MkHashCounter.Incr()
 	if h == nil {
-		return terpHash{h: make(Hash, 4)}
+		return &terpHash{h: make(Hash, 4)}
 	}
-	return terpHash{h: h}
+	return &terpHash{h: h}
 }
 func MkGenerator(readerChan <-chan Either) terpGenerator {
 	MkGeneratorCounter.Incr()
@@ -309,32 +309,32 @@ func MkT(a interface{}) T {
 	return MkValue(v)
 }
 
-// terpHash implements T
+// *terpHash implements T
 
-func (t terpHash) ChirpKind() string { return "Hash" }
-func (t terpHash) Raw() interface{}  { return t.h }
-func (t terpHash) String() string {
+func (t *terpHash) ChirpKind() string { return "Hash" }
+func (t *terpHash) Raw() interface{}  { return t.h }
+func (t *terpHash) String() string {
 	return MkList(t.List()).String()
 }
-func (t terpHash) Float() float64 {
+func (t *terpHash) Float() float64 {
 	panic("not implemented on terpHash (Float)")
 }
-func (t terpHash) Int() int64 {
+func (t *terpHash) Int() int64 {
 	panic("not implemented on terpHash (Int)")
 }
-func (t terpHash) Uint() uint64 {
+func (t *terpHash) Uint() uint64 {
 	panic("not implemented on terpHash (Uint)")
 }
-func (t terpHash) ListElementString() string {
+func (t *terpHash) ListElementString() string {
 	return MkString(t.String()).ListElementString()
 }
-func (t terpHash) QuickString() string {
+func (t *terpHash) QuickString() string {
 	return ""
 }
-func (t terpHash) Bool() bool {
+func (t *terpHash) Bool() bool {
 	panic("terpHash cannot be used as Bool")
 }
-func (t terpHash) IsEmpty() bool {
+func (t *terpHash) IsEmpty() bool {
 	t.Mu.Lock()
 	z := (len(t.h) == 0)
 	t.Mu.Unlock()
@@ -365,9 +365,9 @@ func SortedKeysOfHash(h Hash) []string {
 	return keys
 }
 
-func (t terpHash) IsPreservedByList() bool { return true }
-func (t terpHash) IsQuickNumber() bool     { return false }
-func (t terpHash) List() []T {
+func (t *terpHash) IsPreservedByList() bool { return true }
+func (t *terpHash) IsQuickNumber() bool     { return false }
+func (t *terpHash) List() []T {
 	t.Mu.Lock()
 	defer t.Mu.Unlock()
 
@@ -383,13 +383,13 @@ func (t terpHash) List() []T {
 	}
 	return z
 }
-func (t terpHash) HeadTail() (hd, tl T) {
+func (t *terpHash) HeadTail() (hd, tl T) {
 	return MkList(t.List()).HeadTail()
 }
-func (t terpHash) Hash() Hash {
+func (t *terpHash) Hash() Hash {
 	return t.h
 }
-func (t terpHash) GetAt(key T) T {
+func (t *terpHash) GetAt(key T) T {
 	k := key.String()
 
 	t.Mu.Lock()
@@ -398,17 +398,17 @@ func (t terpHash) GetAt(key T) T {
 
 	return z
 }
-func (t terpHash) PutAt(value T, key T) {
+func (t *terpHash) PutAt(value T, key T) {
 	k := key.String()
 
 	t.Mu.Lock()
 	t.h[k] = value
 	t.Mu.Unlock()
 }
-func (t terpHash) QuickReflectValue() R.Value  { return InvalidValue }
-func (t terpHash) EvalSeq(fr *Frame) T         { return Parse2EvalSeqStr(fr, t.String()) }
-func (t terpHash) EvalExpr(fr *Frame) T        { return Parse2EvalExprStr(fr, t.String()) }
-func (t terpHash) Apply(fr *Frame, args []T) T { panic("Cannot apply terpHash as command") }
+func (t *terpHash) QuickReflectValue() R.Value  { return InvalidValue }
+func (t *terpHash) EvalSeq(fr *Frame) T         { return Parse2EvalSeqStr(fr, t.String()) }
+func (t *terpHash) EvalExpr(fr *Frame) T        { return Parse2EvalExprStr(fr, t.String()) }
+func (t *terpHash) Apply(fr *Frame, args []T) T { panic("Cannot apply terpHash as command") }
 
 // terpGenerator implements T
 
