@@ -1914,6 +1914,7 @@ var infoEnsemble = []EnsembleItem{
 	EnsembleItem{Name: "commands", Cmd: cmdInfoCommands},
 	EnsembleItem{Name: "globals", Cmd: cmdInfoGlobals},
 	EnsembleItem{Name: "locals", Cmd: cmdInfoLocals},
+	EnsembleItem{Name: "exists", Cmd: cmdInfoExists},
 }
 
 func cmdInfoMacros(fr *Frame, argv []T) T {
@@ -1951,6 +1952,34 @@ func cmdInfoLocals(fr *Frame, argv []T) T {
 	}
 	SortListByString(zz)
 	return MkList(zz)
+}
+func cmdInfoExists(fr *Frame, argv []T) T {
+	name := Arg1(argv)
+	s := name.String()
+	if strings.HasSuffix(s, ")") {
+		p := strings.IndexByte(s, '(')
+		if p < 0 {
+			panic("bad syntax for array variable")
+		}
+		varname := s[:p]
+
+		if !fr.HasVar(varname) {
+			return False
+		}
+		t := fr.GetVar(varname)
+		h, ok := t.(*terpHash)
+		if !ok {
+			return False
+		}
+		key := s[p+1 : len(s)-1]
+
+		h.Mu.Lock()
+		_, ok = h.h[key]
+		h.Mu.Unlock()
+		return MkBool(ok)
+	}
+
+	return MkBool(fr.HasVar(s))
 }
 
 func cmdSplit(fr *Frame, argv []T) T {
