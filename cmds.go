@@ -519,8 +519,19 @@ func procOrYProc(fr *Frame, argv []T, generating bool) T {
 	nameStr := name.String()
 	alist := aa.List()
 	astrs := make([]string, len(alist))
+	dflts := make([]T, len(alist))
 	for i, arg := range alist {
-		astr := arg.String()
+		avec := arg.List()
+		var astr string
+		switch len(avec) {
+		case 1:
+			astr = arg.String()
+		case 2:
+			astr = avec[0].String()
+			dflts[i] = avec[1]
+		default:
+			panic("procOrYProc: Formal Parameter llength is not 1 or 2")
+		}
 		if !IsLocal(astr) {
 			panic(Sprintf("Cannot use nonlocal name %q for argument in %s", astr, argv[0]))
 		}
@@ -603,13 +614,23 @@ func procOrYProc(fr *Frame, argv []T, generating bool) T {
 
 		var varargs bool = false
 		if len(astrs) > 0 && astrs[len(astrs)-1] == "args" {
+			// TODO: Support dflts with varargs.
 			varargs = true
 			if len(argv2) < n {
-				panic(Sprintf("%s %q expects arguments %#v but got %#v", argv[0], nameStr, aa, argv2))
+				panic(Sprintf("%s %q expects arguments %#v but got %d", argv[0], nameStr, aa, len(argv2)))
 			}
 		} else {
+			// Handle dflts with non-varargs.
+			for p := len(argv2); p < n+1; p++ {
+				if dflts[p-1] != nil {
+					argv2 = append(argv2, dflts[p-1])
+				} else {
+					break
+				}
+			}
+
 			if len(argv2) != n+1 {
-				panic(Sprintf("%s %q expects arguments %#v but got %#v", argv[0], nameStr, aa, argv2))
+				panic(Sprintf("%s %q expects arguments %#v but got %d", argv[0], nameStr, aa, len(argv2)))
 			}
 		}
 
