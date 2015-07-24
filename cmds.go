@@ -463,7 +463,7 @@ func cmdSay(fr *Frame, argv []T) T {
 		buf.WriteString(a.String())
 	}
 	log.Println(buf.String())
-	return Empty
+	return MkList(args) // "say" acts like "list"
 }
 
 func cmdSuper(fr *Frame, argv []T) T {
