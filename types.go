@@ -25,6 +25,7 @@ type T interface {
 	IsEmpty() bool // Would String() return ""?
 	List() []T
 	IsPreservedByList() bool
+	IsQuickInt() bool
 	IsQuickNumber() bool
 	HeadTail() (hd, tl T)
 	Hash() (Hash, *sync.Mutex)
@@ -38,7 +39,7 @@ type T interface {
 
 // terpInt is a Tcl value holding a int64.
 type terpInt struct { // Implements T.
-	f int64
+	i int64
 }
 
 // terpFloat is a Tcl value holding a float64.
@@ -67,6 +68,7 @@ type terpValue struct { // Implements T.
 type terpMulti struct { // Implements T.
 	s               terpString
 	preservedByList bool
+	i               *terpInt
 	f               *terpFloat
 	l               *terpList
 	seq             *PSeq
@@ -75,7 +77,7 @@ type terpMulti struct { // Implements T.
 }
 
 func (o *terpMulti) Show() string {
-	return Sprintf("MULTI{ s: {%q} p:%v seq:%s expr:%s } ", o.s, o.preservedByList, ShowSeqUnlessNull(o.seq), ShowExprUnlessNull(o.expr))
+	return Sprintf("MULTI{ s: {%q} i:%v f:%v p:%v seq:%s expr:%s } ", o.s, (o.i != nil), (o.f != nil), o.preservedByList, ShowSeqUnlessNull(o.seq), ShowExprUnlessNull(o.expr))
 }
 func ShowSeqUnlessNull(seq *PSeq) string {
 	if seq == nil {
@@ -124,17 +126,25 @@ func MkBool(a bool) T {
 	}
 	return False
 }
+func MkNum(s string) T {
+	MkNumCounter.Incr()
+	if strings.IndexByte(s, '.') >= 0 {
+		return MkFloat(MkString(s).Float())
+	}
+	return MkInt(MkString(s).Int())
+}
 func MkFloat(a float64) terpFloat {
 	MkFloatCounter.Incr()
 	return terpFloat{f: a}
 }
-func MkInt(a int64) T {
+func MkInt(a int64) terpInt {
 	MkIntCounter.Incr()
-	return terpInt{f: int64(a)}
+	return terpInt{i: int64(a)}
 }
-func MkUint(a uint64) T {
+func MkUint(a uint64) terpInt {
+	// We dont have a terpUint type; jam it into a signed terpInt.
 	MkUintCounter.Incr()
-	return terpInt{f: int64(a)}
+	return terpInt{i: int64(a)}
 }
 func MkString(a string) terpString {
 	MkStringCounter.Incr()
@@ -177,6 +187,14 @@ func MkMulti(s string) *terpMulti {
 		s:               ts,
 		preservedByList: ts.IsPreservedByList(),
 	}
+
+	func() {
+		defer func() {
+			_ = recover()
+		}()
+		x := MkInt(ts.Int())
+		m.i = &x
+	}()
 
 	func() {
 		defer func() {
@@ -366,6 +384,7 @@ func SortedKeysOfHash(h Hash) []string {
 }
 
 func (t *terpHash) IsPreservedByList() bool { return true }
+func (t *terpHash) IsQuickInt() bool        { return false }
 func (t *terpHash) IsQuickNumber() bool     { return false }
 func (t *terpHash) List() []T {
 	t.Mu.Lock()
@@ -438,6 +457,7 @@ func (t terpGenerator) IsEmpty() bool {
 	return hd == nil
 }
 func (t terpGenerator) IsPreservedByList() bool { return true }
+func (t terpGenerator) IsQuickInt() bool        { return false }
 func (t terpGenerator) IsQuickNumber() bool     { return false }
 func (t terpGenerator) List() []T {
 	z := make([]T, 0, 4)
@@ -490,10 +510,10 @@ func (t terpGenerator) Apply(fr *Frame, args []T) T { panic("Cannot apply terpGe
 
 func (t terpInt) ChirpKind() string { return "Float" }
 func (t terpInt) Raw() interface{} {
-	return t.f
+	return t.i
 }
 func (t terpInt) String() string {
-	return Sprintf("%d", t.f)
+	return Sprintf("%d", t.i)
 }
 func (t terpInt) ListElementString() string {
 	return t.String()
@@ -502,21 +522,22 @@ func (t terpInt) QuickString() string {
 	return ""
 }
 func (t terpInt) Bool() bool {
-	return t.f != 0
+	return t.i != 0
 }
 func (t terpInt) IsEmpty() bool {
 	return false
 }
 func (t terpInt) Float() float64 {
-	return float64(t.f)
+	return float64(t.i)
 }
 func (t terpInt) Int() int64 {
-	return int64(t.f)
+	return int64(t.i)
 }
 func (t terpInt) Uint() uint64 {
-	return uint64(t.f)
+	return uint64(t.i)
 }
 func (t terpInt) IsPreservedByList() bool { return true }
+func (t terpInt) IsQuickInt() bool        { return true }
 func (t terpInt) IsQuickNumber() bool     { return true }
 func (t terpInt) List() []T {
 	return []T{t}
@@ -545,7 +566,7 @@ func (t terpFloat) Raw() interface{} {
 	return t.f
 }
 func (t terpFloat) String() string {
-	return Sprintf("%g", t.f)
+	return Sprintf("%.15g", t.f)
 }
 func (t terpFloat) ListElementString() string {
 	return t.String()
@@ -569,6 +590,7 @@ func (t terpFloat) Uint() uint64 {
 	return uint64(t.f)
 }
 func (t terpFloat) IsPreservedByList() bool { return true }
+func (t terpFloat) IsQuickInt() bool        { return false }
 func (t terpFloat) IsQuickNumber() bool     { return true }
 func (t terpFloat) List() []T {
 	return []T{t}
@@ -625,11 +647,22 @@ func (t terpString) Float() float64 {
 	return z
 }
 func (t terpString) Int() int64 {
-	return int64(t.Float()) //TODO
+	z, err := strconv.ParseInt(t.s, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	return z
 }
 func (t terpString) Uint() uint64 {
-	return uint64(t.Float()) //TODO
+	// First try unsigned parse.
+	z, err := strconv.ParseUint(t.s, 10, 64)
+	if err == nil {
+		return z
+	}
+	// Then try signed parse.
+	return uint64(t.Int())
 }
+func (t terpString) IsQuickInt() bool    { return false }
 func (t terpString) IsQuickNumber() bool { return false }
 func (t terpString) IsPreservedByList() bool {
 	return nil != MatchBareWord.FindStringSubmatch(t.s)
@@ -710,6 +743,12 @@ func (t terpList) Uint() uint64 {
 	}
 	return t.l[0].Uint()
 }
+func (t terpList) IsQuickInt() bool {
+	if len(t.l) == 1 {
+		return t.l[0].IsQuickInt()
+	}
+	return false
+}
 func (t terpList) IsQuickNumber() bool {
 	if len(t.l) == 1 {
 		return t.l[0].IsQuickNumber()
@@ -779,6 +818,9 @@ func (t terpValue) Int() int64 {
 	panic("cant yet")
 }
 func (t terpValue) Uint() uint64 {
+	panic("cant yet")
+}
+func (t terpValue) IsQuickInt() bool {
 	panic("cant yet")
 }
 func (t terpValue) IsQuickNumber() bool {
@@ -868,6 +910,12 @@ func (t *terpMulti) Uint() uint64 {
 		return t.f.Uint()
 	}
 	return t.s.Uint()
+}
+func (t *terpMulti) IsQuickInt() bool {
+	if t.i != nil {
+		return t.i.IsQuickInt()
+	}
+	return t.s.IsQuickInt()
 }
 func (t *terpMulti) IsQuickNumber() bool {
 	if t.f != nil {
@@ -1096,6 +1144,7 @@ var MultiEvalExprCompileCounter Counter
 var MkHashCounter Counter
 var MkGeneratorCounter Counter
 var MkBoolCounter Counter
+var MkNumCounter Counter
 var MkFloatCounter Counter
 var MkHackFloatCounter Counter
 var MkIntCounter Counter
@@ -1115,6 +1164,7 @@ func init() {
 	MkHashCounter.Register("MkHash")
 	MkGeneratorCounter.Register("MkGenerator")
 	MkBoolCounter.Register("MkBool")
+	MkNumCounter.Register("MkNum")
 	MkFloatCounter.Register("MkFloat")
 	MkHackFloatCounter.Register("MkHackFloat")
 	MkIntCounter.Register("MkInt")

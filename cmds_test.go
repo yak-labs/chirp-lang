@@ -25,11 +25,11 @@ var cmdTests = `
   must 500 [prod 100 2 2.5]
 
   must 1 [expr {1 + 3 == 2 + 2} ]
-  must 0 [expr { 0.334 < [expr { 1 / 3}]}]
-  must 0 [expr { 0.333 > [expr { 1 / 3}]}]
+  must 0 [expr { 0.334 < [expr { 1.0 / 3}]}]
+  must 0 [expr { 0.333 > [expr { 1 / 3.0}]}]
 
-  must 23 [if {0.5 == [expr 1 / 2]} {sum 20 3} else {sum 40 2}]
-  must 23 [if {[expr 0.5 == [expr 1 / 2]]} {expr 20 + 3} else {expr 40 + 2}]
+  must 23 [if {0.5 == [expr 1 / 2.0]} {sum 20 3} else {sum 40 2}]
+  must 23 [if {[expr 0.5 == [expr 1.0 / 2]]} {expr 20 + 3} else {expr 40 + 2}]
 
   set a 100; set b 20; must 120 [sum [set a] [set b]]
   must 81028 [sum "8[set a]8" [set b]]

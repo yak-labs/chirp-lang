@@ -23,17 +23,45 @@ func (me *PExpr) Eval(fr *Frame) T {
 	Parse2ExprEvalCounter.Incr()
 	switch me.Op {
 	case '+':
-		return MkFloat(me.A.Eval(fr).Float() + me.B.Eval(fr).Float())
+		a := me.A.Eval(fr)
+		b := me.B.Eval(fr)
+		if a.IsQuickInt() && b.IsQuickInt() {
+			return MkInt(a.Int() + b.Int())
+		}
+		return MkFloat(a.Float() + b.Float())
 	case '-':
 		if me.B == nil {
 			// Unary minus, if me.B is missing.
-			return MkFloat(-me.A.Eval(fr).Float())
+			a := me.A.Eval(fr)
+			if a.IsQuickInt() {
+				return MkInt(0 - a.Int())
+			}
+			return MkFloat(0.0 - a.Float())
 		}
+		a := me.A.Eval(fr)
+		b := me.B.Eval(fr)
+		if a.IsQuickInt() && b.IsQuickInt() {
+			return MkInt(a.Int() - b.Int())
+		}
+		return MkFloat(a.Float() - b.Float())
 		return MkFloat(me.A.Eval(fr).Float() - me.B.Eval(fr).Float())
 	case '*':
-		return MkFloat(me.A.Eval(fr).Float() * me.B.Eval(fr).Float())
+		a := me.A.Eval(fr)
+		b := me.B.Eval(fr)
+		if a.IsQuickInt() && b.IsQuickInt() {
+			return MkInt(a.Int() * b.Int())
+		}
+		return MkFloat(a.Float() * b.Float())
 	case '/':
-		return MkFloat(me.A.Eval(fr).Float() / me.B.Eval(fr).Float())
+		a := me.A.Eval(fr)
+		b := me.B.Eval(fr)
+		Say("a/b", a, b)
+		if a.IsQuickInt() && b.IsQuickInt() {
+			Say("MkInt", a, b)
+			return MkInt(a.Int() / b.Int())
+		}
+		Say("MkFloat", a, b)
+		return MkFloat(a.Float() / b.Float())
 	case '%':
 		return MkInt(me.A.Eval(fr).Int() % me.B.Eval(fr).Int())
 	case '&':

@@ -55,6 +55,7 @@ func (t *terpFile) IsEmpty() bool {
 	return false
 }
 func (t *terpFile) IsPreservedByList() bool { return true }
+func (t *terpFile) IsQuickInt() bool     { return false }
 func (t *terpFile) IsQuickNumber() bool     { return false }
 func (t *terpFile) List() []T {
 	return []T{t}
