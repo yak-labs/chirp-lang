@@ -260,13 +260,15 @@ func (me *PPart) Eval(fr *Frame) T {
 		if v == nil {
 			panic(Sprintf("(* PWord.Eval.DOLLAR2 *) Variable does not exist.", me.VarName))
 		}
-		h := v.Hash()
+		h, mu := v.Hash()
 		if h == nil {
 			panic(Sprintf("(* PWord.Eval.DOLLAR2 *) Variable %q is not a hash.", me.VarName))
 		}
 
 		k := me.Word.Eval(fr).String()
+		mu.Lock()
 		z, ok := h[k]
+		mu.Unlock()
 		if !ok {
 			panic(Sprintf("(*PWord.Eval.DOLLAR2*) Variable %q: Key not found", me.VarName))
 		}

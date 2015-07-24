@@ -11,6 +11,7 @@ import (
 	R "reflect"
 	"runtime/pprof"
 	"strings"
+	"sync"
 )
 
 type terpFile struct {
@@ -61,7 +62,7 @@ func (t *terpFile) List() []T {
 func (t *terpFile) HeadTail() (hd, tl T) {
 	return MkList(t.List()).HeadTail()
 }
-func (t *terpFile) Hash() Hash {
+func (t *terpFile) Hash() (Hash, *sync.Mutex) {
 	panic("a terpFile is not a Hash")
 }
 func (t *terpFile) GetAt(key T) T {

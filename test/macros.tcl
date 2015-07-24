@@ -50,3 +50,18 @@ proc test-foo-foo {} {
 
 must "foo foo" [test-foo-foo]
 
+#############################
+
+# K combinater -- returns its first arg.
+###macro kc {a ARGS} {eval {set z $a; list {*}$ARGS; set z}}
+proc kc {a args} {set a}
+
+proc step {x y} {
+  upvar 1 $x r
+  upvar 1 $y s
+  kc "[set r],[set s]" [incr r] [incr s 10]
+}
+set a,b {100 200}
+step a b
+step b a
+must 111,211 [step a b]

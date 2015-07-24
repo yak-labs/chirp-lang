@@ -112,9 +112,14 @@ func cmdRpcCall(fr *Frame, argv []T) T {
 
 	d := make(url.Values)
 	d[SPECIAL_VERB_KEY] = []string{verb}
-	for k, v := range hashT.Hash() {
-		d[k] = []string{v.String()} // Always a singleton.
-	}
+	h, mu := hashT.Hash()
+	func() {
+		mu.Lock()
+		defer mu.Unlock()
+		for k, v := range h {
+			d[k] = []string{v.String()} // Always a singleton.
+		}
+	}()
 	resp, err := http.PostForm(cp.Path, d)
 
 	if err != nil {

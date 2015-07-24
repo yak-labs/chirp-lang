@@ -27,7 +27,7 @@ type T interface {
 	IsPreservedByList() bool
 	IsQuickNumber() bool
 	HeadTail() (hd, tl T)
-	Hash() Hash
+	Hash() (Hash, *sync.Mutex)
 	GetAt(key T) T
 	PutAt(value T, key T)
 	QuickReflectValue() R.Value
@@ -369,25 +369,21 @@ func (t *terpHash) IsPreservedByList() bool { return true }
 func (t *terpHash) IsQuickNumber() bool     { return false }
 func (t *terpHash) List() []T {
 	t.Mu.Lock()
-	defer t.Mu.Unlock()
-
 	keys := SortedKeysOfHash(t.h)
 	z := make([]T, 0, 2*len(keys))
 
 	for _, k := range keys {
 		v := t.h[k]
-		if v == nil {
-			continue // Omit phantoms and deletions.
-		}
 		z = append(z, MkString(k), v)
 	}
+	t.Mu.Unlock()
 	return z
 }
 func (t *terpHash) HeadTail() (hd, tl T) {
 	return MkList(t.List()).HeadTail()
 }
-func (t *terpHash) Hash() Hash {
-	return t.h
+func (t *terpHash) Hash() (Hash, *sync.Mutex) {
+	return t.h, &t.Mu
 }
 func (t *terpHash) GetAt(key T) T {
 	k := key.String()
@@ -476,7 +472,7 @@ func (t terpGenerator) HeadTail() (hd, tl T) {
 	g.tl = terpGenerator{guts: &terpGeneratorGuts{readerChan: g.readerChan}}
 	return g.hd, g.tl
 }
-func (t terpGenerator) Hash() Hash {
+func (t terpGenerator) Hash() (Hash, *sync.Mutex) {
 	panic("terpGenerator is not a Hash")
 }
 func (t terpGenerator) GetAt(key T) T {
@@ -528,7 +524,7 @@ func (t terpInt) List() []T {
 func (t terpInt) HeadTail() (hd, tl T) {
 	return MkList(t.List()).HeadTail()
 }
-func (t terpInt) Hash() Hash {
+func (t terpInt) Hash() (Hash, *sync.Mutex) {
 	panic(" is not a Hash")
 }
 func (t terpInt) GetAt(key T) T {
@@ -580,7 +576,7 @@ func (t terpFloat) List() []T {
 func (t terpFloat) HeadTail() (hd, tl T) {
 	return MkList(t.List()).HeadTail()
 }
-func (t terpFloat) Hash() Hash {
+func (t terpFloat) Hash() (Hash, *sync.Mutex) {
 	panic(" is not a Hash")
 }
 func (t terpFloat) GetAt(key T) T {
@@ -647,7 +643,7 @@ func (t terpString) List() []T {
 func (t terpString) HeadTail() (hd, tl T) {
 	return MkList(t.List()).HeadTail()
 }
-func (t terpString) Hash() Hash {
+func (t terpString) Hash() (Hash, *sync.Mutex) {
 	panic("A string is not a Hash")
 }
 func (t terpString) GetAt(key T) T {
@@ -730,7 +726,7 @@ func (t terpList) HeadTail() (hd, tl T) {
 	}
 	return t.l[0], MkList(t.l[1:])
 }
-func (t terpList) Hash() Hash {
+func (t terpList) Hash() (Hash, *sync.Mutex) {
 	panic("A List is not a Hash")
 }
 func (t terpList) GetAt(key T) T {
@@ -894,7 +890,7 @@ func (t *terpMulti) HeadTail() (hd, tl T) {
 	}
 	return t.s.HeadTail()
 }
-func (t *terpMulti) Hash() Hash {
+func (t *terpMulti) Hash() (Hash, *sync.Mutex) {
 	panic("terpMulti: String is not a Hash")
 }
 func (t *terpMulti) GetAt(key T) T {
@@ -1009,7 +1005,7 @@ func ToListElementString(s string) string {
 	}
 	return s
 }
-func (t terpValue) Hash() Hash {
+func (t terpValue) Hash() (Hash, *sync.Mutex) {
 	panic("A GoValue is not a Hash")
 }
 func (t terpValue) GetAt(key T) T {

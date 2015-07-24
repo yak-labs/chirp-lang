@@ -1422,10 +1422,12 @@ func cmdHash(fr *Frame, argv []T) T {
 
 func cmdHGet(fr *Frame, argv []T) T {
 	hash, key := Arg2(argv)
-	h := hash.Hash()
+	h, mu := hash.Hash()
 	k := key.String()
-	value := h[k]
-	if value == nil {
+	mu.Lock()
+	value, ok := h[k]
+	mu.Unlock()
+	if !ok {
 		panic(Sprintf("Hash does not contain key: %q", k))
 	}
 	return value
@@ -1433,28 +1435,38 @@ func cmdHGet(fr *Frame, argv []T) T {
 
 func cmdHSet(fr *Frame, argv []T) T {
 	hash, key, value := Arg3(argv)
-	h := hash.Hash()
+	h, mu := hash.Hash()
 	k := key.String()
+	mu.Lock()
 	h[k] = value
+	mu.Unlock()
 	return value
 }
 
 func cmdHDel(fr *Frame, argv []T) T {
 	hash, key := Arg2(argv)
-	h := hash.Hash()
+	h, mu := hash.Hash()
 	k := key.String()
-	h[k] = nil // TODO: how to delete?
+	mu.Lock()
+	delete(h, k)
+	mu.Unlock()
 	return Empty
 }
 
-func cmdHKeys(fr *Frame, argv []T) T {
-	hash := Arg1(argv)
-	h := hash.Hash()
+func hashKeys(h Hash, mu *sync.Mutex) []T {
+	mu.Lock()
 	z := make([]T, 0, len(h))
 	for _, k := range SortedKeysOfHash(h) {
 		z = append(z, MkString(k))
 	}
-	return MkList(z)
+	mu.Unlock()
+	return z
+}
+
+func cmdHKeys(fr *Frame, argv []T) T {
+	hash := Arg1(argv)
+	h, mu := hash.Hash()
+	return MkList(hashKeys(h, mu))
 }
 
 type SafeSubInterp struct {
@@ -1930,6 +1942,30 @@ Loop:
 	return false
 }
 
+var arrayEnsemble = []EnsembleItem{
+	EnsembleItem{Name: "exists", Cmd: cmdArrayExists},
+	EnsembleItem{Name: "names", Cmd: cmdArrayNames},
+}
+
+func cmdArrayExists(fr *Frame, argv []T) T {
+	name := Arg1(argv)
+	s := name.String()
+
+	if !fr.HasVar(s) {
+		return False
+	}
+	t := fr.GetVar(s)
+	_, ok := t.(*terpHash)
+	return MkBool(ok)
+}
+
+func cmdArrayNames(fr *Frame, argv []T) T {
+	hashName := Arg1(argv)
+	t := fr.GetVar(hashName.String())
+	h, mu := t.Hash()
+	return MkList(hashKeys(h, mu))
+}
+
 var infoEnsemble = []EnsembleItem{
 	EnsembleItem{Name: "macros", Cmd: cmdInfoMacros},
 	EnsembleItem{Name: "commands", Cmd: cmdInfoCommands},
@@ -1974,6 +2010,7 @@ func cmdInfoLocals(fr *Frame, argv []T) T {
 	SortListByString(zz)
 	return MkList(zz)
 }
+
 func cmdInfoExists(fr *Frame, argv []T) T {
 	name := Arg1(argv)
 	s := name.String()
@@ -2229,6 +2266,7 @@ func init() {
 	Safes["throw"] = cmdThrow
 	Safes["string"] = MkEnsemble(stringEnsemble)
 	Safes["info"] = MkEnsemble(infoEnsemble)
+	Safes["array"] = MkEnsemble(arrayEnsemble)
 	Safes["split"] = cmdSplit
 	Safes["join"] = cmdJoin
 	Safes["dropnull"] = cmdDropNull
