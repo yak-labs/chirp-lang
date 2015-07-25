@@ -78,8 +78,11 @@ func Arg2v(argv []T) (T, T, []T) {
 func RemoveHeadDashArgs(argv []T) (dashes []string, newArgv []T) {
 	var i int
 	for i = 1; len(argv) >= i; i++ {
-		str := argv[i].QuickString()
-		if len(str) > 0 && str[0] == '-' {
+		if !argv[i].IsQuickString() {
+			break
+		}
+		str := argv[i].String()
+		if len(str) > 0 && (str)[0] == '-' {
 			continue
 		} else {
 			break
@@ -94,7 +97,7 @@ func RemoveHeadDashArgs(argv []T) (dashes []string, newArgv []T) {
 
 	dashes = make([]string, i-1)
 	for j := 1; j < i; j++ {
-		dashes[j-1] = argv[j].QuickString()
+		dashes[j-1] = argv[j].String()
 	}
 	newArgv = make([]T, len(argv)-i+1)
 	newArgv[0] = argv[0]

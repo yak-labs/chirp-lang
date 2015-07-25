@@ -26,7 +26,7 @@ func MkFile(f *os.File) *terpFile {
 
 // *terpFile implements T
 
-func (t terpFile) ChirpKind() string { return "File" }
+func (t terpFile) ChirpFlavor() string { return "File" }
 func (t *terpFile) Raw() interface{} {
 	return t.f
 }
@@ -45,9 +45,17 @@ func (t *terpFile) Uint() uint64 {
 func (t *terpFile) ListElementString() string {
 	return t.String()
 }
-func (t *terpFile) QuickString() string {
-	return t.String()
+
+func (t *terpFile) IsQuickString() bool {
+	return false
 }
+func (t *terpFile) IsQuickList() bool {
+	return false
+}
+func (t *terpFile) IsQuickHash() bool {
+	return false
+}
+
 func (t *terpFile) Bool() bool {
 	panic("terpFile cannot be used as Bool")
 }
@@ -55,7 +63,7 @@ func (t *terpFile) IsEmpty() bool {
 	return false
 }
 func (t *terpFile) IsPreservedByList() bool { return true }
-func (t *terpFile) IsQuickInt() bool     { return false }
+func (t *terpFile) IsQuickInt() bool        { return false }
 func (t *terpFile) IsQuickNumber() bool     { return false }
 func (t *terpFile) List() []T {
 	return []T{t}

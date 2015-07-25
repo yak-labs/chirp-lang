@@ -13,14 +13,16 @@ import (
 // T is an interface to any Tcl value.
 // Use them only through these methods, or fix these methods.
 type T interface {
-	ChirpKind() string
+	ChirpFlavor() string
 	Raw() interface{}
 	String() string
 	Float() float64
 	Int() int64
 	Uint() uint64
 	ListElementString() string
-	QuickString() string
+	IsQuickString() bool
+	IsQuickList() bool
+	IsQuickHash() bool
 	Bool() bool    // Like Python, empty values and 0 values are false.
 	IsEmpty() bool // Would String() return ""?
 	List() []T
@@ -329,8 +331,8 @@ func MkT(a interface{}) T {
 
 // *terpHash implements T
 
-func (t *terpHash) ChirpKind() string { return "Hash" }
-func (t *terpHash) Raw() interface{}  { return t.h }
+func (t *terpHash) ChirpFlavor() string { return "Hash" }
+func (t *terpHash) Raw() interface{}    { return t.h }
 func (t *terpHash) String() string {
 	return MkList(t.List()).String()
 }
@@ -346,8 +348,14 @@ func (t *terpHash) Uint() uint64 {
 func (t *terpHash) ListElementString() string {
 	return MkString(t.String()).ListElementString()
 }
-func (t *terpHash) QuickString() string {
-	return ""
+func (t *terpHash) IsQuickString() bool {
+	return false
+}
+func (t *terpHash) IsQuickList() bool {
+	return false
+}
+func (t *terpHash) IsQuickHash() bool {
+	return true
 }
 func (t *terpHash) Bool() bool {
 	panic("terpHash cannot be used as Bool")
@@ -427,7 +435,7 @@ func (t *terpHash) Apply(fr *Frame, args []T) T { panic("Cannot apply terpHash a
 
 // terpGenerator implements T
 
-func (t terpGenerator) ChirpKind() string { return "Generator" }
+func (t terpGenerator) ChirpFlavor() string { return "Generator" }
 func (t terpGenerator) Raw() interface{} {
 	panic("not implemented on generator (terpGenerator)")
 }
@@ -446,8 +454,14 @@ func (t terpGenerator) Uint() uint64 {
 func (t terpGenerator) ListElementString() string {
 	panic("not implemented on generator (terpGenerator)")
 }
-func (t terpGenerator) QuickString() string {
-	return ""
+func (t terpGenerator) IsQuickString() bool {
+	return false
+}
+func (t terpGenerator) IsQuickList() bool {
+	return true
+}
+func (t terpGenerator) IsQuickHash() bool {
+	return false
 }
 func (t terpGenerator) Bool() bool {
 	panic("terpGenerator cannot be used as Bool")
@@ -508,7 +522,7 @@ func (t terpGenerator) Apply(fr *Frame, args []T) T { panic("Cannot apply terpGe
 
 // terpInt implements T
 
-func (t terpInt) ChirpKind() string { return "Float" }
+func (t terpInt) ChirpFlavor() string { return "Float" }
 func (t terpInt) Raw() interface{} {
 	return t.i
 }
@@ -518,8 +532,14 @@ func (t terpInt) String() string {
 func (t terpInt) ListElementString() string {
 	return t.String()
 }
-func (t terpInt) QuickString() string {
-	return ""
+func (t terpInt) IsQuickString() bool {
+	return false
+}
+func (t terpInt) IsQuickList() bool {
+	return false
+}
+func (t terpInt) IsQuickHash() bool {
+	return false
 }
 func (t terpInt) Bool() bool {
 	return t.i != 0
@@ -561,7 +581,7 @@ func (t terpInt) Apply(fr *Frame, args []T) T { return fr.Apply(args) }
 
 // terpFloat implements T
 
-func (t terpFloat) ChirpKind() string { return "Float" }
+func (t terpFloat) ChirpFlavor() string { return "Float" }
 func (t terpFloat) Raw() interface{} {
 	return t.f
 }
@@ -571,8 +591,14 @@ func (t terpFloat) String() string {
 func (t terpFloat) ListElementString() string {
 	return t.String()
 }
-func (t terpFloat) QuickString() string {
-	return ""
+func (t terpFloat) IsQuickString() bool {
+	return false
+}
+func (t terpFloat) IsQuickList() bool {
+	return false
+}
+func (t terpFloat) IsQuickHash() bool {
+	return false
 }
 func (t terpFloat) Bool() bool {
 	return t.f != 0
@@ -614,7 +640,7 @@ func (t terpFloat) Apply(fr *Frame, args []T) T { return fr.Apply(args) }
 
 // terpString implements T
 
-func (t terpString) ChirpKind() string { return "String" }
+func (t terpString) ChirpFlavor() string { return "String" }
 func (t terpString) Raw() interface{} {
 	return t.s
 }
@@ -624,8 +650,14 @@ func (t terpString) String() string {
 func (t terpString) ListElementString() string {
 	return ToListElementString(t.s)
 }
-func (t terpString) QuickString() string {
-	return t.s
+func (t terpString) IsQuickString() bool {
+	return true
+}
+func (t terpString) IsQuickList() bool {
+	return false
+}
+func (t terpString) IsQuickHash() bool {
+	return false
 }
 func (t terpString) Bool() bool {
 	if t.s == "0" {
@@ -692,7 +724,7 @@ func (t terpString) Apply(fr *Frame, args []T) T { return fr.Apply(args) }
 
 // terpList implements T
 
-func (t terpList) ChirpKind() string { return "List" }
+func (t terpList) ChirpFlavor() string { return "List" }
 func (t terpList) Raw() interface{} {
 	z := make([]interface{}, len(t.l))
 	for i, e := range t.l {
@@ -713,8 +745,14 @@ func (t terpList) String() string {
 func (t terpList) ListElementString() string {
 	return ToListElementString(t.String())
 }
-func (t terpList) QuickString() string {
-	return ""
+func (t terpList) IsQuickString() bool {
+	return false
+}
+func (t terpList) IsQuickList() bool {
+	return false
+}
+func (t terpList) IsQuickHash() bool {
+	return false
 }
 func (t terpList) Bool() bool {
 	if len(t.l) == 1 {
@@ -785,7 +823,7 @@ func (t terpList) Apply(fr *Frame, args []T) T { return fr.Apply(args) }
 
 // terpValue implements T
 
-func (t terpValue) ChirpKind() string { return "Value" }
+func (t terpValue) ChirpFlavor() string { return "Value" }
 func (t terpValue) Raw() interface{} {
 	return t.v.Interface()
 }
@@ -796,8 +834,14 @@ func (t terpValue) String() string {
 func (t terpValue) ListElementString() string {
 	return ToListElementString(t.String())
 }
-func (t terpValue) QuickString() string {
-	return ""
+func (t terpValue) IsQuickString() bool {
+	return false
+}
+func (t terpValue) IsQuickList() bool {
+	return false
+}
+func (t terpValue) IsQuickHash() bool {
+	return false
 }
 func (t terpValue) Bool() bool {
 	panic("terpValue cannot be used as Bool")
@@ -811,40 +855,36 @@ func (t terpValue) IsEmpty() bool {
 	// Strings, numbers, and bools should not be in terpValue so we don't look for emptiness or zeroness in them.
 	return false
 }
+
+var Float64Type R.Type = R.TypeOf(*new(float64))
+var Int64Type R.Type = R.TypeOf(*new(int64))
+var Uint64Type R.Type = R.TypeOf(*new(uint64))
+
 func (t terpValue) Float() float64 {
-	panic("cant yet")
+	return t.v.Convert(Float64Type).Interface().(float64)
 }
 func (t terpValue) Int() int64 {
-	panic("cant yet")
+	return t.v.Convert(Int64Type).Interface().(int64)
 }
 func (t terpValue) Uint() uint64 {
-	panic("cant yet")
+	return t.v.Convert(Uint64Type).Interface().(uint64)
 }
 func (t terpValue) IsQuickInt() bool {
-	panic("cant yet")
+	return t.v.Type().ConvertibleTo(Int64Type)
 }
 func (t terpValue) IsQuickNumber() bool {
-	panic("cant yet")
+	return t.v.Type().ConvertibleTo(Float64Type)
 }
-func (t terpValue) IsPreservedByList() bool { return true }
+func (t terpValue) IsPreservedByList() bool { return false }
 func (t terpValue) List() []T {
-	/***
-		Is this a good idea?
-
-		At times, it is really convenient to have a Raw Slice be a list.
-
-		But other times, we want to edit that Raw Slice in place.
-
-		Maybe this is right -- only when you explicitly ask for a List() do we explode it.
-
-		Is treating Ptr and Iface like a Singleton List a good idea?
-	***/
 	switch t.v.Kind() {
 
-	// Treat Pointer and Interface as a singleton list.
-	case R.Ptr, R.Interface:
-		x := MkT(t.v.Elem().Interface())
-		return []T{x}
+	/*
+		// Treat Pointer and Interface as a singleton list.
+		case R.Ptr, R.Interface:
+			x := MkT(t.v.Elem().Interface())
+			return []T{x}
+	*/
 
 	// Slices and Arrays are naturally lists (unless they're bytes)
 	case R.Slice, R.Array:
@@ -858,8 +898,7 @@ func (t terpValue) List() []T {
 		}
 		return z
 	}
-	/********/
-	return []T{t}
+	panic("terpValue: not a list")
 }
 func (t terpValue) HeadTail() (hd, tl T) {
 	return MkList(t.List()).HeadTail()
@@ -868,7 +907,7 @@ func (t terpValue) HeadTail() (hd, tl T) {
 ///////////////////////////////////////////////////////////////////////
 // *terpMulti implements T
 
-func (t terpMulti) ChirpKind() string { return "Multi" }
+func (t terpMulti) ChirpFlavor() string { return "Multi" }
 func (t *terpMulti) Raw() interface{} {
 	return t.s.Raw()
 }
@@ -878,8 +917,14 @@ func (t *terpMulti) String() string {
 func (t *terpMulti) ListElementString() string {
 	return t.s.ListElementString()
 }
-func (t *terpMulti) QuickString() string {
-	return t.s.String()
+func (t *terpMulti) IsQuickString() bool {
+	return true
+}
+func (t *terpMulti) IsQuickList() bool {
+	return t.l != nil
+}
+func (t *terpMulti) IsQuickHash() bool {
+	return false
 }
 func (t *terpMulti) Bool() bool {
 	if t.f != nil {
@@ -939,13 +984,13 @@ func (t *terpMulti) HeadTail() (hd, tl T) {
 	return t.s.HeadTail()
 }
 func (t *terpMulti) Hash() (Hash, *sync.Mutex) {
-	panic("terpMulti: String is not a Hash")
+	panic("terpMulti: is not a Hash")
 }
 func (t *terpMulti) GetAt(key T) T {
-	panic("terpMulti: String is not a Hash")
+	panic("terpMulti: is not a Hash")
 }
 func (t *terpMulti) PutAt(value T, key T) {
-	panic("terpMulti: String is not a Hash")
+	panic("terpMulti: is not a Hash")
 }
 func (t *terpMulti) QuickReflectValue() R.Value { return InvalidValue }
 func (t *terpMulti) EvalSeq(fr *Frame) T {

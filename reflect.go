@@ -689,12 +689,14 @@ func commonCall(fr *Frame, funcName string, fn R.Value, args []T, numFrontArgs i
 	return MkList(zz) // If multiple results, return a list of them.
 }
 
-// TODO: test.
-func cmdGoMapToHash(fr *Frame, argv []T) T {
-	mapT := Arg1(argv)
-	mapV := mapT.QuickReflectValue()
+func cmdChirpHash(fr *Frame, argv []T) T {
+	t := Arg1(argv)
+	if t.IsQuickHash() {
+		return t
+	}
+	mapV := t.QuickReflectValue()
 	keysVs := mapV.MapKeys()
-	h := make(Hash, 4)
+	h := make(Hash)
 	for _, keyV := range keysVs {
 		k := MkT(keyV.Interface()).String()
 		v := MkT(mapV.MapIndex(keyV).Interface())
@@ -703,10 +705,68 @@ func cmdGoMapToHash(fr *Frame, argv []T) T {
 	return MkHash(h)
 }
 
+func cmdChirpList(fr *Frame, argv []T) T {
+	t := Arg1(argv)
+	if t.IsQuickList() {
+		return t
+	}
+	val := t.QuickReflectValue()
+	n := val.Len()
+	var vec []T
+	for i := 0; i < n; i++ {
+		vec = append(vec, MkValue(val.Index(i)))
+	}
+	return MkList(vec)
+}
+
+func cmdChirpTcl(fr *Frame, argv []T) T {
+	t := Arg1(argv)
+	return MkT(t.Raw())
+}
+
+func cmdChirpInt(fr *Frame, argv []T) T {
+	t := Arg1(argv)
+	return MkInt(t.Int())
+}
+
+func cmdChirpFloat(fr *Frame, argv []T) T {
+	t := Arg1(argv)
+	return MkFloat(t.Float())
+}
+
+func cmdChirpString(fr *Frame, argv []T) T {
+	t := Arg1(argv)
+	return MkString(t.String())
+}
+
+func cmdChirpGoString(fr *Frame, argv []T) T {
+	t := Arg1(argv)
+	if s, ok := t.Raw().(Stringer); ok {
+		return MkString(s.String())
+	}
+	return MkString(t.String()) // Fall back to chirp string.
+}
+
+func cmdChirpFlavor(fr *Frame, argv []T) T {
+	t := Arg1(argv)
+	return MkString(t.ChirpFlavor())
+}
+
+var chirpEnsemble = []EnsembleItem{
+	EnsembleItem{Name: "hash", Cmd: cmdChirpHash},
+	EnsembleItem{Name: "list", Cmd: cmdChirpList},
+	EnsembleItem{Name: "tcl", Cmd: cmdChirpTcl},
+	EnsembleItem{Name: "int", Cmd: cmdChirpInt},
+	EnsembleItem{Name: "float", Cmd: cmdChirpFloat},
+	EnsembleItem{Name: "string", Cmd: cmdChirpString},
+	EnsembleItem{Name: "String", Cmd: cmdChirpGoString},
+	EnsembleItem{Name: "flavor", Cmd: cmdChirpFlavor},
+}
+
 func init() {
 	if Unsafes == nil {
 		Unsafes = make(map[string]Command, 333)
 	}
 
-	Unsafes["go-map-to-hash"] = cmdGoMapToHash
+	Unsafes["chirp"] = MkEnsemble(chirpEnsemble)
 }
