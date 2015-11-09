@@ -1946,8 +1946,62 @@ Loop:
 }
 
 var arrayEnsemble = []EnsembleItem{
+	EnsembleItem{Name: "get", Cmd: cmdArrayGet},
+	EnsembleItem{Name: "set", Cmd: cmdArraySet},
+	EnsembleItem{Name: "size", Cmd: cmdArraySize},
 	EnsembleItem{Name: "exists", Cmd: cmdArrayExists},
 	EnsembleItem{Name: "names", Cmd: cmdArrayNames},
+}
+
+func cmdArraySet(fr *Frame, argv []T) T {
+	varName, stuff := Arg2(argv)
+	s := varName.String()
+	v := stuff.List()
+	n := len(v)
+	if n%2 != 0 {
+		panic("array set: got odd length of value list")
+	}
+	var h T
+	if !fr.HasVar(s) {
+		h = MkHash(nil)
+		fr.SetVar(s, h)
+	} else {
+		h = fr.GetVar(s) // TODO: race
+	}
+	for i := 0; i < n; i += 2 {
+		h.PutAt(v[i+1], v[i])
+	}
+	return h
+}
+
+func cmdArrayGet(fr *Frame, argv []T) T {
+	varName := Arg1(argv) // TODO: optional glob.
+	t := fr.GetVar(varName.String())
+	h, mu := t.Hash()
+	mu.Lock()
+
+	var z []T
+	for _, k := range SortedKeysOfHash(h) {
+		z = append(z, MkString(k))
+		z = append(z, h[k])
+	}
+	mu.Unlock()
+	return MkList(z)
+}
+func cmdArraySize(fr *Frame, argv []T) T {
+	name := Arg1(argv)
+	s := name.String()
+
+	if !fr.HasVar(s) {
+		return Zero // Normal Tcl returns 0 if var doesn't exist.
+	}
+
+	t := fr.GetVar(s)
+	h, mu := t.Hash()
+	mu.Lock()
+	n := len(h)
+	mu.Unlock()
+	return MkInt(int64(n))
 }
 
 func cmdArrayExists(fr *Frame, argv []T) T {
