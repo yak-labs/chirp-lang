@@ -10,17 +10,17 @@ import (
 	R "reflect"
 )
 
-func P2T(p rye.P) chirp.T {
+func B2T(p rye.B) chirp.T {
 	var z chirp.T
-	c := p.Contents()
-	println(Sprintf("P2T <<< %v <<< %v", c, p))
+	c := p.Self.Contents()
+	println(Sprintf("B2T <<< %v <<< %v", c, p))
 
 	switch t := c.(type) {
-	case []rye.P:
+	case []rye.B:
 		n := len(t)
 		tt := make([]chirp.T, n, n)
 		for i, e := range t {
-			tt[i] = P2T(e) // Recurse.
+			tt[i] = B2T(e) // Recurse.
 		}
 		z = chirp.MkList(tt)
 
@@ -28,16 +28,16 @@ func P2T(p rye.P) chirp.T {
 		z = chirp.MkT(c)
 	}
 
-	println(Sprintf("P2T >>> %v", z))
+	println(Sprintf("B2T >>> %v", z))
 	return z
 }
 
-func T2P(t chirp.T) rye.P {
+func T2B(t chirp.T) rye.B {
 	// Rye C_Objects and Go reflect.Values.
 	if val := t.QuickReflectValue(); val.IsValid() {
 		guts := val.Interface()
 		if gs, ok := guts.(rye.GetSelfer); ok {
-			return gs.GetSelf()
+			return gs.GetSelf().B()
 		}
 		return rye.MkValue(val)
 	}
@@ -92,21 +92,21 @@ func T2P(t chirp.T) rye.P {
 	case R.UnsafePointer:
 	}
 
-	panic(Sprintf("T2P: Bad Kind: %v", val.Kind()))
+	panic(Sprintf("T2B: Bad Kind: %v", val.Kind()))
 }
 
 func cmdRyCall(fr *chirp.Frame, argv []chirp.T) chirp.T {
 	fnT, argsT := chirp.Arg1v(argv)
 	//fnP := T2P(fnT)
 	n := len(argsT)
-	argsP := make([]rye.P, n, n)
+	argsP := make([]rye.B, n, n)
 	for i, t := range argsT {
-		argsP[i] = T2P(t)
+		argsP[i] = T2B(t)
 	}
 
 	if p, ok := fnT.Raw().(rye.ICallV); ok {
 		z := p.CallV(argsP, nil, nil, nil)
-		return P2T(z)
+		return B2T(z)
 	}
 	panic("rycall: fn not an ICallV")
 }
