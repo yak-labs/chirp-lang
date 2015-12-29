@@ -104,11 +104,16 @@ func cmdRyCall(fr *chirp.Frame, argv []chirp.T) chirp.T {
 		argsP[i] = T2B(t)
 	}
 
-	if p, ok := fnT.Raw().(rye.ICallV); ok {
-		z := p.CallV(argsP, nil, nil, nil)
-		return B2T(z)
+	if b, ok := fnT.Raw().(rye.B); ok {
+		if p, ok := b.Self.(rye.ICallV); ok {
+			z := p.CallV(argsP, nil, nil, nil)
+			return B2T(z)
+		} else {
+			panic("rycall: fn not an rye.ICallV")
+		}
+	} else {
+		panic("rycall: fn not a rye.B")
 	}
-	panic("rycall: fn not an ICallV")
 }
 
 func init() {
