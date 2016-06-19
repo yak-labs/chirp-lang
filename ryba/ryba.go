@@ -10,34 +10,12 @@ import (
 	R "reflect"
 )
 
-func B2T(p rye.B) chirp.T {
-	var z chirp.T
-	c := p.Self.Contents()
-	println(Sprintf("B2T <<< %v <<< %v", c, p))
-
-	switch t := c.(type) {
-	case []rye.B:
-		n := len(t)
-		tt := make([]chirp.T, n, n)
-		for i, e := range t {
-			tt[i] = B2T(e) // Recurse.
-		}
-		z = chirp.MkList(tt)
-
-	default:
-		z = chirp.MkT(c)
-	}
-
-	println(Sprintf("B2T >>> %v", z))
-	return z
-}
-
-func T2B(t chirp.T) rye.B {
+func T2B(t chirp.T) rye.M {
 	// Rye C_Objects and Go reflect.Values.
 	if val := t.QuickReflectValue(); val.IsValid() {
 		guts := val.Interface()
 		if gs, ok := guts.(rye.GetSelfer); ok {
-			return gs.GetSelf().B()
+			return gs.GetSelf().M()
 		}
 		return rye.MkValue(val)
 	}
@@ -97,23 +75,26 @@ func T2B(t chirp.T) rye.B {
 
 func cmdRyCall(fr *chirp.Frame, argv []chirp.T) chirp.T {
 	fnT, argsT := chirp.Arg1v(argv)
-	//fnP := T2P(fnT)
 	n := len(argsT)
-	argsP := make([]rye.B, n, n)
+
+	argsVV := make([]R.Value, n)
 	for i, t := range argsT {
-		argsP[i] = T2B(t)
+		argsVV[i] = R.ValueOf(rye.Mk(t.Raw()))
 	}
 
-	if b, ok := fnT.Raw().(rye.B); ok {
-		if p, ok := b.Self.(rye.ICallV); ok {
-			z := p.CallV(argsP, nil, nil, nil)
-			return B2T(z)
-		} else {
-			panic("rycall: fn not an rye.ICallV")
-		}
-	} else {
-		panic("rycall: fn not a rye.B")
+	//println(Sprintf("qqq<<< cmdRyCall: fnT %T %T %#v", fnT, fnT.Raw(), fnT.Raw()))
+
+	var fn interface{} = fnT.Raw()
+	fnV := R.ValueOf(fn)
+	resultsVV := fnV.Call(argsVV)
+	if len(resultsVV) != 1 {
+		panic("bad len resultsVV")
 	}
+
+	//println(Sprintf("qqq>>> cmdRyCall: fnT %T %T %#v", resultsVV[0], resultsVV[0].Interface(), resultsVV[0].Interface()))
+
+	// Note:  This may not be quite right; we used to have some extra code for slices.
+	return chirp.MkT(resultsVV[0].Interface().(rye.M).Contents())
 }
 
 func init() {
