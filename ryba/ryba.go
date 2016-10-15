@@ -3,7 +3,7 @@
 package ryba
 
 import (
-	"github.com/strickyak/rye"
+	rye "github.com/strickyak/rye/rye__"
 	"github.com/yak-labs/chirp-lang"
 
 	. "fmt"
