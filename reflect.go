@@ -155,7 +155,7 @@ func ApplyToReflectedValue(fr *Frame, v R.Value, args []T, i int) T {
 		Sayf("......................... %s", Showv(args))
 	}
 	if v.Kind() == R.Func {
-		z4 := commonCall(fr, "Func_KIND", v, args, 0)
+		z4 := commonCall(fr, "Func_KIND", v, args[1:], 0)
 		return z4
 		// func commonCall(fr *Frame, funcName string, fn R.Value, args []T, numFrontArgs int) T
 	}

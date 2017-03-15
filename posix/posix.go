@@ -585,6 +585,12 @@ func cmdEvalWithProfile(fr *Frame, argv []T) T {
 	return z
 }
 
+func cmdExit(fr *Frame, argv []T) T {
+	statusT := Arg1(argv)
+	os.Exit(int(statusT.Int()))
+	return Empty
+}
+
 func init() {
 	if Unsafes == nil {
 		Unsafes = make(map[string]Command, 333)
@@ -597,5 +603,6 @@ func init() {
 	Unsafes["puts"] = cmdPuts
 	Unsafes["flush"] = cmdFlush
 	Unsafes["exec"] = cmdExec
+	Unsafes["exit"] = cmdExit
 	Unsafes["eval_with_profile"] = cmdEvalWithProfile
 }
