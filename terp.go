@@ -15,6 +15,15 @@ import (
 
 var Debug [256]bool
 
+func init() {
+	letters := os.Getenv("CHIRP_DEBUG")
+	for _, ch := range letters {
+		if ch < 256 {
+			Debug[ch] = true
+		}
+	}
+}
+
 type Shower interface {
 	Show() string
 }
@@ -574,13 +583,6 @@ func Say(args ...interface{}) {
 }
 func Sayf(format string, args ...interface{}) {
 	log.Println(Sprintf(format, args...))
-}
-
-func SetDebugFromEnv() {
-	letters := os.Getenv("CHIRP_DEBUG")
-	for _, ch := range letters {
-		Debug[ch] = true
-	}
 }
 
 type Counter struct {
