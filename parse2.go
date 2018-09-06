@@ -909,10 +909,14 @@ func CompileSequence(fr *Frame, s string) *PSeq {
 		Sayf("CompileSequence Non-Empty rest: %q", s)
 		return nil
 	}
-	//println("CompileSequence <<<<<<", z.Show())
+	if Debug['p'] {
+		Say("CompileSequence <<<<<<", z.Show())
+	}
 	maxSubCompile := len(s) // Stop infinite recursion sub-compiles.
 	z2 := z.ExpandMacros(fr, maxSubCompile)
-	//println("CompileSequence <<<<<<", z.Show(), ">>>>>>", z2.Show())
+	if Debug['p'] {
+		Say("CompileSequence <<<<<<", z.Show(), ">>>>>>", z2.Show())
+	}
 	return z2
 }
 
