@@ -6,14 +6,17 @@ package cli
 */
 
 import (
-	"bufio"
+	chirp "github.com/yak-labs/chirp-lang"
+
 	"flag"
-	. "fmt"
-	"github.com/yak-labs/chirp-lang"
+	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime/pprof"
 	"strings"
+
+	"github.com/chzyer/readline"
 )
 
 var dFlag = flag.String("d", "", "Debugging flags, each a single letter.")
@@ -49,7 +52,9 @@ func Main() {
 	setEnvironInChirp(fr, "Env")
 
 	for _, ch := range *dFlag {
-		chirp.Debug[ch] = true
+		if ch < 256 {
+			chirp.Debug[ch] = true
+		}
 	}
 
 	if cFlag != nil && *cFlag != "" {
@@ -63,7 +68,7 @@ func Main() {
 		scriptName = flag.Arg(0)
 		contents, err := ioutil.ReadFile(scriptName)
 		if err != nil {
-			Fprintf(os.Stderr, "Cannot read file %s: %v", scriptName, err)
+			fmt.Fprintf(os.Stderr, "Cannot read file %s: %v", scriptName, err)
 			os.Exit(2)
 			return
 		}
@@ -75,29 +80,38 @@ func Main() {
 
 	{
 		// Interactive mode.
-		bio := bufio.NewReader(os.Stdin)
+		home := os.Getenv("HOME")
+		if home == "" {
+			home = "."
+		}
+
+		rl, err := readline.NewEx(&readline.Config{
+			Prompt:          "% ",
+			HistoryFile:     filepath.Join(home, ".chirp.history"),
+			InterruptPrompt: "*SIGINT*",
+			EOFPrompt:       "*EOF*",
+			// AutoComplete:    completer,
+			// HistorySearchFold:   true,
+			// FuncFilterInputRune: filterInput,
+		})
+		if err != nil {
+			panic(err)
+		}
+		defer rl.Close()
+
 		for {
-			Fprint(os.Stderr, "chirp% ") // Prompt to stderr.
-			line, isPrefix, err := bio.ReadLine()
+			fmt.Fprint(os.Stderr, "chirp% ") // Prompt to stderr.
+			line, err := rl.Readline()
 			if err != nil {
 				if err.Error() == "EOF" { // TODO: better way?
 					goto End
 				}
-				Fprintf(os.Stderr, "ERROR in ReadLine: %s\n", err.Error())
+				fmt.Fprintf(os.Stderr, "ERROR in Readline: %s\n", err.Error())
 				goto End
 			}
-			fullLine := line
-			for isPrefix {
-				line, isPrefix, err = bio.ReadLine()
-				if err != nil {
-					Fprintf(os.Stderr, "ERROR in ReadLine: %s\n", err.Error())
-					goto End
-				}
-				fullLine = append(fullLine, line...)
-			}
-			result := EvalStringOrPrintError(fr, string(fullLine))
+			result := EvalStringOrPrintError(fr, string(line))
 			if result != "" { // Traditionally, if result is empty, tclsh doesn't print.
-				Println(result)
+				fmt.Println(result)
 			}
 		}
 	}
@@ -118,10 +132,10 @@ func logAllCounters() {
 	if *testFlag {
 		chirp.MustMutex.Lock()
 		if chirp.MustFails > 0 {
-			Fprintf(os.Stderr, "TEST FAILS: %q succeeds=%d fails=%d\n", scriptName, chirp.MustSucceeds, chirp.MustFails)
+			fmt.Fprintf(os.Stderr, "TEST FAILS: %q succeeds=%d fails=%d\n", scriptName, chirp.MustSucceeds, chirp.MustFails)
 			os.Exit(1)
 		}
-		Fprintf(os.Stderr, "Test Done: %q succeeds=%d\n", scriptName, chirp.MustSucceeds)
+		fmt.Fprintf(os.Stderr, "Test Done: %q succeeds=%d\n", scriptName, chirp.MustSucceeds)
 		chirp.MustMutex.Unlock()
 	}
 }
@@ -130,7 +144,7 @@ func EvalStringOrPrintError(fr *chirp.Frame, cmd string) (out string) {
 	if *recoverFlag {
 		defer func() {
 			if r := recover(); r != nil {
-				Fprintln(os.Stderr, "ERROR: ", r) // Error to stderr.
+				fmt.Fprintln(os.Stderr, "ERROR: ", r) // Error to stderr.
 				out = ""
 				return
 			}
