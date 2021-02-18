@@ -6,6 +6,7 @@ import (
 	_ "github.com/yak-labs/chirp-lang/goapi/full"
 	_ "github.com/yak-labs/chirp-lang/http"
 	_ "github.com/yak-labs/chirp-lang/img"
+	_ "github.com/yak-labs/chirp-lang/leveldb"
 	_ "github.com/yak-labs/chirp-lang/posix"
 	_ "github.com/yak-labs/chirp-lang/rpc"
 )

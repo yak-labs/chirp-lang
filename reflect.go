@@ -323,7 +323,7 @@ func applyToReflectedValueRecur(fr *Frame, v R.Value, args []T, i int) T {
 				Say("more @ case Map")
 			}
 			if n-1 < i+1 {
-				panic(Sprintf("Missing fieldName after '.' on Reflected %q", v2))
+				panic(Sprintf("Missing key after '@' on Reflected %q", v2))
 			}
 			k := R.ValueOf(args[i+1].Raw())
 			target := v2.MapIndex(k)
