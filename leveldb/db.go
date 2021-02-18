@@ -1,3 +1,46 @@
+/*
+Simple LevelDB Key-Value storage for chirp.
+
+Usage: Add `import _ "github.com/yak-labs/chirp-lang/leveldb"` to your main.
+
+```
+	say [set DB [leveldb.OpenFile /tmp/leveldb]]
+	say [$DB Put Color Magenta {}]
+	say [$DB Get Color {}]
+
+	say [set b [leveldb.Batch]]
+	$b Put D 44
+	$b Put E 55
+	$b Delete F
+	$DB Write $b {}
+
+	set it [$DB NewIterator {} {}]
+	set ok [$it Seek "!"]
+	while {$ok} {
+		say "(( [$it Key] :: [$it Value] ))"
+		set ok [$it Next]
+	}
+	$it Release
+
+	set it [leveldb.ScanAll $DB]
+	while {[$it Next]} {
+		say "(( [$it Key] :: [$it Value] ))"
+	}
+	$it Release
+
+	set it [leveldb.ScanPrefix $DB Co]
+	while {[$it Next]} {
+		say "(( [$it Key] :: [$it Value] ))"
+	}
+	$it Release
+
+	set it [leveldb.ScanRange $DB B T]
+	while {[$it Next]} {
+		say "(( [$it Key] :: [$it Value] ))"
+	}
+	$it Release
+```
+*/
 package leveldb
 
 import (
